@@ -17,7 +17,7 @@ function App() {
         <Route path="/login" element={<Signin />} />
         <Route path="/verify-otp" element={<OtpVerification />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
-        <Route path="/reset-password" element={<ResetPassword />} />
+        <Route path="/reset-password/:token" element={<ResetPassword />} />     
         <Route path="/admin" element={<Admin />} />
         <Route path="*" element={<Error404Page />} />
       </Routes>

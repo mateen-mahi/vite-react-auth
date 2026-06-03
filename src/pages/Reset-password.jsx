@@ -1,12 +1,11 @@
 import { useState } from "react";
-import { useNavigate, useSearchParams, Link } from "react-router-dom";
+import { useNavigate, useParams, Link } from "react-router-dom";
 import api from "../services/api";
 import "../styles/Reset-password.css";
 
 const ResetPassword = () => {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-  const token = searchParams.get("token");
+  const {token} = useParams();
 
   const [formData, setFormData] = useState({
     password: "",
