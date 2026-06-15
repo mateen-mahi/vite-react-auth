@@ -48,7 +48,7 @@ const Signin = () => {
     setSuccessMsg("");
 
     try {
-      const res = await api.post("/login", {
+      const res = await api.post("/signin", {
         email: formData.email,
         password: formData.password,
       });

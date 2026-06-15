@@ -40,7 +40,7 @@ export default function ForgotPassword() {
     setSuccess("");
 
     try {
-      await api.post("/forgotpassword", { email: email.trim().toLowerCase() });
+      await api.post("/forgot-password", { email: email.trim().toLowerCase() });
 
       setSent(true);
       setSuccess("Reset link sent! Check your inbox (Or spam folder).");

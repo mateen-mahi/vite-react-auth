@@ -109,7 +109,7 @@ const OtpVerification = () => {
     setSuccessMsg("");
 
     try {
-      const res = await api.post("/verifyuser", { otp: otpValue });
+      const res = await api.post("/verify-user", { otp: otpValue });
       setSuccessMsg(res.data?.message || "Email verified successfully! Redirecting…");
       setVerified(true);
       setTimeout(() => navigate("/login"), 2500);

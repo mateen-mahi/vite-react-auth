@@ -76,7 +76,7 @@ const Signup = () => {
 
     try {
       const { username, email, password, gender } = formData;
-      const res = await api.post("/signin", { username, email, password, gender });
+      const res = await api.post("/signup", { username, email, password, gender });
 
       setSuccessMsg(res.data?.message || "Account created! Redirecting to login…");
       setTimeout(() => navigate("/login"), 2000);
