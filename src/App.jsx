@@ -16,6 +16,7 @@ import GrandQuiz from "./pages/GrandQuiz";
 import Unauthorized from "./pages/Unauthorized";
 import UserManagement from "./pages/admin/UserManagement";
 import PaymentGateway from "./pages/superAdmin/PaymentGateway";
+import Admin from "./pages/Admin";
 
 // ─────────────────────────────────────────────
 // useAuth Hook — fetches current user + role
@@ -121,6 +122,7 @@ function App() {
           {/* Admin + Super Admin only */}
           <Route element={<RoleRoute allowedRoles={["admin", "super-admin"]} />}>
             <Route path="/user-management" element={<UserManagement />} />
+            <Route path="/admin" element={<Admin />} />
           </Route>
 
           {/* Super Admin only */}
