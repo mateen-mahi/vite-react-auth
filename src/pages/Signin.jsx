@@ -54,7 +54,7 @@ const Signin = () => {
       });
 
       setSuccessMsg(res.data?.message || "Login successful! Redirecting…");
-      setTimeout(() => navigate("/admin"), 1500);
+      setTimeout(() => navigate("/lectures"), 1500);
     } catch (err) {
       const msg =
         err.response?.data?.message ||

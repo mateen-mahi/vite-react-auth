@@ -1,5 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate, Outlet } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { useEffect, useState, createContext, useContext } from "react";
 import axios from "axios";
 
 // Auth Pages
@@ -18,10 +18,10 @@ import UserManagement from "./pages/admin/UserManagement";
 import PaymentGateway from "./pages/superAdmin/PaymentGateway";
 import Admin from "./pages/Admin";
 
-// ─────────────────────────────────────────────
-// useAuth Hook — fetches current user + role
-// ─────────────────────────────────────────────
-const useAuth = () => {
+// 1. Create a Global Auth Context
+const AuthContext = createContext(null);
+
+export const AuthProvider = ({ children }) => {
   const [auth, setAuth] = useState({ loading: true, user: null, role: null });
 
   useEffect(() => {
@@ -31,27 +31,21 @@ const useAuth = () => {
         setAuth({
           loading: false,
           user: res.data.user,
-          role: res.data.user?.role || null, // expected: "end-user" | "admin" | "super-admin"
+          role: res.data.user?.role || null,
         });
       })
       .catch(() => setAuth({ loading: false, user: null, role: null }));
   }, []);
 
-  return auth;
+  return <AuthContext.Provider value={auth}>{children}</AuthContext.Provider>;
 };
 
-// ─────────────────────────────────────────────
-// Role → dashboard redirect path
-// ─────────────────────────────────────────────
-const dashboardPath = (role) => {
-  if (role === "super-admin") return "/dashboard";
-  if (role === "admin") return "/dashboard";
-  return "/dashboard";
-};
+// Hook to pull state safely without initiating new requests
+const useAuth = () => useContext(AuthContext);
 
-// ─────────────────────────────────────────────
-// GuestRoute — redirects logged-in users away from /login & /signup
-// ─────────────────────────────────────────────
+const dashboardPath = (role) => "/dashboard";
+
+// 2. Optimized Route Wrappers
 const GuestRoute = () => {
   const { loading, role } = useAuth();
   if (loading) return <LoadingScreen />;
@@ -59,9 +53,6 @@ const GuestRoute = () => {
   return <Outlet />;
 };
 
-// ─────────────────────────────────────────────
-// ProtectedRoute — any authenticated user
-// ─────────────────────────────────────────────
 const ProtectedRoute = () => {
   const { loading, role } = useAuth();
   if (loading) return <LoadingScreen />;
@@ -69,9 +60,6 @@ const ProtectedRoute = () => {
   return <DashboardLayout role={role} />;
 };
 
-// ─────────────────────────────────────────────
-// RoleRoute — restricts by allowed roles
-// ─────────────────────────────────────────────
 const RoleRoute = ({ allowedRoles }) => {
   const { loading, role } = useAuth();
   if (loading) return <LoadingScreen />;
@@ -80,9 +68,6 @@ const RoleRoute = ({ allowedRoles }) => {
   return <Outlet />;
 };
 
-// ─────────────────────────────────────────────
-// Loading Screen
-// ─────────────────────────────────────────────
 const LoadingScreen = () => (
   <div style={{
     display: "flex", alignItems: "center", justifyContent: "center",
@@ -92,51 +77,45 @@ const LoadingScreen = () => (
   </div>
 );
 
-// ─────────────────────────────────────────────
-// App
-// ─────────────────────────────────────────────
+// 3. App component wrapped in AuthProvider
 function App() {
   return (
-    <BrowserRouter>
-      <Routes>
-        {/* Root */}
-        <Route path="/" element={<Navigate to="/login" replace />} />
+    <AuthProvider>
+      <BrowserRouter>
+        <Routes>
+          <Route path="/" element={<Navigate to="/login" replace />} />
 
-        {/* Guest-only routes (redirect if already logged in) */}
-        <Route element={<GuestRoute />}>
-          <Route path="/signup" element={<Signup />} />
-          <Route path="/login" element={<Signin />} />
-          <Route path="/verify-otp" element={<OtpVerification />} />
-          <Route path="/forgot-password" element={<ForgotPassword />} />
-          <Route path="/reset-password/:token" element={<ResetPassword />} />
-        </Route>
-
-        {/* Protected routes — all authenticated users */}
-        <Route element={<ProtectedRoute />}>
-
-          {/* Shared — end-user, admin, super-admin */}
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/lectures" element={<LectureWatching />} />
-          <Route path="/grand-quiz" element={<GrandQuiz />} />
-
-          {/* Admin + Super Admin only */}
-          <Route element={<RoleRoute allowedRoles={["admin", "super-admin"]} />}>
-            <Route path="/user-management" element={<UserManagement />} />
-            <Route path="/admin" element={<Admin />} />
+          {/* Guest-only routes */}
+          <Route element={<GuestRoute />}>
+            <Route path="/signup" element={<Signup />} />
+            <Route path="/login" element={<Signin />} />
+            <Route path="/verify-otp" element={<OtpVerification />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/reset-password/:token" element={<ResetPassword />} />
           </Route>
 
-          {/* Super Admin only */}
-          <Route element={<RoleRoute allowedRoles={["super-admin"]} />}>
-            <Route path="/payment-gateway" element={<PaymentGateway />} />
+          {/* Protected layout wrapper */}
+          <Route element={<ProtectedRoute />}>
+            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/lectures" element={<LectureWatching />} />
+            <Route path="/grand-quiz" element={<GrandQuiz />} />
+
+            {/* Nested Role Protections */}
+            <Route element={<RoleRoute allowedRoles={["admin", "super-admin"]} />}>
+              <Route path="/user-management" element={<UserManagement />} />
+              <Route path="/admin" element={<Admin />} />
+            </Route>
+
+            <Route element={<RoleRoute allowedRoles={["super-admin"]} />}>
+              <Route path="/payment-gateway" element={<PaymentGateway />} />
+            </Route>
           </Route>
 
-        </Route>
-
-        {/* Misc */}
-        <Route path="/unauthorized" element={<Unauthorized />} />
-        <Route path="*" element={<Error404Page />} />
-      </Routes>
-    </BrowserRouter>
+          <Route path="/unauthorized" element={<Unauthorized />} />
+          <Route path="*" element={<Error404Page />} />
+        </Routes>
+      </BrowserRouter>
+    </AuthProvider>
   );
 }
 
