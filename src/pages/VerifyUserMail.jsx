@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
-import axios from "axios";
 import { Link, useNavigate } from "react-router-dom";
+import api from "../services/api";
 import "../styles/VerifyUserMail.css";
 
 const AgainSendOtp = () => {
@@ -20,7 +20,7 @@ const AgainSendOtp = () => {
     setErrorMsg("");
 
     try {
-      await axios.post(
+      await api.post(
         "/verify-user",
         { email: cleanEmail }, // Send clean payload
         { withCredentials: true }
