@@ -78,8 +78,15 @@ const Signup = () => {
       const { username, email, password, gender } = formData;
       const res = await api.post("/signup", { username, email, password, gender });
 
+      if (res.data?.redirectToVerification) {
+        sessionStorage.setItem("pending_verification_email", res.data.email);
+        setTimeout(() => navigate("/verify-otp", { state: { email: res.data.email } }), 1000);
+        return;
+      }
+
+      sessionStorage.setItem("pending_verification_email", email); 
       setSuccessMsg(res.data?.message || "Account created! Redirecting to verification…");
-      setTimeout(() => navigate("/verify-otp",{ state: { email: formData.email } }), 2000);
+      setTimeout(() => navigate("/verify-otp", { state: { email: formData.email } }), 2000);
     } catch (err) {
       const msg =
         err.response?.data?.message ||
@@ -90,6 +97,7 @@ const Signup = () => {
       setLoading(false);
     }
   };
+
 
   const getPasswordStrength = (password) => {
     if (!password) return null;

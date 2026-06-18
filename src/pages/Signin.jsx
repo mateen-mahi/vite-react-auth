@@ -47,11 +47,17 @@ const Signin = () => {
     setApiError("");
     setSuccessMsg("");
 
-    try {
+       try {
       const res = await api.post("/signin", {
         email: formData.email,
         password: formData.password,
       });
+
+      if (res.data?.redirectToVerification) {
+        sessionStorage.setItem("pending_verification_email", res.data.email);
+        setTimeout(() => navigate("/verify-otp", { state: { email: res.data.email } }), 1000);
+        return;
+      }
 
       setSuccessMsg(res.data?.message || "Login successful! Redirecting…");
       setTimeout(() => navigate("/lectures"), 1500);
@@ -65,6 +71,7 @@ const Signin = () => {
       setLoading(false);
     }
   };
+
 
   return (
     <div className="signin-root">
