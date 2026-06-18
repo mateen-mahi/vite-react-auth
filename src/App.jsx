@@ -12,6 +12,7 @@ import Error404Page from "./pages/Error404page";
 import DashboardLayout from "./layouts/DashboardLayout";
 import Dashboard from "./pages/Dashboard";
 import LectureWatching from "./pages/LectureWatching";
+import VerifyUserMail from "./pages/VerifyUserMail";
 import GrandQuiz from "./pages/GrandQuiz";
 import Unauthorized from "./pages/Unauthorized";
 import UserManagement from "./pages/admin/UserManagement";
@@ -109,6 +110,7 @@ function App() {
         <Route element={<GuestRoute />}>
           <Route path="/signup" element={<Signup />} />
           <Route path="/login" element={<Signin />} />
+          <Route path="/verify-user-mail" element={<VerifyUserMail />} />
           <Route path="/verify-otp" element={<OtpVerification />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/reset-password/:token" element={<ResetPassword />} />

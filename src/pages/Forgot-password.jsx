@@ -58,7 +58,6 @@ export default function ForgotPassword() {
     }
   };
 
-  /* ── Render ──────────────────────────────────────────── */
   return (
     <div className="fp-root">
 
