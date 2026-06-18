@@ -148,7 +148,7 @@ const OtpVerification = () => {
     setApiError("");
 
     try {
-      const res = await api.post("/sendverifyotp");
+      const res = await api.post("/send-verify-otp", { email });
       setResendMsg(res.data?.message || "A new OTP has been sent to your email.");
       setCountdown(60);
       setCanResend(false);
