@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, Link, useLocation } from "react-router-dom";
 import api from "../services/api";
 import "../styles/OtpVerification.css";
 
@@ -7,6 +7,9 @@ const OTP_LENGTH = 6;
 
 const OtpVerification = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const email = location.state?.email; 
+
 
   const [otp, setOtp] = useState(Array(OTP_LENGTH).fill(""));
   const [apiError, setApiError] = useState("");
@@ -19,6 +22,16 @@ const OtpVerification = () => {
   const [canResend, setCanResend] = useState(false);
 
   const inputRefs = useRef([]);
+
+      useEffect(() => {
+    if (!email) {
+      navigate("/signup", { replace: true });
+    }
+  }, [email, navigate]);
+
+
+
+
 
   // Countdown timer
   useEffect(() => {
@@ -108,8 +121,10 @@ const OtpVerification = () => {
     setApiError("");
     setSuccessMsg("");
 
+
+
     try {
-      const res = await api.post("/verify-user", { otp: otpValue });
+      const res = await api.post("/verify-user", { email, otp: otpValue });
       setSuccessMsg(res.data?.message || "Email verified successfully! Redirecting…");
       setVerified(true);
       setTimeout(() => navigate("/login"), 2500);

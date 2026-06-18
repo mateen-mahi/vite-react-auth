@@ -79,7 +79,7 @@ const Signup = () => {
       const res = await api.post("/signup", { username, email, password, gender });
 
       setSuccessMsg(res.data?.message || "Account created! Redirecting to verification…");
-      setTimeout(() => navigate("/verify-otp"), 2000);
+      setTimeout(() => navigate("/verify-otp",{ state: { email: formData.email } }), 2000);
     } catch (err) {
       const msg =
         err.response?.data?.message ||
