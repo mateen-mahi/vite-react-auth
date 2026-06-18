@@ -50,6 +50,7 @@ const AgainSendOtp = () => {
 
     const timer = setTimeout(() => {
       navigate("/verify-otp", { state: { email: email.trim() } });
+      
     }, 1400);
 
     return () => clearTimeout(timer); // Clean up timeout if component unmounts

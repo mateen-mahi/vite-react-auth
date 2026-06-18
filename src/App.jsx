@@ -1,5 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate, Outlet } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { useEffect, useState, createContext, useContext } from "react";
 import axios from "axios";
 
 // Auth Pages
@@ -19,10 +19,10 @@ import UserManagement from "./pages/admin/UserManagement";
 import PaymentGateway from "./pages/superAdmin/PaymentGateway";
 import Admin from "./pages/Admin";
 
-// ─────────────────────────────────────────────
-// useAuth Hook — fetches current user + role
-// ─────────────────────────────────────────────
-const useAuth = () => {
+// 1. Create a Global Auth Context
+const AuthContext = createContext(null);
+
+export const AuthProvider = ({ children }) => {
   const [auth, setAuth] = useState({ loading: true, user: null, role: null });
 
   useEffect(() => {
@@ -32,40 +32,38 @@ const useAuth = () => {
         setAuth({
           loading: false,
           user: res.data.user,
-          role: res.data.user?.role || null, // expected: "end-user" | "admin" | "super-admin"
+          role: res.data.user?.role || null,
         });
       })
       .catch(() => {
-        console.error("Error fetching auth status");
         setAuth({ loading: false, user: null, role: null });
       });
   }, []);
 
-  return auth;
+  return (
+    <AuthContext.Provider value={auth}>
+      {children}
+    </AuthContext.Provider>
+  );
 };
 
-// ─────────────────────────────────────────────
-// Role → dashboard redirect path
-// ─────────────────────────────────────────────
-const dashboardPath = (role) => {
-  if (role === "super-admin") return "/dashboard";
-  if (role === "admin") return "/dashboard";
-  return "/dashboard";
+// Custom Hook to consume shared auth state cleanly
+const useAuth = () => useContext(AuthContext);
+
+// 2. Single Source Role Dashboard Traversal Path
+const getDashboardPath = (role) => {
+  return "/dashboard"; 
 };
 
-// ─────────────────────────────────────────────
-// GuestRoute — redirects logged-in users away from /login & /signup
-// ─────────────────────────────────────────────
+// 3. GuestRoute (No API call overhead anymore)
 const GuestRoute = () => {
   const { loading, role } = useAuth();
   if (loading) return <LoadingScreen />;
-  if (role) return <Navigate to={dashboardPath(role)} replace />;
+  if (role) return <Navigate to={getDashboardPath(role)} replace />;
   return <Outlet />;
 };
 
-// ─────────────────────────────────────────────
-// ProtectedRoute — any authenticated user
-// ─────────────────────────────────────────────
+// 4. ProtectedRoute Layout Wrapper
 const ProtectedRoute = () => {
   const { loading, role } = useAuth();
   if (loading) return <LoadingScreen />;
@@ -73,9 +71,7 @@ const ProtectedRoute = () => {
   return <DashboardLayout role={role} />;
 };
 
-// ─────────────────────────────────────────────
-// RoleRoute — restricts by allowed roles
-// ─────────────────────────────────────────────
+// 5. Role Specific Access Guard
 const RoleRoute = ({ allowedRoles }) => {
   const { loading, role } = useAuth();
   if (loading) return <LoadingScreen />;
@@ -84,9 +80,6 @@ const RoleRoute = ({ allowedRoles }) => {
   return <Outlet />;
 };
 
-// ─────────────────────────────────────────────
-// Loading Screen
-// ─────────────────────────────────────────────
 const LoadingScreen = () => (
   <div style={{
     display: "flex", alignItems: "center", justifyContent: "center",
@@ -96,52 +89,49 @@ const LoadingScreen = () => (
   </div>
 );
 
-// ─────────────────────────────────────────────
-// App
-// ─────────────────────────────────────────────
 function App() {
   return (
-    <BrowserRouter>
-      <Routes>
-        {/* Root */}
-        <Route path="/" element={<Navigate to="/login" replace />} />
+    <AuthProvider>
+      <BrowserRouter>
+        <Routes>
+          {/* Root Entry */}
+          <Route path="/" element={<Navigate to="/login" replace />} />
 
-        {/* Guest-only routes (redirect if already logged in) */}
-        <Route element={<GuestRoute />}>
-          <Route path="/signup" element={<Signup />} />
-          <Route path="/login" element={<Signin />} />
-          <Route path="/verify-user-mail" element={<VerifyUserMail />} />
-          <Route path="/verify-otp" element={<OtpVerification />} />
-          <Route path="/forgot-password" element={<ForgotPassword />} />
-          <Route path="/reset-password/:token" element={<ResetPassword />} />
-        </Route>
-
-        {/* Protected routes — all authenticated users */}
-        <Route element={<ProtectedRoute />}>
-
-          {/* Shared — end-user, admin, super-admin */}
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/lectures" element={<LectureWatching />} />
-          <Route path="/grand-quiz" element={<GrandQuiz />} />
-
-          {/* Admin + Super Admin only */}
-          <Route element={<RoleRoute allowedRoles={["admin", "super-admin"]} />}>
-            <Route path="/user-management" element={<UserManagement />} />
-            <Route path="/admin" element={<Admin />} />
+          {/* Guest Public Scope */}
+          <Route element={<GuestRoute />}>
+            <Route path="/signup" element={<Signup />} />
+            <Route path="/login" element={<Signin />} />
+            <Route path="/verify-user-mail" element={<VerifyUserMail />} />
+            <Route path="/verify-otp" element={<OtpVerification />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/reset-password/:token" element={<ResetPassword />} />
           </Route>
 
-          {/* Super Admin only */}
-          <Route element={<RoleRoute allowedRoles={["super-admin"]} />}>
-            <Route path="/payment-gateway" element={<PaymentGateway />} />
+          {/* Core Authenticated Scope */}
+          <Route element={<ProtectedRoute />}>
+            {/* Shared Route Tree */}
+            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/lectures" element={<LectureWatching />} />
+            <Route path="/grand-quiz" element={<GrandQuiz />} />
+
+            {/* Middle-tier Admin Authority Controls */}
+            <Route element={<RoleRoute allowedRoles={["admin", "super-admin"]} />}>
+              <Route path="/user-management" element={<UserManagement />} />
+              <Route path="/admin" element={<Admin />} />
+            </Route>
+
+            {/* Root Super Admin Core Scope */}
+            <Route element={<RoleRoute allowedRoles={["super-admin"]} />}>
+              <Route path="/payment-gateway" element={<PaymentGateway />} />
+            </Route>
           </Route>
 
-        </Route>
-
-        {/* Misc */}
-        <Route path="/unauthorized" element={<Unauthorized />} />
-        <Route path="*" element={<Error404Page />} />
-      </Routes>
-    </BrowserRouter>
+          {/* Exception Handlers */}
+          <Route path="/unauthorized" element={<Unauthorized />} />
+          <Route path="*" element={<Error404Page />} />
+        </Routes>
+      </BrowserRouter>
+    </AuthProvider>
   );
 }
 
