@@ -140,7 +140,7 @@ const Sidebar = ({ role, userName = "User" }) => {
         >
           {icons.menu}
         </button>
-        <span className="mobile-topbar__brand">AppName</span>
+        <span className="mobile-topbar__brand">Project</span>
         <span className="mobile-topbar__avatar" aria-hidden="true">
           {getInitials(userName)}
         </span>
