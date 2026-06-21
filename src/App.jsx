@@ -18,6 +18,7 @@ import Unauthorized from "./pages/Unauthorized";
 import UserManagement from "./pages/admin/UserManagement";
 import PaymentGateway from "./pages/superAdmin/PaymentGateway";
 import Admin from "./pages/Admin";
+import api from "./services/api";
 
 // 1. Create a Global Auth Context
 const AuthContext = createContext(null);
@@ -26,7 +27,7 @@ export const AuthProvider = ({ children }) => {
   const [auth, setAuth] = useState({ loading: true, user: null, role: null });
 
   useEffect(() => {
-    axios
+    api
       .get("/check-auth", { withCredentials: true })
       .then((res) => {
         setAuth({
