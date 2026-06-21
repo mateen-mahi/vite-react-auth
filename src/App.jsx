@@ -17,6 +17,7 @@ import GrandQuiz from "./pages/GrandQuiz";
 import Unauthorized from "./pages/Unauthorized";
 import UserManagement from "./pages/admin/UserManagement";
 import PaymentGateway from "./pages/superAdmin/PaymentGateway";
+import Sidebar from "./pages/Sidebar";
 import Admin from "./pages/Admin";
 import api from "./services/api";
 
@@ -111,6 +112,7 @@ function App() {
           {/* Core Authenticated Scope */}
           <Route element={<ProtectedRoute />}>
             {/* Shared Route Tree */}
+            <Route path="/sidebar" element={<Sidebar />} />
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/lectures" element={<LectureWatching />} />
             <Route path="/grand-quiz" element={<GrandQuiz />} />
