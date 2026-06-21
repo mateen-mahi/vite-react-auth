@@ -17,7 +17,7 @@ import GrandQuiz from "./pages/GrandQuiz";
 import Unauthorized from "./pages/Unauthorized";
 import UserManagement from "./pages/admin/UserManagement";
 import PaymentGateway from "./pages/superAdmin/PaymentGateway";
-import Sidebar from "./pages/Sidebar";
+import { DashboardLayout } from "./pages/Sidebar";
 import Admin from "./pages/Admin";
 import api from "./services/api";
 
