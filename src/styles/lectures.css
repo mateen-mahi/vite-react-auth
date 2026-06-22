@@ -1,0 +1,173 @@
+/* Base Resets & Colors */
+:root {
+  --bg-primary: #f8fafc;
+  --text-main: #1e293b;
+  --text-muted: #64748b;
+  --accent-color: #6366f1;
+  --success-color: #10b981;
+  --success-bg: #ecfdf5;
+  --lock-color: #f59e0b;
+  --lock-bg: #fffbeb;
+  --card-bg: #ffffff;
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.1);
+  --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06);
+  --radius: 12px;
+}
+
+body {
+  margin: 0;
+  font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  background-color: var(--bg-primary);
+  color: var(--text-main);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Page Layout */
+.app-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem 1rem;
+}
+
+.main-header {
+  text-align: center;
+  margin-bottom: 2.5rem;
+}
+
+.main-header h1 {
+  font-size: 2.25rem;
+  color: var(--text-main);
+  font-weight: 700;
+  margin: 0;
+}
+
+/* Two-Column Dashboard Layout */
+.dashboard-layout {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 2rem;
+  align-items: start;
+}
+
+@media (min-width: 768px) {
+  .dashboard-layout {
+    grid-template-columns: 2fr 1fr;
+  }
+}
+
+/* Left Column: Video Player Container */
+.player-column {
+  background: var(--card-bg);
+  padding: 1.5rem;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-md);
+}
+
+/* Responsive YouTube Video Wrapper (16:9 Aspect Ratio) */
+.video-responsive {
+  position: relative;
+  padding-bottom: 56.25%; /* 16:9 ratio */
+  height: 0;
+  overflow: hidden;
+  border-radius: calc(var(--radius) - 4px);
+  background: #000;
+  box-shadow: var(--shadow-sm);
+}
+
+.video-responsive iframe,
+.video-responsive #youtube-player {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100% !important;
+  height: 100% !important;
+  border: 0;
+}
+
+/* Progress Tracker Text */
+.progress-bar-wrapper {
+  margin-top: 1.25rem;
+  padding: 0.5rem 0 0 0;
+  border-top: 1px solid #e2e8f0;
+}
+
+.progress-bar-wrapper p {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--accent-color);
+}
+
+/* Right Column: Status Badges */
+.status-column {
+  position: sticky;
+  top: 2rem;
+}
+
+.badge {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  padding: 1.5rem;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-md);
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  border: 1px solid transparent;
+}
+
+.badge-text h3 {
+  margin: 0 0 0.25rem 0;
+  font-size: 1.2rem;
+  font-weight: 700;
+}
+
+.badge-text p {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+
+.icon {
+  font-size: 2.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
+/* Lock State Styling */
+.lock-badge {
+  background-color: var(--lock-bg);
+  border-color: #fde68a;
+}
+
+.lock-badge h3 {
+  color: #b45309;
+}
+
+/* Success / Green Tick State Styling */
+.success-badge {
+  background-color: var(--success-bg);
+  border-color: #a7f3d0;
+  animation: unlockPop 0.5s ease-out forwards;
+}
+
+.success-badge h3 {
+  color: #047857;
+}
+
+/* Smooth Animation when 30% is reached */
+@keyframes unlockPop {
+  0% {
+    transform: scale(0.95);
+    opacity: 0.8;
+  }
+  50% {
+    transform: scale(1.03);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
