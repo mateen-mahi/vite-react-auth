@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import '../styles/LectureWatching.css';
+import '../styles/lectures.css';
 
 export default function BestYouTubeTracker() {
   const [isWatched30Percent, setIsWatched30Percent] = useState(false);
