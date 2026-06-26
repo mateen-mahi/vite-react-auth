@@ -11,6 +11,7 @@ body {
 
 .layout {
   display: flex;
+  min-height: 100vh;
 }
 
 /* ─── Sidebar ─────────────────────────────────────────────── */
@@ -208,6 +209,7 @@ body {
 .menu-btn {
   position: fixed;
   top: 15px;
+  left: 82px; /* just outside collapsed sidebar (72px + 10px) */
 
   width: 40px;
   height: 40px;
@@ -229,12 +231,8 @@ body {
   z-index: 1100;
 }
 
-.menu-btn {
-  left: 82px; /* collapsed: just outside collapsed sidebar (72px + 10px) */
-}
-
 .menu-btn.open {
-  left: 270px; /* expanded: just outside expanded sidebar (260px + 10px) */
+  left: 270px; /* just outside expanded sidebar (260px + 10px) */
 }
 
 .menu-btn:hover {
@@ -253,6 +251,8 @@ body {
 /* ─── Content ─────────────────────────────────────────────── */
 
 .content {
+  flex: 1;
+  padding: 24px;
   transition: margin-left 0.3s ease;
 }
 
@@ -285,15 +285,17 @@ body {
 
   .menu-btn {
     left: 14px;
+    top: 12px;
   }
 
   .menu-btn.open {
     left: 250px;
   }
 
+  /* On mobile sidebar overlays, content never shifts */
   .content.expanded,
   .content.collapsed {
     margin-left: 0;
-    padding: 75px 20px 20px;
+    padding: 70px 20px 20px;
   }
 }

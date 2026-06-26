@@ -1,4 +1,3 @@
-import { useEffect, useState } from "react";
 import { NavLink } from "react-router-dom";
 import {
   FiMenu,
@@ -13,20 +12,7 @@ import {
 
 import "../styles/Sidebar.css";
 
-export default function Sidebar() {
-  const [isOpen, setIsOpen] = useState(window.innerWidth > 768);
-  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
-
-  useEffect(() => {
-    const handleResize = () => {
-      const mobile = window.innerWidth <= 768;
-      setIsMobile(mobile);
-      setIsOpen(!mobile);
-    };
-
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, []);
+export default function Sidebar({ isOpen, setIsOpen, isMobile }) {
 
   const closeSidebar = () => {
     if (isMobile) setIsOpen(false);
