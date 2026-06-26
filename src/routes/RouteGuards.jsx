@@ -1,20 +1,8 @@
 import { Navigate, Outlet } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import LoadingScreen from "../components/LoadingScreen;"
 
-const LoadingScreen = () => (
-  <div
-    style={{
-      display: "flex",
-      justifyContent: "center",
-      alignItems: "center",
-      height: "100vh",
-      fontFamily: "sans-serif",
-      color: "#6b7280",
-    }}
-  >
-    Loading...
-  </div>
-);
+
 
 
 
