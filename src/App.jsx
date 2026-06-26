@@ -36,23 +36,24 @@ function App() {
           </Route>
 
           {/* With sidebar */}
-              <Route element={<Layout />}>
-          <Route element={<ProtectedRoute />}>
-            <Route path="/dashboard"  element={<Dashboard />} />
-            <Route path="/lectures"   element={<LectureWatching />} />
-            <Route path="/grand-quiz" element={<GrandQuiz />} />
+{/* Protected Routes */}
 
-            <Route element={<RoleRoute allowedRoles={["admin", "super-admin"]} />}>
-              <Route path="/user-management" element={<UserManagement />} />
-              <Route path="/admin"           element={<Admin />} />
-            </Route>
+<Route element={<ProtectedRoute />}>
+  <Route element={<Layout />}>
+    <Route path="/dashboard" element={<Dashboard />} />
+    <Route path="/lectures" element={<LectureWatching />} />
+    <Route path="/grand-quiz" element={<GrandQuiz />} />
 
-            <Route element={<RoleRoute allowedRoles={["super-admin"]} />}>
-              <Route path="/payment-gateway" element={<PaymentGateway />} />
-            </Route>
-          </Route>
-          </Route>
+    <Route element={<RoleRoute allowedRoles={["admin", "super-admin"]} />}>
+      <Route path="/user-management" element={<UserManagement />} />
+      <Route path="/admin" element={<Admin />} />
+    </Route>
 
+    <Route element={<RoleRoute allowedRoles={["super-admin"]} />}>
+      <Route path="/payment-gateway" element={<PaymentGateway />} />
+    </Route>
+  </Route>
+</Route>
           <Route path="/unauthorized" element={<Unauthorized />} />
           <Route path="*"             element={<Error404Page />} />
         </Routes>
