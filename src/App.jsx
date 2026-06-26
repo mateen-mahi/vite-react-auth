@@ -1,7 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext";
 import { GuestRoute, ProtectedRoute, RoleRoute } from "./routes/RouteGuards";
-import Layout from "./components/Layout"
+import Layout from "./components/Layout";
 // Pages
 import Signup          from "./pages/Signup";
 import Signin          from "./pages/Signin";
