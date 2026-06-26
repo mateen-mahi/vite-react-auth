@@ -1,4 +1,4 @@
-import { useLocation } from "react-router-dom";
+import { useLocation, Outlet } from "react-router-dom"; // <-- Outlet import kiya
 import { SidebarProvider, useSidebar } from "../context/SideBarContext";
 import Sidebar from "./Sidebar";
 import "../styles/SidebarandLayout.css";
@@ -24,7 +24,11 @@ function LayoutInner({ children }) {
           <button className="topbar-mobile-toggle" onClick={() => setMobileOpen((p) => !p)}>☰</button>
           <span className="topbar-title">{PAGE_TITLES[location.pathname] || "App"}</span>
         </header>
-        <main className="page-content">{children}</main>
+        
+        {/* Agar children pass hua hai to wo dikhao, nahi to React Router ka Outlet render karo */}
+        <main className="page-content">
+          {children ? children : <Outlet />}
+        </main>
       </div>
     </div>
   );

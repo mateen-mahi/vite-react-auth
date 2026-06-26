@@ -8,9 +8,10 @@ const NAV_ITEMS = [
   {
     section: "General",
     items: [
-      { label: "Dashboard",  path: "/dashboard",  roles: ["user", "admin", "super-admin"] },
-      { label: "Lectures",   path: "/lectures",   roles: ["user", "admin", "super-admin"] },
-      { label: "Grand Quiz", path: "/grand-quiz", roles: ["user", "admin", "super-admin"] },
+      // "user" ko badal kar "student" kar diya taake RouteGuard se match kare
+      { label: "Dashboard",  path: "/dashboard",  roles: ["student", "admin", "super-admin"] },
+      { label: "Lectures",   path: "/lectures",   roles: ["student", "admin", "super-admin"] },
+      { label: "Grand Quiz", path: "/grand-quiz", roles: ["student", "admin", "super-admin"] },
     ],
   },
   {
@@ -34,19 +35,25 @@ export default function Sidebar() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const userRole = user?.role || "user";
+  // Default role ko bhi "student" kar diya
+  const userRole = user?.role || "student";
 
   useEffect(() => {
     setMobileOpen(false);
-  }, [location.pathname]);
+  }, [location.pathname, setMobileOpen]); // Dependency array warning fix ki
 
-  const handleLogout = () => {
-    logout();
-    navigate("/login");
+  const handleLogout = async () => {
+    try {
+      await logout(); // Agar logout api call karta hai to safe wrapper
+      navigate("/login");
+    } catch (error) {
+      console.error("Logout failed:", error);
+      navigate("/login"); // Fail hone par bhi user ko screen se hata dein
+    }
   };
 
   const initials = (name) =>
-    name ? name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2) : "U";
+    name ? name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2) : "ST";
 
   return (
     <>
@@ -61,7 +68,7 @@ export default function Sidebar() {
         <div className="sidebar-header">
           <div className="sidebar-logo">
             <span className="sidebar-logo-icon">🎓</span>
-            <span className="sidebar-logo-text">EduPlatform</span>
+            {!collapsed && <span className="sidebar-logo-text">EduPlatform</span>}
           </div>
           <button className="sidebar-toggle" onClick={() => setCollapsed((p) => !p)}>
             {collapsed ? "→" : "←"}
@@ -75,15 +82,16 @@ export default function Sidebar() {
             if (!visible.length) return null;
             return (
               <div className="nav-section" key={section.section}>
-                <p className="nav-section-label">{section.section}</p>
+                {!collapsed && <p className="nav-section-label">{section.section}</p>}
                 {visible.map((item) => (
                   <NavLink
                     key={item.path}
                     to={item.path}
                     className={({ isActive }) => `nav-item ${isActive ? "active" : ""}`}
                   >
+                    {/* Aap icons bhi add kar sakte hain visually anchors ke liye */}
                     <span className="nav-item-label">{item.label}</span>
-                    <span className="tooltip">{item.label}</span>
+                    {collapsed && <span className="tooltip">{item.label}</span>}
                   </NavLink>
                 ))}
               </div>
@@ -94,11 +102,13 @@ export default function Sidebar() {
         {/* Footer */}
         <div className="sidebar-footer">
           <div className="user-avatar">{initials(user?.name)}</div>
-          <div className="user-info">
-            <p className="user-name">{user?.name || "User"}</p>
-            <p className="user-role">{userRole}</p>
-          </div>
-          <button className="logout-btn" onClick={handleLogout}>↩</button>
+          {!collapsed && (
+            <div className="user-info">
+              <p className="user-name">{user?.name || "Student"}</p>
+              <p className="user-role">{userRole}</p>
+            </div>
+          )}
+          <button className="logout-btn" onClick={handleLogout} title="Logout">↩</button>
         </div>
 
       </aside>
