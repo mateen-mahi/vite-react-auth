@@ -1,9 +1,7 @@
-import { useState } from "react";
-import { BrowserRouter, Routes, Route, Navigate, Outlet, useLocation } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext";
 import { GuestRoute, ProtectedRoute, RoleRoute } from "./routes/RouteGuards";
-import Sidebar from "./components/Sidebar"; // Direct import
-
+import Layout from "./components/Layout"
 // Pages
 import Signup          from "./pages/Signup";
 import Signin          from "./pages/Signin";
@@ -20,46 +18,6 @@ import PaymentGateway  from "./pages/superAdmin/PaymentGateway";
 import Unauthorized    from "./pages/Unauthorized";
 import Error404Page    from "./pages/Error404page";
 
-const PAGE_TITLES = {
-  "/dashboard":       "Dashboard",
-  "/lectures":        "Lectures",
-  "/grand-quiz":      "Grand Quiz",
-  "/user-management": "User Management",
-  "/admin":           "Admin Panel",
-  "/payment-gateway": "Payment Gateway",
-};
-
-// YEH HAI AAPKA LAYOUT CONTAINER (Ab yeh koi alag file nahi hai, isi file ka hissa hai)
-function AppLayoutWrapper() {
-  const [collapsed, setCollapsed] = useState(false);
-  const [mobileOpen, setMobileOpen] = useState(false);
-  const location = useLocation();
-
-  return (
-    <div className="app-layout">
-      {/* State direct props ke zariye pass ho rahi hai, koi context nahi chahiye */}
-      <Sidebar 
-        collapsed={collapsed} 
-        setCollapsed={setCollapsed} 
-        mobileOpen={mobileOpen} 
-        setMobileOpen={setMobileOpen} 
-      />
-      
-      <div className={`main-content ${collapsed ? "sidebar-collapsed" : ""}`}>
-        <header className="topbar">
-          <button className="topbar-mobile-toggle" onClick={() => setMobileOpen(!mobileOpen)}>☰</button>
-          <span className="topbar-title">{PAGE_TITLES[location.pathname] || "App"}</span>
-        </header>
-
-        <main className="page-content">
-          {/* Outlet ka matlab hai ke niche wale saare pages is jagah khulenge */}
-          <Outlet /> 
-        </main>
-      </div>
-    </div>
-  );
-}
-
 function App() {
   return (
     <AuthProvider>
@@ -67,7 +25,7 @@ function App() {
         <Routes>
           <Route path="/" element={<Navigate to="/login" replace />} />
 
-          {/* Guest Pages (No Sidebar) */}
+          {/* No sidebar */}
           <Route element={<GuestRoute />}>
             <Route path="/login"                 element={<Signin />} />
             <Route path="/signup"                element={<Signup />} />
@@ -77,23 +35,19 @@ function App() {
             <Route path="/reset-password/:token" element={<ResetPassword />} />
           </Route>
 
-          {/* Protected Pages (With Sidebar Layout Wrapper) */}
+          {/* With sidebar */}
           <Route element={<ProtectedRoute />}>
-            <Route element={<AppLayoutWrapper />}> {/* Humne custom wrapper yahan laga diya */}
-              <Route path="/dashboard"  element={<Dashboard />} />
-              <Route path="/lectures"   element={<LectureWatching />} />
-              <Route path="/grand-quiz" element={<GrandQuiz />} />
+            <Route path="/dashboard"  element={<Dashboard />} />
+            <Route path="/lectures"   element={<LectureWatching />} />
+            <Route path="/grand-quiz" element={<GrandQuiz />} />
 
-              {/* Admin Pages */}
-              <Route element={<RoleRoute allowedRoles={["admin", "super-admin"]} />}>
-                <Route path="/user-management" element={<UserManagement />} />
-                <Route path="/admin"           element={<Admin />} />
-              </Route>
+            <Route element={<RoleRoute allowedRoles={["admin", "super-admin"]} />}>
+              <Route path="/user-management" element={<UserManagement />} />
+              <Route path="/admin"           element={<Admin />} />
+            </Route>
 
-              {/* Super Admin Pages */}
-              <Route element={<RoleRoute allowedRoles={["super-admin"]} />}>
-                <Route path="/payment-gateway" element={<PaymentGateway />} />
-              </Route>
+            <Route element={<RoleRoute allowedRoles={["super-admin"]} />}>
+              <Route path="/payment-gateway" element={<PaymentGateway />} />
             </Route>
           </Route>
 
