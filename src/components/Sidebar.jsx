@@ -4,29 +4,14 @@ import { useAuth } from "../context/AuthContext";
 import { useSidebar } from "../context/SideBarContext";
 import "../styles/SidebarandLayout.css";
 
+// Saari categories khatam! Ab yeh ek single, simple flat list hai.
 const NAV_ITEMS = [
-  {
-    section: "General",
-    items: [
-      // "user" ko badal kar "student" kar diya taake RouteGuard se match kare
-      { label: "Dashboard",  path: "/dashboard",  roles: ["student", "admin", "super-admin"] },
-      { label: "Lectures",   path: "/lectures",   roles: ["student", "admin", "super-admin"] },
-      { label: "Grand Quiz", path: "/grand-quiz", roles: ["student", "admin", "super-admin"] },
-    ],
-  },
-  {
-    section: "Administration",
-    items: [
-      { label: "User Management", path: "/user-management", roles: ["admin", "super-admin"] },
-      { label: "Admin Panel",     path: "/admin",           roles: ["admin", "super-admin"] },
-    ],
-  },
-  {
-    section: "Super Admin",
-    items: [
-      { label: "Payment Gateway", path: "/payment-gateway", roles: ["super-admin"] },
-    ],
-  },
+  { label: "Dashboard",       path: "/dashboard",       roles: ["student", "admin", "super-admin"] },
+  { label: "Lectures",        path: "/lectures",        roles: ["student", "admin", "super-admin"] },
+  { label: "Grand Quiz",      path: "/grand-quiz",      roles: ["student", "admin", "super-admin"] },
+  { label: "User Management", path: "/user-management", roles: ["admin", "super-admin"] },
+  { label: "Admin Panel",     path: "/admin",           roles: ["admin", "super-admin"] },
+  { label: "Payment Gateway", path: "/payment-gateway", roles: ["super-admin"] },
 ];
 
 export default function Sidebar() {
@@ -35,28 +20,32 @@ export default function Sidebar() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Default role ko bhi "student" kar diya
   const userRole = user?.role || "student";
 
+  // Mobile view mein page change hone par sidebar close karne ke liye
   useEffect(() => {
     setMobileOpen(false);
-  }, [location.pathname, setMobileOpen]); // Dependency array warning fix ki
+  }, [location.pathname, setMobileOpen]);
 
   const handleLogout = async () => {
     try {
-      await logout(); // Agar logout api call karta hai to safe wrapper
+      await logout();
       navigate("/login");
     } catch (error) {
       console.error("Logout failed:", error);
-      navigate("/login"); // Fail hone par bhi user ko screen se hata dein
+      navigate("/login");
     }
   };
 
   const initials = (name) =>
     name ? name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2) : "ST";
 
+  // Role ke mutabiq links filter karna
+  const visibleItems = NAV_ITEMS.filter((item) => item.roles.includes(userRole));
+
   return (
     <>
+      {/* Mobile Dark Overlay */}
       <div
         className={`sidebar-overlay ${mobileOpen ? "visible" : ""}`}
         onClick={() => setMobileOpen(false)}
@@ -70,33 +59,24 @@ export default function Sidebar() {
             <span className="sidebar-logo-icon">🎓</span>
             {!collapsed && <span className="sidebar-logo-text">EduPlatform</span>}
           </div>
+          {/* Ek single universal button jo arrow icons change karega toggle par */}
           <button className="sidebar-toggle" onClick={() => setCollapsed((p) => !p)}>
             {collapsed ? "→" : "←"}
           </button>
         </div>
 
-        {/* Nav */}
+        {/* Clean Nav List (No Categories) */}
         <nav className="sidebar-nav">
-          {NAV_ITEMS.map((section) => {
-            const visible = section.items.filter((i) => i.roles.includes(userRole));
-            if (!visible.length) return null;
-            return (
-              <div className="nav-section" key={section.section}>
-                {!collapsed && <p className="nav-section-label">{section.section}</p>}
-                {visible.map((item) => (
-                  <NavLink
-                    key={item.path}
-                    to={item.path}
-                    className={({ isActive }) => `nav-item ${isActive ? "active" : ""}`}
-                  >
-                    {/* Aap icons bhi add kar sakte hain visually anchors ke liye */}
-                    <span className="nav-item-label">{item.label}</span>
-                    {collapsed && <span className="tooltip">{item.label}</span>}
-                  </NavLink>
-                ))}
-              </div>
-            );
-          })}
+          {visibleItems.map((item) => (
+            <NavLink
+              key={item.path}
+              to={item.path}
+              className={({ isActive }) => `nav-item ${isActive ? "active" : ""}`}
+            >
+              <span className="nav-item-label">{item.label}</span>
+              {collapsed && <span className="tooltip">{item.label}</span>}
+            </NavLink>
+          ))}
         </nav>
 
         {/* Footer */}
