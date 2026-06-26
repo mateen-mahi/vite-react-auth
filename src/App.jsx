@@ -36,6 +36,7 @@ function App() {
           </Route>
 
           {/* With sidebar */}
+              <Route element={<Layout />}>
           <Route element={<ProtectedRoute />}>
             <Route path="/dashboard"  element={<Dashboard />} />
             <Route path="/lectures"   element={<LectureWatching />} />
@@ -49,6 +50,7 @@ function App() {
             <Route element={<RoleRoute allowedRoles={["super-admin"]} />}>
               <Route path="/payment-gateway" element={<PaymentGateway />} />
             </Route>
+          </Route>
           </Route>
 
           <Route path="/unauthorized" element={<Unauthorized />} />
