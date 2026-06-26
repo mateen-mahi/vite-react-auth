@@ -8,84 +8,102 @@ import {
   FiAward,
   FiUser,
   FiSettings,
+  FiLogOut,
 } from "react-icons/fi";
 
 import "../styles/Sidebar.css";
 
 export default function Sidebar() {
   const [isOpen, setIsOpen] = useState(window.innerWidth > 768);
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
 
   useEffect(() => {
     const handleResize = () => {
-      setIsOpen(window.innerWidth > 768);
+      const mobile = window.innerWidth <= 768;
+      setIsMobile(mobile);
+      setIsOpen(!mobile);
     };
 
     window.addEventListener("resize", handleResize);
-
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
   const closeSidebar = () => {
-    if (window.innerWidth <= 768) {
-      setIsOpen(false);
-    }
+    if (isMobile) setIsOpen(false);
   };
 
   return (
     <>
       {/* Toggle Button */}
-
       <button
         className={`menu-btn ${isOpen ? "open" : ""}`}
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={() => setIsOpen((prev) => !prev)}
+        aria-label="Toggle sidebar"
       >
         {isOpen ? <FiX /> : <FiMenu />}
       </button>
 
       {/* Sidebar */}
+      <aside className={`sidebar ${isOpen ? "expanded" : "collapsed"}`}>
 
-      <aside className={`sidebar ${isOpen ? "show" : ""}`}>
+        {/* Logo */}
         <div className="logo">
-          <h2>Academy</h2>
+          <span className="logo-icon">🎓</span>
+          {isOpen && <h2 className="logo-text">Academy</h2>}
         </div>
 
+        {/* Nav Links */}
         <nav className="nav-links">
-          <NavLink to="/dashboard" onClick={closeSidebar}>
-            <FiHome />
-            <span>Dashboard</span>
+          <NavLink to="/dashboard" onClick={closeSidebar} title="Dashboard">
+            <FiHome className="nav-icon" />
+            {isOpen && <span>Dashboard</span>}
           </NavLink>
 
-          <NavLink to="/lectures" onClick={closeSidebar}>
-            <FiBookOpen />
-            <span>Lectures</span>
+          <NavLink to="/lectures" onClick={closeSidebar} title="Lectures">
+            <FiBookOpen className="nav-icon" />
+            {isOpen && <span>Lectures</span>}
           </NavLink>
 
-          <NavLink to="/grand-quiz" onClick={closeSidebar}>
-            <FiAward />
-            <span>Grand Quiz</span>
+          <NavLink to="/grand-quiz" onClick={closeSidebar} title="Grand Quiz">
+            <FiAward className="nav-icon" />
+            {isOpen && <span>Grand Quiz</span>}
           </NavLink>
 
-          <NavLink to="/profile" onClick={closeSidebar}>
-            <FiUser />
-            <span>Profile</span>
+          <NavLink to="/profile" onClick={closeSidebar} title="Profile">
+            <FiUser className="nav-icon" />
+            {isOpen && <span>Profile</span>}
           </NavLink>
 
-          <NavLink to="/settings" onClick={closeSidebar}>
-            <FiSettings />
-            <span>Settings</span>
+          <NavLink to="/settings" onClick={closeSidebar} title="Settings">
+            <FiSettings className="nav-icon" />
+            {isOpen && <span>Settings</span>}
           </NavLink>
         </nav>
 
-        <div className="sidebar-footer">
-          <small>© 2026 Academy</small>
+        {/* User Footer */}
+        <div className="sidebar-user">
+          <div className="user-avatar">M</div>
+
+          {isOpen && (
+            <div className="user-info">
+              <p className="user-name">Mateen Mahi</p>
+              <p className="user-role">Administrator</p>
+            </div>
+          )}
+
+          <button
+            className="logout-btn"
+            onClick={() => console.log("Logout")}
+            title="Log out"
+          >
+            <FiLogOut />
+          </button>
         </div>
       </aside>
 
-      {isOpen && window.innerWidth <= 768 && (
-        <div
-          className="overlay"
-          onClick={() => setIsOpen(false)}
-        />
+      {/* Mobile Overlay */}
+      {isOpen && isMobile && (
+        <div className="overlay" onClick={() => setIsOpen(false)} />
       )}
     </>
   );
