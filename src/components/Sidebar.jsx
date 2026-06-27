@@ -38,10 +38,10 @@ export default function Sidebar({ isOpen, setIsOpen, isMobile }) {
       <aside className={`sidebar ${isOpen ? "expanded" : "collapsed"}`}>
 
         {/* Logo */}
-        {isOpen &&  <div className="logo">
-          <span className="logo-icon">🎓</span>
-          <h2 className="logo-text">Academy</h2>
-        </div>}
+        <div className="logo">
+          {isOpen && <span className="logo-icon">🎓</span>}
+          {isOpen && <h2 className="logo-text">Academy</h2>}
+        </div>
 
         {/* Nav Links */}
         <nav className="nav-links">
