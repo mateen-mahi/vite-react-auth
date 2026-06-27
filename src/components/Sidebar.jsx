@@ -18,7 +18,7 @@ import "../styles/Sidebar.css";
 export default function Sidebar({ isOpen, setIsOpen, isMobile }) {
   
   const user = useAuth();
-  
+
   const closeSidebar = () => {
     if (isMobile) setIsOpen(false);
   };
@@ -84,7 +84,7 @@ export default function Sidebar({ isOpen, setIsOpen, isMobile }) {
 
           <button
             className="logout-btn"
-            onClick={() => console.log("Logout")}
+            onClick={() => console.log(user)}
             title="Log out"
           >
             <FiLogOut />
