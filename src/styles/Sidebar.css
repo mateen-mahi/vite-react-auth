@@ -232,7 +232,7 @@ body {
 }
 
 .menu-btn.open {
-  left: 270px; /* just outside expanded sidebar (260px + 10px) */
+  left: 240px; /* just outside expanded sidebar (260px + 10px) */
 }
 
 .menu-btn:hover {

@@ -1,4 +1,5 @@
 import { NavLink } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
 import {
   FiMenu,
   FiX,
@@ -11,6 +12,9 @@ import {
 } from "react-icons/fi";
 
 import "../styles/Sidebar.css";
+
+const user = useAuth();
+
 
 export default function Sidebar({ isOpen, setIsOpen, isMobile }) {
 
@@ -68,12 +72,12 @@ export default function Sidebar({ isOpen, setIsOpen, isMobile }) {
 
         {/* User Footer */}
         <div className="sidebar-user">
-          <div className="user-avatar">M</div>
+          <div className="user-avatar">{user?.username?.charAt(0)?.toUpperCase() || "U"}</div>
 
           {isOpen && (
             <div className="user-info">
-              <p className="user-name">Mateen Mahi</p>
-              <p className="user-role">Administrator</p>
+              <p className="user-name">{user?.username}</p>
+              <p className="user-role">{user?.role}</p>
             </div>
           )}
 
