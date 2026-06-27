@@ -13,11 +13,12 @@ import {
 
 import "../styles/Sidebar.css";
 
-const user = useAuth();
 
 
 export default function Sidebar({ isOpen, setIsOpen, isMobile }) {
-
+  
+  const user = useAuth();
+  
   const closeSidebar = () => {
     if (isMobile) setIsOpen(false);
   };
