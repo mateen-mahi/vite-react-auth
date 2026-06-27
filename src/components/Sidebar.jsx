@@ -17,7 +17,7 @@ import "../styles/Sidebar.css";
 
 export default function Sidebar({ isOpen, setIsOpen, isMobile }) {
   
-  const user = useAuth();
+  const userContext = useAuth();
 
   const closeSidebar = () => {
     if (isMobile) setIsOpen(false);
@@ -73,12 +73,12 @@ export default function Sidebar({ isOpen, setIsOpen, isMobile }) {
 
         {/* User Footer */}
         <div className="sidebar-user">
-          <div className="user-avatar">{user?.username?.charAt(0)?.toUpperCase() || "U"}</div>
+          <div className="user-avatar">{userContext?.user?.username?.charAt(0)?.toUpperCase() || "U"}</div>
 
           {isOpen && (
             <div className="user-info">
-              <p className="user-name">{user?.username}</p>
-              <p className="user-role">{user?.role}</p>
+              <p className="user-name">{userContext?.user?.username}</p>
+              <p className="user-role">{userContext?.user?.role}</p>
             </div>
           )}
 
