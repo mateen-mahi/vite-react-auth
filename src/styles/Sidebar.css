@@ -209,7 +209,7 @@ body {
 .menu-btn {
   position: fixed;
   top: 15px;
-  left: 82px; /* just outside collapsed sidebar (72px + 10px) */
+  left: 15px; /* just outside collapsed sidebar (72px + 10px) */
 
   width: 40px;
   height: 40px;
