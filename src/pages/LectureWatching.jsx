@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { FiCheckCircle, FiCircle, FiClock, FiPlayCircle } from "react-icons/fi";
-import "../styles/Lectures.css";
+import "../styles/lectures.css";
 
 // ─── Lecture Data ──────────────────────────────────────────
 const LECTURES = [
