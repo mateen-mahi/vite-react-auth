@@ -11,7 +11,7 @@ import ResetPassword   from "./pages/Reset-password";
 import VerifyUserMail  from "./pages/VerifyUserMail";
 import Dashboard       from "./pages/Dashboard";
 import LectureWatching from "./pages/LectureWatching";
-import GrandQuiz       from "./pages/GrandQuiz";
+// import GrandQuiz       from "./pages/GrandQuiz";
 import UserManagement  from "./pages/admin/UserManagement";
 import Admin           from "./pages/Admin";
 import PaymentGateway  from "./pages/superAdmin/PaymentGateway";
