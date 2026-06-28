@@ -79,6 +79,24 @@ body {
   padding: 16px 10px;
   gap: 6px;
   flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  min-height: 0; /* critical — lets flexbox shrink below content size */
+}
+
+/* Hide scrollbar visually but keep it functional */
+.nav-links::-webkit-scrollbar {
+  width: 4px;
+}
+.nav-links::-webkit-scrollbar-track {
+  background: transparent;
+}
+.nav-links::-webkit-scrollbar-thumb {
+  background: #e2e8f0;
+  border-radius: 99px;
+}
+.nav-links::-webkit-scrollbar-thumb:hover {
+  background: #cbd5e1;
 }
 
 .nav-links a {
@@ -209,7 +227,7 @@ body {
 .menu-btn {
   position: fixed;
   top: 15px;
-  left: px; /* just outside collapsed sidebar (72px + 10px) */
+  left: 82px; /* just outside collapsed sidebar (72px + 10px) */
 
   width: 40px;
   height: 40px;
@@ -232,7 +250,7 @@ body {
 }
 
 .menu-btn.open {
-  left: 205px; /* just outside expanded sidebar (260px + 10px) */
+  left: 270px; /* just outside expanded sidebar (260px + 10px) */
 }
 
 .menu-btn:hover {
@@ -297,5 +315,40 @@ body {
   .content.collapsed {
     margin-left: 0;
     padding: 70px 20px 20px;
+  }
+}
+
+/* ─── Main Wrapper (replaces .content margin logic) ──────── */
+
+.main-wrapper {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 100vh;
+  transition: margin-left 0.3s ease;
+}
+
+.main-wrapper.expanded {
+  margin-left: 260px;
+}
+
+.main-wrapper.collapsed {
+  margin-left: 72px;
+}
+
+.content {
+  flex: 1;
+  padding: 24px;
+  margin-top: 64px; /* exactly Navbar height */
+}
+
+@media (max-width: 768px) {
+  .main-wrapper.expanded,
+  .main-wrapper.collapsed {
+    margin-left: 0;
+  }
+
+  .content {
+    padding: 20px;
   }
 }
