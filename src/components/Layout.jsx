@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Outlet } from "react-router-dom";
 import Sidebar from "./Sidebar";
 import "../styles/Sidebar.css";
+import Navbar from "./Navbar";
 
 export default function Layout() {
   const [isOpen, setIsOpen] = useState(window.innerWidth > 768);
@@ -20,9 +21,12 @@ export default function Layout() {
 
   return (
     <div className="layout">
+
       <Sidebar isOpen={isOpen} setIsOpen={setIsOpen} isMobile={isMobile} />
 
       <main className={`content ${isOpen && !isMobile ? "expanded" : "collapsed"}`}>
+
+        <Navbar/>
         <Outlet />
       </main>
     </div>
