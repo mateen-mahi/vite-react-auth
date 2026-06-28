@@ -71,7 +71,7 @@ export default function Navbar({ isOpen, isMobile }) {
                   <p className="dropdown-username">
                     {user?.username || "User"}
                   </p>
-                  <p className="dropdown-role">{user?.email || "student@example.com"}</p>
+                  <p className="dropdown-role">{user?.role || "student"}</p>
                 </div>
               </div>
               <div className="dropdown-divider" />
