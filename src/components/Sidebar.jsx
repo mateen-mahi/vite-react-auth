@@ -69,6 +69,30 @@ export default function Sidebar({ isOpen, setIsOpen, isMobile }) {
             <FiSettings className="nav-icon" />
             {isOpen && <span>Settings</span>}
           </NavLink>
+                    <NavLink to="/settings" onClick={closeSidebar} title="Settings">
+            <FiSettings className="nav-icon" />
+            {isOpen && <span>Settings</span>}
+          </NavLink>
+                    <NavLink to="/settings" onClick={closeSidebar} title="Settings">
+            <FiSettings className="nav-icon" />
+            {isOpen && <span>Settings</span>}
+          </NavLink>
+                    <NavLink to="/settings" onClick={closeSidebar} title="Settings">
+            <FiSettings className="nav-icon" />
+            {isOpen && <span>Settings</span>}
+          </NavLink>
+                    <NavLink to="/settings" onClick={closeSidebar} title="Settings">
+            <FiSettings className="nav-icon" />
+            {isOpen && <span>Settings</span>}
+          </NavLink>
+                    <NavLink to="/settings" onClick={closeSidebar} title="Settings">
+            <FiSettings className="nav-icon" />
+            {isOpen && <span>Settings</span>}
+          </NavLink>
+                    <NavLink to="/settings" onClick={closeSidebar} title="Settings">
+            <FiSettings className="nav-icon" />
+            {isOpen && <span>Settings</span>}
+          </NavLink>
         </nav>
 
         {/* User Footer */}
