@@ -21,12 +21,12 @@ export default function Layout() {
 
   return (
     <div className="layout">
-
       <Sidebar isOpen={isOpen} setIsOpen={setIsOpen} isMobile={isMobile} />
 
-      <main className={`content ${isOpen && !isMobile ? "expanded" : "collapsed"}`}>
-
-        <Navbar/>
+      <main
+        className={`content ${isOpen && !isMobile ? "expanded" : "collapsed"}`}
+      >
+        <Navbar isOpen={isOpen} isMobile={isMobile} />
         <Outlet />
       </main>
     </div>
