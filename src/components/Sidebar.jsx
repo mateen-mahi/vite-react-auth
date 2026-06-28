@@ -102,7 +102,7 @@ export default function Sidebar({ isOpen, setIsOpen, isMobile }) {
           {isOpen && (
             <div className="user-info">
               <p className="user-name">{userContext?.user?.username}</p>
-              <p className="user-role">{userContext?.user?.role}</p>
+              <p className="user-role">{userContext?.user?.email}</p>
             </div>
           )}
 
