@@ -5,8 +5,9 @@
   justify-content: space-between;
   padding: 0 24px;
   height: 60px;
-  background: linear-gradient(135deg, #7b2ff7, #9b59f5);
-  box-shadow: 0 2px 8px rgba(123, 47, 247, 0.25);
+  background: #ffffff;
+  border-bottom: 1px solid #e8eaf0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
   position: sticky;
   top: 0;
   z-index: 100;
@@ -17,66 +18,68 @@
 .navbar-logo {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
 }
 
 .navbar-logo-icon {
-  font-size: 22px;
+  font-size: 20px;
 }
 
 .navbar-logo-text {
-  font-size: 18px;
+  font-size: 17px;
   font-weight: 700;
-  color: #ffffff;
-  letter-spacing: 0.5px;
+  color: #2563eb;
+  letter-spacing: 0.3px;
 }
 
 /* ── Right Actions ──────────────────────────────────── */
 .navbar-actions {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
 }
 
-/* ── Bell Button ────────────────────────────────────── */
+/* ── Bell ───────────────────────────────────────────── */
 .navbar-icon-btn {
   position: relative;
-  background: rgba(255, 255, 255, 0.15);
-  border: none;
+  background: #f4f6fb;
+  border: 1px solid #e8eaf0;
   border-radius: 50%;
   width: 38px;
   height: 38px;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #ffffff;
-  font-size: 18px;
+  color: #555e7a;
+  font-size: 17px;
   cursor: pointer;
-  transition: background 0.2s;
+  transition: background 0.2s, border-color 0.2s, color 0.2s;
 }
 
 .navbar-icon-btn:hover {
-  background: rgba(255, 255, 255, 0.25);
+  background: #edf2ff;
+  border-color: #c7d4f8;
+  color: #2563eb;
 }
 
 .navbar-badge {
   position: absolute;
-  top: 4px;
-  right: 4px;
-  background: #ff4757;
+  top: 3px;
+  right: 3px;
+  background: #ef4444;
   color: #fff;
   font-size: 9px;
   font-weight: 700;
-  width: 16px;
-  height: 16px;
+  width: 15px;
+  height: 15px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 2px solid #7b2ff7;
+  border: 2px solid #fff;
 }
 
-/* ── Avatar Button ──────────────────────────────────── */
+/* ── Avatar ─────────────────────────────────────────── */
 .navbar-avatar-wrapper {
   position: relative;
 }
@@ -85,21 +88,21 @@
   width: 38px;
   height: 38px;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.25);
-  border: 2px solid rgba(255, 255, 255, 0.6);
+  background: linear-gradient(135deg, #2563eb, #60a5fa);
+  border: 2px solid #e0eaff;
   color: #ffffff;
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 700;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: background 0.2s, border-color 0.2s;
+  transition: border-color 0.2s, box-shadow 0.2s;
 }
 
 .navbar-avatar:hover {
-  background: rgba(255, 255, 255, 0.35);
-  border-color: #ffffff;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
 }
 
 /* ── Dropdown ───────────────────────────────────────── */
@@ -107,113 +110,120 @@
   position: absolute;
   top: calc(100% + 10px);
   right: 0;
-  width: 230px;
+  width: 240px;
   background: #ffffff;
-  border-radius: 12px;
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
+  border-radius: 14px;
+  border: 1px solid #e8eaf0;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.12);
   overflow: hidden;
-  animation: dropdownFadeIn 0.18s ease;
-  z-index: 200;
+  animation: dropFade 0.18s ease;
+  z-index: 999;
 }
 
-@keyframes dropdownFadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(-6px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+@keyframes dropFade {
+  from { opacity: 0; transform: translateY(-8px) scale(0.98); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
 }
 
-/* ── Dropdown User Info ─────────────────────────────── */
+/* User header */
 .dropdown-user-info {
   display: flex;
   align-items: center;
   gap: 12px;
   padding: 16px;
-  background: linear-gradient(135deg, #7b2ff7, #9b59f5);
+  background: linear-gradient(135deg, #f0f5ff, #e8f0fe);
+  border-bottom: 1px solid #dde8ff;
 }
 
 .dropdown-avatar {
-  width: 42px;
-  height: 42px;
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.25);
-  border: 2px solid rgba(255, 255, 255, 0.6);
+  background: linear-gradient(135deg, #2563eb, #60a5fa);
   color: #ffffff;
-  font-size: 16px;
+  font-size: 17px;
   font-weight: 700;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
 }
 
 .dropdown-username {
-  font-size: 14px;
-  font-weight: 600;
-  color: #ffffff;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #1e293b;
   margin: 0;
   text-transform: capitalize;
 }
 
 .dropdown-role {
   font-size: 11px;
-  color: rgba(255, 255, 255, 0.75);
-  margin: 2px 0 0;
+  font-weight: 600;
+  color: #2563eb;
+  margin: 4px 0 0;
   text-transform: capitalize;
+  background: #dbeafe;
+  display: inline-block;
+  padding: 1px 8px;
+  border-radius: 20px;
 }
 
-/* ── Divider ────────────────────────────────────────── */
+/* Menu */
+.dropdown-menu {
+  padding: 6px 0;
+}
+
 .dropdown-divider {
   height: 1px;
-  background: #f0f0f0;
+  background: #f1f3f9;
   margin: 4px 0;
 }
 
-/* ── Dropdown Items ─────────────────────────────────── */
 .dropdown-item {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
   width: 100%;
-  padding: 11px 16px;
+  padding: 10px 16px;
   background: none;
   border: none;
   font-size: 13.5px;
-  color: #333;
+  font-family: "Segoe UI", sans-serif;
+  color: #374151;
   cursor: pointer;
   text-align: left;
   transition: background 0.15s, color 0.15s;
 }
 
 .dropdown-item:hover {
-  background: #f5f0ff;
-  color: #7b2ff7;
+  background: #f5f8ff;
+  color: #2563eb;
 }
 
 .dropdown-item-icon {
   font-size: 15px;
+  color: #94a3b8;
   flex-shrink: 0;
-  opacity: 0.7;
+  transition: color 0.15s;
 }
 
 .dropdown-item:hover .dropdown-item-icon {
-  opacity: 1;
+  color: #2563eb;
 }
 
-/* ── Logout ─────────────────────────────────────────── */
+/* Logout */
 .dropdown-logout {
-  color: #e53935;
+  color: #dc2626;
 }
 
 .dropdown-logout:hover {
   background: #fff5f5;
-  color: #e53935;
+  color: #dc2626;
 }
 
-.dropdown-logout .dropdown-item-icon {
-  opacity: 1;
+.dropdown-logout .dropdown-item-icon,
+.dropdown-logout:hover .dropdown-item-icon {
+  color: #dc2626;
 }
