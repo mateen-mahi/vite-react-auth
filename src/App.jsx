@@ -17,6 +17,8 @@ import Admin           from "./pages/Admin";
 import PaymentGateway  from "./pages/superAdmin/PaymentGateway";
 import Unauthorized    from "./pages/Unauthorized";
 import Error404Page    from "./pages/Error404page";
+import GrandQuiz from "./pages/QuizPage";
+
 
 function App() {
   return (
