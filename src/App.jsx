@@ -18,6 +18,7 @@ import Unauthorized    from "./pages/Unauthorized";
 import Error404Page    from "./pages/Error404page";
 import GrandQuiz from "./pages/QuizPage";
 import Profile from "./pages/Profile";
+import Notes from "./pages/Notes";
 
 
 function App() {
@@ -49,6 +50,7 @@ function App() {
       <Route path="/user-management" element={<UserManagement />} />
       <Route path="/admin" element={<Admin />} />
       <Route path="/profile" element={<Profile />} />
+      <Route path="/notes" element={<Notes />} />
     </Route>
 
     <Route element={<RoleRoute allowedRoles={["super-admin"]} />}>

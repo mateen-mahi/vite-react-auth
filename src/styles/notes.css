@@ -1,0 +1,449 @@
+/* ─── Page shell ──────────────────────────────────────────── */
+
+.notes-page {
+  display: flex;
+  height: calc(100vh - 64px); /* full height minus navbar */
+  background: #f5f7fb;
+  overflow: hidden;
+  border-radius: 16px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
+}
+
+/* ════════════════════════════════════════════════════════════
+   LEFT PANEL
+════════════════════════════════════════════════════════════ */
+
+.notes-sidebar {
+  width: 300px;
+  min-width: 300px;
+  background: #fff;
+  border-right: 1px solid #e2e8f0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* Header */
+.notes-sidebar-header {
+  padding: 18px 16px 12px;
+  border-bottom: 1px solid #f1f5f9;
+  flex-shrink: 0;
+}
+
+.notes-sidebar-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.notes-sidebar-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 16px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.notes-sidebar-title svg {
+  color: #2563eb;
+  font-size: 18px;
+}
+
+/* New note button */
+.notes-new-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: none;
+  background: #2563eb;
+  color: #fff;
+  font-size: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.15s;
+  flex-shrink: 0;
+}
+
+.notes-new-btn:hover {
+  background: #1d4ed8;
+  transform: scale(1.06);
+}
+
+/* Search */
+.notes-search-wrap {
+  position: relative;
+}
+
+.notes-search-icon {
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #94a3b8;
+  font-size: 14px;
+  pointer-events: none;
+}
+
+.notes-search {
+  width: 100%;
+  padding: 9px 12px 9px 32px;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 10px;
+  background: #f8fafc;
+  font-size: 13.5px;
+  color: #0f172a;
+  outline: none;
+  transition: border-color 0.2s, background 0.2s;
+}
+
+.notes-search:focus {
+  border-color: #2563eb;
+  background: #fff;
+}
+
+/* Notes list */
+.notes-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px;
+}
+
+.notes-list::-webkit-scrollbar { width: 4px; }
+.notes-list::-webkit-scrollbar-track { background: transparent; }
+.notes-list::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 99px; }
+
+.notes-empty {
+  text-align: center;
+  color: #94a3b8;
+  font-size: 13.5px;
+  padding: 32px 0;
+}
+
+/* List item */
+.notes-list-item {
+  width: 100%;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 12px 10px;
+  border-radius: 10px;
+  border: 1.5px solid transparent;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.15s, border-color 0.15s;
+  position: relative;
+}
+
+.notes-list-item:hover {
+  background: #f8fafc;
+}
+
+.notes-list-item.active {
+  background: #eff6ff;
+  border-color: #bfdbfe;
+}
+
+.notes-item-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.notes-item-title {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #0f172a;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-bottom: 3px;
+}
+
+.notes-list-item.active .notes-item-title {
+  color: #1d4ed8;
+}
+
+.notes-item-preview {
+  font-size: 12px;
+  color: #94a3b8;
+  line-height: 1.45;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  margin-bottom: 5px;
+}
+
+.notes-item-time {
+  font-size: 11px;
+  color: #cbd5e1;
+  font-weight: 500;
+}
+
+/* Delete button (shows on hover) */
+.notes-delete-btn {
+  background: none;
+  border: none;
+  color: #cbd5e1;
+  font-size: 15px;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 6px;
+  flex-shrink: 0;
+  opacity: 0;
+  transition: opacity 0.15s, color 0.15s, background 0.15s;
+  margin-top: 1px;
+}
+
+.notes-list-item:hover .notes-delete-btn {
+  opacity: 1;
+}
+
+.notes-delete-btn:hover {
+  color: #ef4444;
+  background: #fff5f5;
+}
+
+/* Footer */
+.notes-sidebar-footer {
+  padding: 10px 16px;
+  font-size: 11.5px;
+  color: #94a3b8;
+  border-top: 1px solid #f1f5f9;
+  flex-shrink: 0;
+  text-align: center;
+}
+
+/* ════════════════════════════════════════════════════════════
+   EDITOR PANEL
+════════════════════════════════════════════════════════════ */
+
+.notes-editor-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: #fff;
+  overflow: hidden;
+}
+
+/* No selection state */
+.notes-no-selection {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  color: #94a3b8;
+}
+
+.notes-no-icon {
+  font-size: 48px;
+  color: #e2e8f0;
+}
+
+.notes-no-selection p {
+  font-size: 14px;
+}
+
+.notes-new-btn-lg {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 22px;
+  background: #2563eb;
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.notes-new-btn-lg:hover {
+  background: #1d4ed8;
+}
+
+/* ── Toolbar ── */
+.notes-toolbar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 10px 16px;
+  border-bottom: 1px solid #f1f5f9;
+  background: #fafbfc;
+  flex-shrink: 0;
+}
+
+.notes-toolbar-group {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding-right: 8px;
+  border-right: 1px solid #e2e8f0;
+}
+
+.notes-toolbar-group:last-child {
+  border-right: none;
+  padding-right: 0;
+}
+
+.notes-tool-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 7px;
+  border: none;
+  background: transparent;
+  color: #475569;
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.notes-tool-btn:hover {
+  background: #eff6ff;
+  color: #2563eb;
+}
+
+/* ── Editor area ── */
+.notes-editor {
+  flex: 1;
+  padding: 28px 36px;
+  overflow-y: auto;
+  outline: none;
+  font-size: 15px;
+  line-height: 1.75;
+  color: #1e293b;
+  caret-color: #2563eb;
+}
+
+.notes-editor::-webkit-scrollbar { width: 5px; }
+.notes-editor::-webkit-scrollbar-track { background: transparent; }
+.notes-editor::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 99px; }
+
+/* Rich text styles inside editor */
+.notes-editor h1,
+.notes-editor h2,
+.notes-editor h3 {
+  color: #0f172a;
+  font-weight: 700;
+  margin: 20px 0 10px;
+  line-height: 1.3;
+}
+
+.notes-editor h1 { font-size: 26px; }
+.notes-editor h2 { font-size: 20px; }
+.notes-editor h3 { font-size: 17px; }
+
+.notes-editor p {
+  margin: 0 0 10px;
+}
+
+.notes-editor ul,
+.notes-editor ol {
+  padding-left: 22px;
+  margin: 8px 0 12px;
+}
+
+.notes-editor li {
+  margin-bottom: 4px;
+}
+
+.notes-editor a {
+  color: #2563eb;
+  text-decoration: underline;
+}
+
+.notes-editor blockquote {
+  border-left: 3px solid #2563eb;
+  padding: 8px 16px;
+  margin: 12px 0;
+  color: #64748b;
+  background: #eff6ff;
+  border-radius: 0 8px 8px 0;
+  font-style: italic;
+}
+
+.notes-editor hr {
+  border: none;
+  border-top: 1px solid #e2e8f0;
+  margin: 20px 0;
+}
+
+.notes-editor strong { font-weight: 700; }
+.notes-editor em     { font-style: italic; }
+.notes-editor u      { text-decoration: underline; }
+.notes-editor s      { text-decoration: line-through; color: #94a3b8; }
+
+/* ── Editor footer ── */
+.notes-editor-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 20px;
+  border-top: 1px solid #f1f5f9;
+  font-size: 12px;
+  color: #94a3b8;
+  background: #fafbfc;
+  flex-shrink: 0;
+  gap: 12px;
+}
+
+.notes-editor-footer span {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+/* Mobile back button — hidden on desktop */
+.notes-back-btn {
+  display: none;
+}
+
+/* ─── Mobile ──────────────────────────────────────────────── */
+
+@media (max-width: 768px) {
+  .notes-page {
+    border-radius: 12px;
+    height: calc(100vh - 64px);
+  }
+
+  .notes-sidebar {
+    width: 100%;
+    min-width: 100%;
+    border-right: none;
+  }
+
+  .mobile-hide {
+    display: none;
+  }
+
+  .notes-back-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 16px;
+    background: none;
+    border: none;
+    border-bottom: 1px solid #f1f5f9;
+    color: #2563eb;
+    font-size: 13.5px;
+    font-weight: 600;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+
+  .notes-editor {
+    padding: 20px 18px;
+  }
+}
