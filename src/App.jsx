@@ -13,7 +13,7 @@ import Dashboard       from "./pages/Dashboard";
 import LectureWatching from "./pages/LectureWatching";
 import UserManagement  from "./pages/admin/UserManagement";
 import Admin           from "./pages/Admin";
-import PaymentGateway  from "./pages/superAdmin/PaymentGateway";
+import PaymentGateway  from "./pages/PaymentGateway";
 import Unauthorized    from "./pages/Unauthorized";
 import Error404Page    from "./pages/Error404page";
 import GrandQuiz from "./pages/QuizPage";
