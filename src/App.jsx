@@ -11,13 +11,13 @@ import ResetPassword   from "./pages/Reset-password";
 import VerifyUserMail  from "./pages/VerifyUserMail";
 import Dashboard       from "./pages/Dashboard";
 import LectureWatching from "./pages/LectureWatching";
-// import GrandQuiz       from "./pages/GrandQuiz";
 import UserManagement  from "./pages/admin/UserManagement";
 import Admin           from "./pages/Admin";
 import PaymentGateway  from "./pages/superAdmin/PaymentGateway";
 import Unauthorized    from "./pages/Unauthorized";
 import Error404Page    from "./pages/Error404page";
 import GrandQuiz from "./pages/QuizPage";
+import profile from "./pages/Profile";
 
 
 function App() {
@@ -45,10 +45,10 @@ function App() {
     <Route path="/dashboard" element={<Dashboard />} />
     <Route path="/lectures" element={<LectureWatching />} />
     <Route path="/grand-quiz" element={<GrandQuiz />} />
-
     <Route element={<RoleRoute allowedRoles={["admin", "super-admin"]} />}>
       <Route path="/user-management" element={<UserManagement />} />
       <Route path="/admin" element={<Admin />} />
+      <Route path="/profile" element={<profile />} />
     </Route>
 
     <Route element={<RoleRoute allowedRoles={["super-admin"]} />}>
