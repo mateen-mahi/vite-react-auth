@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import "./dashboard.css";
+import "../styles/dashboard.css";
 
 // ─── tiny inline SVG icons (no extra dependency) ───────────────────────────
 const Icon = {
