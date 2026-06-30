@@ -7,7 +7,7 @@ import {
   FiFileText, FiCalendar, FiZap, FiShield,
   FiEye, FiMoreVertical,
 } from "react-icons/fi";
-import "../styles/Dashboard.css";
+import "../styles/dashboard.css";
 
 // ─── Dummy role — flip to "user" to see student view ──────
 const CURRENT_ROLE = "super-admin"; // "super-admin" | "admin" | "user"
