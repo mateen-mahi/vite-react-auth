@@ -1,3 +1,4 @@
+import "../styles/complaint.css";
 import { useState } from "react";
 import {
   FiAlertCircle, FiCheckCircle, FiClock, FiPlus,
@@ -6,7 +7,6 @@ import {
   FiMonitor, FiUser, FiDollarSign, FiMoreHorizontal,
   FiInbox,
 } from "react-icons/fi";
-import "../styles/complaint.css";
 
 // ─── Config ────────────────────────────────────────────────
 const CATEGORIES = [
