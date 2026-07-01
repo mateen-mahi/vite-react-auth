@@ -11,6 +11,7 @@ import {
   FiFileText,
   FiLayers,
   FiLogOut,
+  FiAlertCircle,
 } from "react-icons/fi";
 
 import "../styles/Sidebar.css";
@@ -90,7 +91,7 @@ export default function Sidebar({ isOpen, setIsOpen, isMobile }) {
             {isOpen && <span>Certificate</span>}
           </NavLink>
           <NavLink to="/complaints" onClick={closeSidebar} title="Complaints">
-            <FiAlertTriangle className="nav-icon" />
+            <FiAlertCircle className="nav-icon" />
             {isOpen && <span>Complaints</span>}
           </NavLink>
           <NavLink to="/settings" onClick={closeSidebar} title="Settings">
