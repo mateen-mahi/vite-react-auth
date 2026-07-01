@@ -20,6 +20,8 @@ import GrandQuiz from "./pages/QuizPage";
 import Profile from "./pages/Profile";
 import Notes from "./pages/Notes";
 import Courses from "./pages/Courses";
+import Certificate from "./pages/Certificate";
+import Complaints from "./pages/Complaints";
 
 
 function App() {
@@ -53,6 +55,8 @@ function App() {
       <Route path="/profile" element={<Profile />} />
       <Route path="/notes" element={<Notes />} />
       <Route path="/courses" element={<Courses />} />
+      <Route path="/certificate" element={<Certificate />} />
+      <Route path="/complaints" element={<Complaints />} />
     </Route>
 
     <Route element={<RoleRoute allowedRoles={["super-admin"]} />}>
