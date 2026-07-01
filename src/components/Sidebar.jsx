@@ -85,13 +85,13 @@ export default function Sidebar({ isOpen, setIsOpen, isMobile }) {
             </span>
             {isOpen && <span className="nav-item-label">Courses</span>}
           </NavLink>
-          <NavLink to="/settings" onClick={closeSidebar} title="Settings">
-            <FiSettings className="nav-icon" />
-            {isOpen && <span>Settings</span>}
+          <NavLink to="/certificate" onClick={closeSidebar} title="Certificate">
+            <FiAward className="nav-icon" />
+            {isOpen && <span>Certificate</span>}
           </NavLink>
-          <NavLink to="/settings" onClick={closeSidebar} title="Settings">
-            <FiSettings className="nav-icon" />
-            {isOpen && <span>Settings</span>}
+          <NavLink to="/complaints" onClick={closeSidebar} title="Complaints">
+            <FiAlertTriangle className="nav-icon" />
+            {isOpen && <span>Complaints</span>}
           </NavLink>
           <NavLink to="/settings" onClick={closeSidebar} title="Settings">
             <FiSettings className="nav-icon" />
