@@ -6,6 +6,7 @@ import {
   FiMonitor, FiMapPin, FiLock, FiEye,
   FiEyeOff, FiSave, FiRefreshCw, FiCamera,
 } from "react-icons/fi";
+import AvatarCropModal from "./AvatarCropModal";
 import "../styles/profile.css";
 
 // ─── Dummy Data ────────────────────────────────────────────
@@ -33,9 +34,10 @@ const DUMMY_HISTORY = [
 // TODO: point this at your real route.
 const AVATAR_UPLOAD_URL = "/api/users/avatar";
 
-async function uploadAvatarToBackend(file) {
+async function uploadAvatarToBackend(fileOrBlob, filename = "avatar.jpg") {
   const formData = new FormData();
-  formData.append("avatar", file); // field name must match your multer.single("avatar")
+  // Blobs (from the crop step) have no filename of their own, so pass one explicitly
+  formData.append("avatar", fileOrBlob, filename); // field name must match your multer.single("avatar")
 
   const res = await axios.post(AVATAR_UPLOAD_URL, formData, {
     headers: { "Content-Type": "multipart/form-data" },
@@ -65,11 +67,16 @@ export default function Profile() {
   const [uploadError, setUploadError] = useState(null);
   const fileInputRef = useRef(null);
 
+  // ── Crop modal state ──────────────────────────────────────
+  const [cropImageSrc, setCropImageSrc] = useState(null); // object URL of the raw selected file
+  const [showCropModal, setShowCropModal] = useState(false);
+
   const showImage = Boolean(avatarUrl) && !imgError;
 
   const handleAvatarClick = () => fileInputRef.current?.click();
 
-  const handleFileChange = async (e) => {
+  // Step 1: user picks a file → just open the cropper, no upload yet
+  const handleFileChange = (e) => {
     const file = e.target.files?.[0];
     e.target.value = ""; // allow re-selecting the same file later
     if (!file) return;
@@ -78,21 +85,33 @@ export default function Profile() {
       setUploadError("Please select an image file.");
       return;
     }
-    if (file.size > 5 * 1024 * 1024) {
-      setUploadError("Image must be smaller than 5MB.");
+    if (file.size > 8 * 1024 * 1024) {
+      setUploadError("Image must be smaller than 8MB.");
       return;
     }
 
     setUploadError(null);
+    setCropImageSrc(URL.createObjectURL(file));
+    setShowCropModal(true);
+  };
 
-    // Instant local preview while the real upload happens
-    const previewUrl = URL.createObjectURL(file);
+  const closeCropModal = () => {
+    if (cropImageSrc) URL.revokeObjectURL(cropImageSrc);
+    setCropImageSrc(null);
+    setShowCropModal(false);
+  };
+
+  // Step 2: user confirms the crop → we get back a cropped Blob → upload that
+  const handleCropConfirm = async (croppedBlob) => {
+    setShowCropModal(false);
+
+    const previewUrl = URL.createObjectURL(croppedBlob);
     setImgError(false);
     setAvatarUrl(previewUrl);
     setUploading(true);
 
     try {
-      const data = await uploadAvatarToBackend(file);
+      const data = await uploadAvatarToBackend(croppedBlob);
       // TODO: replace `data.imageUrl` with whatever key your Express
       // route sends back after Multer + Cloudinary finish the upload.
       setAvatarUrl(data.imageUrl);
@@ -102,6 +121,8 @@ export default function Profile() {
     } finally {
       setUploading(false);
       URL.revokeObjectURL(previewUrl);
+      if (cropImageSrc) URL.revokeObjectURL(cropImageSrc);
+      setCropImageSrc(null);
     }
   };
 
@@ -165,6 +186,14 @@ export default function Profile() {
               onChange={handleFileChange}
             />
           </div>
+
+          {showCropModal && (
+            <AvatarCropModal
+              imageSrc={cropImageSrc}
+              onCancel={closeCropModal}
+              onConfirm={handleCropConfirm}
+            />
+          )}
 
           {uploadError && (
             <p className="prof-avatar-error"><FiAlertCircle /> {uploadError}</p>
