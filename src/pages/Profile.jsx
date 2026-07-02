@@ -1,15 +1,17 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
+import axios from "axios";
 import {
   FiUser, FiMail, FiShield, FiCalendar,
   FiCheckCircle, FiAlertCircle, FiClock,
   FiMonitor, FiMapPin, FiLock, FiEye,
-  FiEyeOff, FiSave, FiRefreshCw,
+  FiEyeOff, FiSave, FiRefreshCw, FiCamera,
 } from "react-icons/fi";
 import "../styles/profile.css";
 
 // ─── Dummy Data ────────────────────────────────────────────
 const DUMMY_USER = {
   username: "Mateen Mahi",
+  imageUrl : "https://example.com/avatar.jpg",
   email: "mateen@academy.com",
   role: "Administrator",
   gender: "Male",
@@ -25,6 +27,23 @@ const DUMMY_HISTORY = [
   { loginTime: new Date(Date.now() - 1000 * 60 * 60 * 96).toISOString(),   ipAddress: "103.99.4.200",  location: "Karachi, Pakistan" },
 ];
 
+// ─── Upload endpoint ─────────────────────────────────────────
+// React only sends the raw file here. Multer + Cloudinary on the
+// Express side handle the actual upload and return the hosted URL.
+// TODO: point this at your real route.
+const AVATAR_UPLOAD_URL = "/api/users/avatar";
+
+async function uploadAvatarToBackend(file) {
+  const formData = new FormData();
+  formData.append("avatar", file); // field name must match your multer.single("avatar")
+
+  const res = await axios.post(AVATAR_UPLOAD_URL, formData, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
+
+  return res.data; // TODO: adjust to whatever shape your backend returns
+}
+
 // ─── Helpers ───────────────────────────────────────────────
 const formatDate = (d) => new Date(d).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" });
 const formatDateTime = (d) => new Date(d).toLocaleString("en-US", { year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
@@ -38,6 +57,53 @@ const TABS = [
 export default function Profile() {
   const user = DUMMY_USER;
   const [activeTab, setActiveTab] = useState("info");
+
+  // ── Avatar / upload state ────────────────────────────────
+  const [avatarUrl, setAvatarUrl]   = useState(user.imageUrl);
+  const [imgError, setImgError]     = useState(false);
+  const [uploading, setUploading]   = useState(false);
+  const [uploadError, setUploadError] = useState(null);
+  const fileInputRef = useRef(null);
+
+  const showImage = Boolean(avatarUrl) && !imgError;
+
+  const handleAvatarClick = () => fileInputRef.current?.click();
+
+  const handleFileChange = async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = ""; // allow re-selecting the same file later
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      setUploadError("Please select an image file.");
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setUploadError("Image must be smaller than 5MB.");
+      return;
+    }
+
+    setUploadError(null);
+
+    // Instant local preview while the real upload happens
+    const previewUrl = URL.createObjectURL(file);
+    setImgError(false);
+    setAvatarUrl(previewUrl);
+    setUploading(true);
+
+    try {
+      const data = await uploadAvatarToBackend(file);
+      // TODO: replace `data.imageUrl` with whatever key your Express
+      // route sends back after Multer + Cloudinary finish the upload.
+      setAvatarUrl(data.imageUrl);
+    } catch (err) {
+      setUploadError("Upload failed. Please try again.");
+      setAvatarUrl(user.imageUrl); // revert to last known good avatar
+    } finally {
+      setUploading(false);
+      URL.revokeObjectURL(previewUrl);
+    }
+  };
 
   // ── Change password state ────────────────────────────────
   const [pwForm, setPwForm]     = useState({ current: "", next: "", confirm: "" });
@@ -68,8 +134,42 @@ export default function Profile() {
         <div className="prof-hero-bg" />
         <div className="prof-hero-body">
           <div className="prof-avatar-ring">
-            <div className="prof-avatar">{user.username.charAt(0)}</div>
+            <button
+              type="button"
+              className="prof-avatar-clickable"
+              onClick={handleAvatarClick}
+              disabled={uploading}
+              title="Change profile picture"
+            >
+              {showImage ? (
+                <img
+                  src={avatarUrl}
+                  alt={user.username}
+                  className="prof-avatar-img"
+                  onError={() => setImgError(true)}
+                />
+              ) : (
+                <div className="prof-avatar">{user.username.charAt(0)}</div>
+              )}
+
+              <span className="prof-avatar-edit-badge">
+                {uploading ? <FiRefreshCw className="prof-spin" /> : <FiCamera />}
+              </span>
+            </button>
+
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              className="prof-avatar-input-hidden"
+              onChange={handleFileChange}
+            />
           </div>
+
+          {uploadError && (
+            <p className="prof-avatar-error"><FiAlertCircle /> {uploadError}</p>
+          )}
+
           <div className="prof-hero-name-row">
             <h1 className="prof-name">{user.username}</h1>
             {user.isVerified
