@@ -11,7 +11,6 @@ export default function Navbar({ isOpen, isMobile }) {
   
   const navigate = useNavigate();
 
-  console.log(user);
   useEffect(() => {
     const handleClickOutside = (e) => {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
