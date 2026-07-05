@@ -8,8 +8,10 @@ export default function Navbar({ isOpen, isMobile }) {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef(null);
   const { user, logout } = useAuth();
+  
   const navigate = useNavigate();
 
+  console.log(user);
   useEffect(() => {
     const handleClickOutside = (e) => {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {

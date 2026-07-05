@@ -59,11 +59,9 @@ const TABS = [
 export default function Profile() {
 
   const { user } = useAuth();
-  console.log(user);
   
 
 
-  const user = DUMMY_USER;
   const [activeTab, setActiveTab] = useState("info");
 
   // ── Avatar / upload state ────────────────────────────────
