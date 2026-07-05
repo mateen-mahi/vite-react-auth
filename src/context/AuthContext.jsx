@@ -1,5 +1,6 @@
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useState, useCallback } from "react";
 import api from "../services/api";
+
 const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
@@ -9,27 +10,30 @@ export const AuthProvider = ({ children }) => {
     role: null,
   });
 
-  useEffect(() => {
-    api
-      .get("/check-auth", { withCredentials: true })
-      .then((res) => {
-        setAuth({
-          loading: false,
-          user: res.data.user,
-          role: res.data.user?.role || null,
-        });
-      })
-      .catch(() => {
-        setAuth({
-          loading: false,
-          user: null,
-          role: null,
-        });
+
+  const checkAuth = useCallback(async () => {
+    try {
+      const res = await api.get("/check-auth", { withCredentials: true });
+      setAuth({
+        loading: false,
+        user: res.data.user,
+        role: res.data.user?.role || null,
       });
+    } catch {
+      setAuth({
+        loading: false,
+        user: null,
+        role: null,
+      });
+    }
   }, []);
 
+  useEffect(() => {
+    checkAuth();
+  }, [checkAuth]);
+
   return (
-    <AuthContext.Provider value={auth}>
+    <AuthContext.Provider value={{ ...auth, refreshAuth: checkAuth }}>
       {children}
     </AuthContext.Provider>
   );

@@ -1,10 +1,12 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import api from "../services/api";
+import { useAuth } from "../context/AuthContext";
 import "../styles/Signin.css";
 
 const Signin = () => {
   const navigate = useNavigate();
+  const { refreshAuth } = useAuth();
 
   const [formData, setFormData] = useState({ email: "", password: "" });
   const [errors, setErrors] = useState({});
@@ -47,7 +49,7 @@ const Signin = () => {
     setApiError("");
     setSuccessMsg("");
 
-       try {
+    try {
       const res = await api.post("/signin", {
         email: formData.email,
         password: formData.password,
@@ -60,6 +62,14 @@ const Signin = () => {
       }
 
       setSuccessMsg(res.data?.message || "Login successful! Redirecting…");
+
+      // This is the actual fix: tell AuthContext to re-check /check-auth
+      // RIGHT NOW, using the fresh cookie the backend just set — instead of
+      // waiting for some future page load to discover the user is logged in.
+      // Without this, ProtectedRoute reads a stale `role: null` and bounces
+      // you straight back to /login before the redirect ever gets a chance.
+      await refreshAuth();
+
       setTimeout(() => navigate("/profile"), 1500);
     } catch (err) {
       const msg =
@@ -71,7 +81,6 @@ const Signin = () => {
       setLoading(false);
     }
   };
-
 
   return (
     <div className="signin-root">
