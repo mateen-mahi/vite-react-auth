@@ -10,8 +10,6 @@ import {
 import AvatarCropModal from "./AvatarCropModal";
 import "../styles/profile.css";
 
-
-
 const getLoginTime = (entry) => entry.loginTime || entry.timestamp || entry.createdAt || entry.time;
 const getIp = (entry) => entry.ipAddress || entry.ip || "Unknown IP";
 const getLocation = (entry) => entry.location || entry.place || "Unknown location";
@@ -63,7 +61,6 @@ export default function Profile() {
   const [uploadError, setUploadError] = useState(null);
   const fileInputRef = useRef(null);
 
-  // Keep the displayed avatar in sync once the real profile arrives
   useEffect(() => {
     if (profile) {
       setAvatarUrl(profile.imageUrl);
@@ -104,11 +101,6 @@ export default function Profile() {
     setShowCropModal(false);
   };
 
-  // Same "avatar" field name your multer middleware expects — but the URL
-  // is now built from the real logged-in user's id, not a hardcoded one.
-
-
-
   const uploadAvatarToBackend = async (fileOrBlob, filename = "avatar.jpg") => {
     const formData = new FormData();
     formData.append("avatar", fileOrBlob, filename);
@@ -132,11 +124,10 @@ export default function Profile() {
       const data = await uploadAvatarToBackend(croppedBlob);
       const newImageUrl = data.user.imageUrl;
       setAvatarUrl(newImageUrl);
-      // Keep local profile state in sync so switching tabs/re-rendering stays consistent
       setProfile((prev) => (prev ? { ...prev, imageUrl: newImageUrl } : prev));
     } catch (err) {
       setUploadError("Upload failed. Please try again.");
-      setAvatarUrl(profile?.imageUrl || null); // revert to last known good avatar
+      setAvatarUrl(profile?.imageUrl || null);
     } finally {
       setUploading(false);
       URL.revokeObjectURL(previewUrl);
@@ -153,17 +144,40 @@ export default function Profile() {
 
   const toggleShow = (f) => setPwShow((p) => ({ ...p, [f]: !p[f] }));
 
-  const handlePasswordChange = (e) => {
+  // Real API call now — matches the backend's currentPassword/newPassword
+  // check, and its 6-character minimum.
+  const handlePasswordChange = async (e) => {
     e.preventDefault();
     setPwStatus(null);
-    if (pwForm.next !== pwForm.confirm) { setPwStatus({ type: "error", msg: "New passwords don't match." }); return; }
-    if (pwForm.next.length < 4)         { setPwStatus({ type: "error", msg: "Password must be at least 4 characters." }); return; }
+
+    if (pwForm.next !== pwForm.confirm) {
+      setPwStatus({ type: "error", msg: "New passwords don't match." });
+      return;
+    }
+    if (pwForm.next.length < 6) {
+      setPwStatus({ type: "error", msg: "Password must be at least 6 characters." });
+      return;
+    }
+    if (pwForm.current === pwForm.next) {
+      setPwStatus({ type: "error", msg: "New password must be different from your current one." });
+      return;
+    }
+
     setPwLoading(true);
-    setTimeout(() => {
-      setPwLoading(false);
+    try {
+      await api.post(`/update-password/${authUser._id}`, {
+        currentPassword: pwForm.current,
+        newPassword: pwForm.next,
+      });
       setPwStatus({ type: "success", msg: "Password changed successfully." });
       setPwForm({ current: "", next: "", confirm: "" });
-    }, 1000);
+    } catch (err) {
+      // Backend returns 401 for a wrong current password, 400 for validation issues
+      const msg = err.response?.data?.message || "Failed to change password. Please try again.";
+      setPwStatus({ type: "error", msg });
+    } finally {
+      setPwLoading(false);
+    }
   };
 
   // ── Loading / error states for the initial profile fetch ──
@@ -183,10 +197,8 @@ export default function Profile() {
     );
   }
 
-  // Everything below reads from `profile` (the real fetched data), not authUser
   const user = profile;
 
-  // Real login history, newest first (backend order isn't guaranteed)
   const loginHistory = [...(profile.loginHistory || [])].sort(
     (a, b) => new Date(getLoginTime(b)) - new Date(getLoginTime(a))
   );
@@ -334,7 +346,7 @@ export default function Profile() {
         {/* Change Password */}
         {activeTab === "password" && (
           <form className="prof-pw-form" onSubmit={handlePasswordChange}>
-            <p className="prof-pw-note">Choose a strong password — at least 4 characters.</p>
+            <p className="prof-pw-note">Choose a strong password — at least 6 characters.</p>
 
             {pwStatus && (
               <div className={`prof-pw-status ${pwStatus.type}`}>
