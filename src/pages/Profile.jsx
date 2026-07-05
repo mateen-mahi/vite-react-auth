@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import api from "../services/api";
 import { useAuth } from "../context/AuthContext";
 import {
@@ -10,19 +10,7 @@ import {
 import AvatarCropModal from "./AvatarCropModal";
 import "../styles/profile.css";
 
-
-
-
-const DUMMY_USER = {
-  username: useAuth().user?.username || "Usman",
-  imageUrl : "https://example.com/avatar.jpg",
-  email: "mateen@academy.com",
-  role: "Administrator",
-  gender: "Male",
-  createdAt: "2024-03-15T10:00:00Z",
-  isVerified: true,
-};
-
+// TODO: still dummy — swap for a real GET (e.g. /login-history/:id) once that endpoint exists
 const DUMMY_HISTORY = [
   { loginTime: new Date(Date.now() - 1000 * 60 * 30).toISOString(),        ipAddress: "119.152.44.21", location: "Lahore, Pakistan" },
   { loginTime: new Date(Date.now() - 1000 * 60 * 60 * 5).toISOString(),    ipAddress: "119.152.44.21", location: "Lahore, Pakistan" },
@@ -30,21 +18,6 @@ const DUMMY_HISTORY = [
   { loginTime: new Date(Date.now() - 1000 * 60 * 60 * 50).toISOString(),   ipAddress: "119.152.44.21", location: "Lahore, Pakistan" },
   { loginTime: new Date(Date.now() - 1000 * 60 * 60 * 96).toISOString(),   ipAddress: "103.99.4.200",  location: "Karachi, Pakistan" },
 ];
-
-
-const AVATAR_UPLOAD_URL = `/edit-user/${user._id}`; 
-
-async function uploadAvatarToBackend(fileOrBlob, filename = "avatar.jpg") {
-  const formData = new FormData();
-  // Blobs (from the crop step) have no filename of their own, so pass one explicitly
-  formData.append("avatar", fileOrBlob, filename); // field name must match your multer.single("avatar")
-
-  const res = await api.post(AVATAR_UPLOAD_URL, formData, {
-    headers: { "Content-Type": "multipart/form-data" },
-  });
-
-  return res.data; // TODO: adjust to whatever shape your backend returns
-}
 
 // ─── Helpers ───────────────────────────────────────────────
 const formatDate = (d) => new Date(d).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" });
@@ -57,32 +30,63 @@ const TABS = [
 ];
 
 export default function Profile() {
+  // authUser: whatever AuthContext already knows (mainly used here for the id)
+  const { user: authUser } = useAuth();
 
-  const { user } = useAuth();
-  
+  // profile: the FULL user record, fetched fresh from the backend
+  const [profile, setProfile] = useState(null);
+  const [loadingProfile, setLoadingProfile] = useState(true);
+  const [profileError, setProfileError] = useState(null);
 
+  // ── Fetch the full profile once we know who's logged in ──
+  useEffect(() => {
+    if (!authUser?._id) return;
+
+    const fetchProfile = async () => {
+      setLoadingProfile(true);
+      setProfileError(null);
+      try {
+        const res = await api.get(`/single-user/${authUser._id}`);
+        setProfile(res.data.user);
+      } catch (err) {
+        console.log("Failed to fetch profile:", err);
+        setProfileError("Couldn't load your profile. Please try again.");
+      } finally {
+        setLoadingProfile(false);
+      }
+    };
+
+    fetchProfile();
+  }, [authUser?._id]);
 
   const [activeTab, setActiveTab] = useState("info");
 
   // ── Avatar / upload state ────────────────────────────────
-  const [avatarUrl, setAvatarUrl]   = useState(user.imageUrl);
+  const [avatarUrl, setAvatarUrl]   = useState(null);
   const [imgError, setImgError]     = useState(false);
   const [uploading, setUploading]   = useState(false);
   const [uploadError, setUploadError] = useState(null);
   const fileInputRef = useRef(null);
 
+  // Keep the displayed avatar in sync once the real profile arrives
+  useEffect(() => {
+    if (profile) {
+      setAvatarUrl(profile.imageUrl);
+      setImgError(false);
+    }
+  }, [profile]);
+
   // ── Crop modal state ──────────────────────────────────────
-  const [cropImageSrc, setCropImageSrc] = useState(null); // object URL of the raw selected file
+  const [cropImageSrc, setCropImageSrc] = useState(null);
   const [showCropModal, setShowCropModal] = useState(false);
 
   const showImage = Boolean(avatarUrl) && !imgError;
 
   const handleAvatarClick = () => fileInputRef.current?.click();
 
-  // Step 1: user picks a file → just open the cropper, no upload yet
   const handleFileChange = (e) => {
     const file = e.target.files?.[0];
-    e.target.value = ""; // allow re-selecting the same file later
+    e.target.value = "";
     if (!file) return;
 
     if (!file.type.startsWith("image/")) {
@@ -105,7 +109,19 @@ export default function Profile() {
     setShowCropModal(false);
   };
 
-  // Step 2: user confirms the crop → we get back a cropped Blob → upload that
+  // Same "avatar" field name your multer middleware expects — but the URL
+  // is now built from the real logged-in user's id, not a hardcoded one.
+  const uploadAvatarToBackend = async (fileOrBlob, filename = "avatar.jpg") => {
+    const formData = new FormData();
+    formData.append("avatar", fileOrBlob, filename);
+
+    const res = await api.post(`/edit-user/${authUser._id}`, formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+
+    return res.data; // { success, message, user: { ...imageUrl } } — matches editUser's response shape
+  };
+
   const handleCropConfirm = async (croppedBlob) => {
     setShowCropModal(false);
 
@@ -116,12 +132,13 @@ export default function Profile() {
 
     try {
       const data = await uploadAvatarToBackend(croppedBlob);
-      // TODO: replace `data.imageUrl` with whatever key your Express
-      // route sends back after Multer + Cloudinary finish the upload.
-      setAvatarUrl(data.imageUrl);
+      const newImageUrl = data.user.imageUrl;
+      setAvatarUrl(newImageUrl);
+      // Keep local profile state in sync so switching tabs/re-rendering stays consistent
+      setProfile((prev) => (prev ? { ...prev, imageUrl: newImageUrl } : prev));
     } catch (err) {
       setUploadError("Upload failed. Please try again.");
-      setAvatarUrl(user.imageUrl); // revert to last known good avatar
+      setAvatarUrl(profile?.imageUrl || null); // revert to last known good avatar
     } finally {
       setUploading(false);
       URL.revokeObjectURL(previewUrl);
@@ -151,6 +168,26 @@ export default function Profile() {
     }, 1000);
   };
 
+  // ── Loading / error states for the initial profile fetch ──
+  if (loadingProfile) {
+    return (
+      <div className="prof-page">
+        <div className="prof-loading"><FiRefreshCw className="prof-spin" /> Loading your profile…</div>
+      </div>
+    );
+  }
+
+  if (profileError || !profile) {
+    return (
+      <div className="prof-page">
+        <div className="prof-error"><FiAlertCircle /> {profileError || "Profile not found."}</div>
+      </div>
+    );
+  }
+
+  // Everything below reads from `profile` (the real fetched data), not authUser
+  const user = profile;
+
   return (
     <div className="prof-page">
 
@@ -174,7 +211,7 @@ export default function Profile() {
                   onError={() => setImgError(true)}
                 />
               ) : (
-                <div className="prof-avatar">{user.username.charAt(0)}</div>
+                <div className="prof-avatar">{user.username?.charAt(0)}</div>
               )}
 
               <span className="prof-avatar-edit-badge">
