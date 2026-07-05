@@ -165,7 +165,7 @@ export default function Profile() {
 
     setPwLoading(true);
     try {
-      await api.post(`/update-password/${authUser._id}`, {
+      await api.put(`/update-password/${authUser._id}`, {
         currentPassword: pwForm.current,
         newPassword: pwForm.next,
       });
