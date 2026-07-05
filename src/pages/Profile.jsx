@@ -10,16 +10,13 @@ import {
 import AvatarCropModal from "./AvatarCropModal";
 import "../styles/profile.css";
 
-// TODO: still dummy — swap for a real GET (e.g. /login-history/:id) once that endpoint exists
-const DUMMY_HISTORY = [
-  { loginTime: new Date(Date.now() - 1000 * 60 * 30).toISOString(),        ipAddress: "119.152.44.21", location: "Lahore, Pakistan" },
-  { loginTime: new Date(Date.now() - 1000 * 60 * 60 * 5).toISOString(),    ipAddress: "119.152.44.21", location: "Lahore, Pakistan" },
-  { loginTime: new Date(Date.now() - 1000 * 60 * 60 * 27).toISOString(),   ipAddress: "39.51.12.100",  location: "Islamabad, Pakistan" },
-  { loginTime: new Date(Date.now() - 1000 * 60 * 60 * 50).toISOString(),   ipAddress: "119.152.44.21", location: "Lahore, Pakistan" },
-  { loginTime: new Date(Date.now() - 1000 * 60 * 60 * 96).toISOString(),   ipAddress: "103.99.4.200",  location: "Karachi, Pakistan" },
-];
-
 // ─── Helpers ───────────────────────────────────────────────
+// Login history entries might use slightly different field names depending
+// on how your backend stores them — these helpers try the common variants
+// so the UI doesn't break or show blanks if the exact name differs.
+const getLoginTime = (entry) => entry.loginTime || entry.timestamp || entry.createdAt || entry.time;
+const getIp = (entry) => entry.ipAddress || entry.ip || "Unknown IP";
+const getLocation = (entry) => entry.location || entry.place || "Unknown location";
 const formatDate = (d) => new Date(d).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" });
 const formatDateTime = (d) => new Date(d).toLocaleString("en-US", { year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
 
@@ -47,8 +44,6 @@ export default function Profile() {
       setProfileError(null);
       try {
         const res = await api.get(`/single-user/${authUser._id}`);
-        console.log(authUser);
-        console.log("Fetched profile:", res.data.user);
         setProfile(res.data.user);
       } catch (err) {
         console.log("Failed to fetch profile:", err);
@@ -57,8 +52,6 @@ export default function Profile() {
         setLoadingProfile(false);
       }
     };
-
-    
 
     fetchProfile();
   }, [authUser?._id]);
@@ -192,6 +185,11 @@ export default function Profile() {
   // Everything below reads from `profile` (the real fetched data), not authUser
   const user = profile;
 
+  // Real login history, newest first (backend order isn't guaranteed)
+  const loginHistory = [...(profile.loginHistory || [])].sort(
+    (a, b) => new Date(getLoginTime(b)) - new Date(getLoginTime(a))
+  );
+
   return (
     <div className="prof-page">
 
@@ -311,17 +309,20 @@ export default function Profile() {
         {/* Login History */}
         {activeTab === "history" && (
           <div className="prof-history">
-            {DUMMY_HISTORY.map((entry, i) => (
-              <div key={i} className={`prof-history-item ${i === 0 ? "latest" : ""}`}>
+            {loginHistory.length === 0 && (
+              <p className="prof-empty">No login activity recorded yet.</p>
+            )}
+            {loginHistory.map((entry, i) => (
+              <div key={entry._id || i} className={`prof-history-item ${i === 0 ? "latest" : ""}`}>
                 <div className="prof-history-dot" />
                 <div className="prof-history-body">
                   <div className="prof-history-top">
-                    <span className="prof-history-time"><FiClock /> {formatDateTime(entry.loginTime)}</span>
+                    <span className="prof-history-time"><FiClock /> {formatDateTime(getLoginTime(entry))}</span>
                     {i === 0 && <span className="prof-latest-tag">Latest</span>}
                   </div>
                   <div className="prof-history-meta">
-                    <span><FiMonitor /> {entry.ipAddress}</span>
-                    <span><FiMapPin /> {entry.location}</span>
+                    <span><FiMonitor /> {getIp(entry)}</span>
+                    <span><FiMapPin /> {getLocation(entry)}</span>
                   </div>
                 </div>
               </div>
