@@ -47,6 +47,8 @@ export default function Profile() {
       setProfileError(null);
       try {
         const res = await api.get(`/single-user/${authUser._id}`);
+        console.log(authUser);
+        console.log("Fetched profile:", res.data.user);
         setProfile(res.data.user);
       } catch (err) {
         console.log("Failed to fetch profile:", err);
@@ -55,6 +57,8 @@ export default function Profile() {
         setLoadingProfile(false);
       }
     };
+
+    
 
     fetchProfile();
   }, [authUser?._id]);
