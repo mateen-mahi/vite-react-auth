@@ -1,5 +1,6 @@
 import { useState, useRef } from "react";
-import axios from "axios";
+import api from "../services/api";
+import { useAuth } from "../context/AuthContext";
 import {
   FiUser, FiMail, FiShield, FiCalendar,
   FiCheckCircle, FiAlertCircle, FiClock,
@@ -9,9 +10,11 @@ import {
 import AvatarCropModal from "./AvatarCropModal";
 import "../styles/profile.css";
 
-// ─── Dummy Data ────────────────────────────────────────────
+
+
+
 const DUMMY_USER = {
-  username: "Mateen Mahi",
+  username: useAuth().user?.username || "Usman",
   imageUrl : "https://example.com/avatar.jpg",
   email: "mateen@academy.com",
   role: "Administrator",
@@ -28,18 +31,15 @@ const DUMMY_HISTORY = [
   { loginTime: new Date(Date.now() - 1000 * 60 * 60 * 96).toISOString(),   ipAddress: "103.99.4.200",  location: "Karachi, Pakistan" },
 ];
 
-// ─── Upload endpoint ─────────────────────────────────────────
-// React only sends the raw file here. Multer + Cloudinary on the
-// Express side handle the actual upload and return the hosted URL.
-// TODO: point this at your real route.
-const AVATAR_UPLOAD_URL = "/api/users/avatar";
+
+const AVATAR_UPLOAD_URL = `/edit-user/${user._id}`; 
 
 async function uploadAvatarToBackend(fileOrBlob, filename = "avatar.jpg") {
   const formData = new FormData();
   // Blobs (from the crop step) have no filename of their own, so pass one explicitly
   formData.append("avatar", fileOrBlob, filename); // field name must match your multer.single("avatar")
 
-  const res = await axios.post(AVATAR_UPLOAD_URL, formData, {
+  const res = await api.post(AVATAR_UPLOAD_URL, formData, {
     headers: { "Content-Type": "multipart/form-data" },
   });
 
@@ -57,6 +57,12 @@ const TABS = [
 ];
 
 export default function Profile() {
+
+  const { user } = useAuth();
+  console.log(user);
+  
+
+
   const user = DUMMY_USER;
   const [activeTab, setActiveTab] = useState("info");
 
