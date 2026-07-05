@@ -10,10 +10,8 @@ import {
 import AvatarCropModal from "./AvatarCropModal";
 import "../styles/profile.css";
 
-// ─── Helpers ───────────────────────────────────────────────
-// Login history entries might use slightly different field names depending
-// on how your backend stores them — these helpers try the common variants
-// so the UI doesn't break or show blanks if the exact name differs.
+
+
 const getLoginTime = (entry) => entry.loginTime || entry.timestamp || entry.createdAt || entry.time;
 const getIp = (entry) => entry.ipAddress || entry.ip || "Unknown IP";
 const getLocation = (entry) => entry.location || entry.place || "Unknown location";
@@ -108,15 +106,18 @@ export default function Profile() {
 
   // Same "avatar" field name your multer middleware expects — but the URL
   // is now built from the real logged-in user's id, not a hardcoded one.
+
+
+
   const uploadAvatarToBackend = async (fileOrBlob, filename = "avatar.jpg") => {
     const formData = new FormData();
     formData.append("avatar", fileOrBlob, filename);
 
-    const res = await api.post(`/edit-user/${authUser._id}`, formData, {
+    const res = await api.put(`/edit-user/${authUser._id}`, formData, {
       headers: { "Content-Type": "multipart/form-data" },
     });
 
-    return res.data; // { success, message, user: { ...imageUrl } } — matches editUser's response shape
+    return res.data;
   };
 
   const handleCropConfirm = async (croppedBlob) => {
