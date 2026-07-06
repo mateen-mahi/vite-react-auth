@@ -13,7 +13,7 @@ export const AuthProvider = ({ children }) => {
 
   const checkAuth = useCallback(async () => {
     try {
-      const res = await api.get("/check-auth", { withCredentials: true });
+      const res = await api.get("/users/check-auth", { withCredentials: true });
       setAuth({
         loading: false,
         user: res.data.user,
