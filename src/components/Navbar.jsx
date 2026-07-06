@@ -8,8 +8,8 @@ import "../styles/Navbar.css";
 export default function Navbar({ isOpen, isMobile }) {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef(null);
-  const { user ,refreshAuth} = useAuth();
-  
+  const { user, refreshAuth } = useAuth();
+
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -22,21 +22,31 @@ export default function Navbar({ isOpen, isMobile }) {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  // ── Avatar image / letter fallback ──────────────────────────
+  const [avatarImgError, setAvatarImgError] = useState(false);
 
-const handleLogout = async () => {
-  try {
-    setDropdownOpen(false);
-    
-    await api.post("/users/signout", {}, { withCredentials: true });
-    await refreshAuth();
-    
-    navigate("/login");
-    
-  } catch (error) {
-    console.error("Logout failed:", error);
-    navigate("/login");
-  }
-};
+  // Reset the error flag if the user's imageUrl ever changes (e.g. they
+  // just uploaded a new picture on the Profile page) — otherwise a stale
+  // error from a previous broken URL would keep hiding a valid new one.
+  useEffect(() => {
+    setAvatarImgError(false);
+  }, [user?.imageUrl]);
+
+  const showAvatarImage = Boolean(user?.imageUrl) && !avatarImgError;
+
+  const handleLogout = async () => {
+    try {
+      setDropdownOpen(false);
+
+      await api.post("/users/signout", {}, { withCredentials: true });
+      await refreshAuth();
+
+      navigate("/login");
+    } catch (error) {
+      console.error("Logout failed:", error);
+      navigate("/login");
+    }
+  };
 
   const handleNavigate = (path) => {
     setDropdownOpen(false);
@@ -45,7 +55,6 @@ const handleLogout = async () => {
 
   const avatarLetter = user?.username?.charAt(0)?.toUpperCase() || "U";
   const sidebarExpanded = isOpen && !isMobile;
-  console.log("Navbar user:", user);
 
   return (
     <header
@@ -73,16 +82,32 @@ const handleLogout = async () => {
             aria-label="User menu"
             aria-expanded={dropdownOpen}
           >
-            {avatarLetter}
+            {showAvatarImage ? (
+              <img
+                src={user.imageUrl}
+                alt={user.username}
+                className="navbar-avatar-img"
+                onError={() => setAvatarImgError(true)}
+              />
+            ) : (
+              avatarLetter
+            )}
           </button>
 
           {dropdownOpen && (
             <div className="navbar-dropdown">
               <div className="dropdown-user-info">
                 <div className="dropdown-avatar">
-                  {avatarLetter}
-                  
-
+                  {showAvatarImage ? (
+                    <img
+                      src={user.imageUrl}
+                      alt={user.username}
+                      className="navbar-avatar-img"
+                      onError={() => setAvatarImgError(true)}
+                    />
+                  ) : (
+                    avatarLetter
+                  )}
                 </div>
                 <div>
                   <p className="dropdown-username">
