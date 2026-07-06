@@ -60,7 +60,7 @@ export default function Admin() {
     setLoggingOut(true);
     setLogoutError("");
     try {
-      await api.get("/logout");
+      await api.get("/users/signout", { withCredentials: true });
       navigate("/login");
     } catch {
       // Even if logout API fails, redirect anyway (cookie already cleared server-side or expired)

@@ -59,10 +59,6 @@ export default function Sidebar({ isOpen, setIsOpen, isMobile }) {
             {isOpen && <span>Grand Quiz</span>}
           </NavLink>
 
-          <NavLink to="/profile" onClick={closeSidebar} title="Profile">
-            <FiUser className="nav-icon" />
-            {isOpen && <span>Profile</span>}
-          </NavLink>
           <NavLink
             to="/notes"
             onClick={closeSidebar}

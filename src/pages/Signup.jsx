@@ -76,7 +76,7 @@ const Signup = () => {
 
     try {
       const { username, email, password, gender } = formData;
-      const res = await api.post("/signup", { username, email, password, gender });
+      const res = await api.post("/users/signup", { username, email, password, gender });
 
       if (res.data?.redirectToVerification) {
         sessionStorage.setItem("pending_verification_email", res.data.email);

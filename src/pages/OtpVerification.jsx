@@ -124,7 +124,7 @@ const OtpVerification = () => {
 
 
     try {
-      const res = await api.post("/verify-user", { email, otp: otpValue });
+      const res = await api.post("/users/verify-user", { email, otp: otpValue });
       setSuccessMsg(res.data?.message || "Email verified successfully! Redirecting…");
       setVerified(true);
       setTimeout(() => navigate("/login"), 2500);
@@ -148,7 +148,7 @@ const OtpVerification = () => {
     setApiError("");
 
     try {
-      const res = await api.post("/send-verify-otp", { email });
+      const res = await api.post("/users/send-verify-otp", { email });
       setResendMsg(res.data?.message || "A new OTP has been sent to your email.");
       setCountdown(60);
       setCanResend(false);

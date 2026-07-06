@@ -31,7 +31,6 @@ export default function Profile() {
   const [loadingProfile, setLoadingProfile] = useState(true);
   const [profileError, setProfileError] = useState(null);
 
-  // ── Fetch the full profile once we know who's logged in ──
   useEffect(() => {
     if (!authUser?._id) return;
 
@@ -39,7 +38,7 @@ export default function Profile() {
       setLoadingProfile(true);
       setProfileError(null);
       try {
-        const res = await api.get(`/single-user/${authUser._id}`);
+        const res = await api.get(`/users/single-user/${authUser._id}`);
         setProfile(res.data.user);
       } catch (err) {
         console.log("Failed to fetch profile:", err);
@@ -105,7 +104,7 @@ export default function Profile() {
     const formData = new FormData();
     formData.append("avatar", fileOrBlob, filename);
 
-    const res = await api.put(`/edit-user/${authUser._id}`, formData, {
+    const res = await api.put(`/users/edit-user/${authUser._id}`, formData, {
       headers: { "Content-Type": "multipart/form-data" },
     });
 
@@ -144,8 +143,7 @@ export default function Profile() {
 
   const toggleShow = (f) => setPwShow((p) => ({ ...p, [f]: !p[f] }));
 
-  // Real API call now — matches the backend's currentPassword/newPassword
-  // check, and its 6-character minimum.
+
   const handlePasswordChange = async (e) => {
     e.preventDefault();
     setPwStatus(null);
@@ -165,7 +163,7 @@ export default function Profile() {
 
     setPwLoading(true);
     try {
-      await api.put(`/update-password/${authUser._id}`, {
+      await api.put(`/users/update-password/${authUser._id}`, {
         currentPassword: pwForm.current,
         newPassword: pwForm.next,
       });

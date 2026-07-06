@@ -1,13 +1,14 @@
 import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import api from "../services/api";
 import { FiBell, FiUser, FiLock, FiClock, FiLogOut } from "react-icons/fi";
 import "../styles/Navbar.css";
 
 export default function Navbar({ isOpen, isMobile }) {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef(null);
-  const { user, logout } = useAuth();
+  const { user ,refreshAuth} = useAuth();
   
   const navigate = useNavigate();
 
@@ -21,11 +22,21 @@ export default function Navbar({ isOpen, isMobile }) {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const handleLogout = () => {
+
+const handleLogout = async () => {
+  try {
     setDropdownOpen(false);
-    logout();
+    
+    await api.post("/users/signout", {}, { withCredentials: true });
+    await refreshAuth();
+    
     navigate("/login");
-  };
+    
+  } catch (error) {
+    console.error("Logout failed:", error);
+    navigate("/login");
+  }
+};
 
   const handleNavigate = (path) => {
     setDropdownOpen(false);
@@ -34,6 +45,7 @@ export default function Navbar({ isOpen, isMobile }) {
 
   const avatarLetter = user?.username?.charAt(0)?.toUpperCase() || "U";
   const sidebarExpanded = isOpen && !isMobile;
+  console.log("Navbar user:", user);
 
   return (
     <header
@@ -67,7 +79,11 @@ export default function Navbar({ isOpen, isMobile }) {
           {dropdownOpen && (
             <div className="navbar-dropdown">
               <div className="dropdown-user-info">
-                <div className="dropdown-avatar">{avatarLetter}</div>
+                <div className="dropdown-avatar">
+                  {avatarLetter}
+                  
+
+                </div>
                 <div>
                   <p className="dropdown-username">
                     {user?.username || "User"}
@@ -84,13 +100,13 @@ export default function Navbar({ isOpen, isMobile }) {
               </button>
               <button
                 className="dropdown-item"
-                onClick={() => handleNavigate("/change-password")}
+                onClick={() => handleNavigate("/profile")}
               >
                 <FiLock className="dropdown-item-icon" /> Change Password
               </button>
               <button
                 className="dropdown-item"
-                onClick={() => handleNavigate("/login-history")}
+                onClick={() => handleNavigate("/profile")}
               >
                 <FiClock className="dropdown-item-icon" /> Login History
               </button>
