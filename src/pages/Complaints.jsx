@@ -61,7 +61,7 @@ export default function Complaint() {
       try {
         // No verifyAuth on the backend yet, so userId has to be passed
         // explicitly — see the note about this route needing auth.
-        const res = await api.get("/user-complaints", { params: { userId: user._id } });
+        const res = await api.get("/complaints/user-complaints", { params: { userId: user._id } });
         setComplaints(res.data.complaints);
       } catch (err) {
         console.log("Failed to fetch complaints:", err);
@@ -96,7 +96,7 @@ export default function Complaint() {
 
     setSubmitting(true);
     try {
-      const res = await api.post("/submit-complaint", {
+      const res = await api.post("/complaints/submit-complaint", {
         subject: form.subject,
         description: form.description,
         userId: user._id, // required as-is, since the route has no auth middleware to derive it from
@@ -123,7 +123,7 @@ export default function Complaint() {
 
     setDeletingId(complaintId);
     try {
-      await api.delete(`/delete-complaint/${complaintId}`);
+      await api.delete(`/complaints/delete-complaint/${complaintId}`);
       setComplaints((prev) => prev.filter((c) => c._id !== complaintId));
       if (expandedId === complaintId) setExpandedId(null);
       setToast("Complaint deleted.");
