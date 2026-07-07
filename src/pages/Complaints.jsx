@@ -1,78 +1,25 @@
 import "../styles/complaint.css";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import api from "../services/api";
+import { useAuth } from "../context/AuthContext";
 import {
   FiAlertCircle, FiCheckCircle, FiClock, FiPlus,
   FiX, FiSend, FiMessageSquare, FiSearch,
-  FiChevronDown, FiChevronUp, FiBookOpen,
-  FiMonitor, FiUser, FiDollarSign, FiMoreHorizontal,
-  FiInbox,
+  FiChevronDown, FiChevronUp, FiInbox, FiTrash2,
+  FiRefreshCw,
 } from "react-icons/fi";
 
-// ─── Config ────────────────────────────────────────────────
-const CATEGORIES = [
-  { value: "course",    label: "Course Related",     icon: FiBookOpen,      color: "#2563eb" },
-  { value: "technical", label: "Technical Issue",    icon: FiMonitor,       color: "#0891b2" },
-  { value: "teacher",   label: "Teacher Complaint",  icon: FiUser,          color: "#8b5cf6" },
-  { value: "fee",       label: "Fee / Payment",      icon: FiDollarSign,    color: "#d97706" },
-  { value: "other",     label: "Other",              icon: FiMoreHorizontal,color: "#64748b" },
-];
-
-const PRIORITIES = ["Low", "Medium", "High"];
-
+// ─── Config — matches the REAL schema: subject, description, answer, status ───
+// status enum in the backend is lowercase: "pending" | "in progress" | "resolved"
 const STATUS_CONFIG = {
-  Pending:    { color: "#d97706", bg: "#fffbeb", border: "#fde68a", icon: FiClock         },
-  "In Review":{ color: "#2563eb", bg: "#eff6ff", border: "#bfdbfe", icon: FiAlertCircle   },
-  Resolved:   { color: "#16a34a", bg: "#f0fdf4", border: "#bbf7d0", icon: FiCheckCircle   },
+  pending:        { label: "Pending",     color: "#d97706", bg: "#fffbeb", border: "#fde68a", icon: FiClock },
+  "in progress":  { label: "In Progress", color: "#2563eb", bg: "#eff6ff", border: "#bfdbfe", icon: FiAlertCircle },
+  resolved:       { label: "Resolved",    color: "#16a34a", bg: "#f0fdf4", border: "#bbf7d0", icon: FiCheckCircle },
 };
-
-const PRIORITY_CONFIG = {
-  Low:    { color: "#64748b", bg: "#f8fafc", border: "#e2e8f0" },
-  Medium: { color: "#d97706", bg: "#fffbeb", border: "#fde68a" },
-  High:   { color: "#ef4444", bg: "#fff5f5", border: "#fecaca" },
-};
-
-// ─── Dummy past complaints ─────────────────────────────────
-let nextId = 4;
-const DUMMY_COMPLAINTS = [
-  {
-    id: 1,
-    title: "Video not loading in React module",
-    category: "technical",
-    priority: "High",
-    description: "Lecture 12 of the React course has been buffering for 3 days. I have tried on multiple browsers and devices. The issue persists only on this specific video.",
-    status: "In Review",
-    submittedAt: "Jun 25, 2026",
-    updatedAt: "Jun 27, 2026",
-    adminReply: "We have escalated this to the technical team. The video is being re-encoded and should be available within 24 hours. Apologies for the inconvenience.",
-  },
-  {
-    id: 2,
-    title: "Course certificate not received",
-    category: "course",
-    priority: "Medium",
-    description: "I completed the CSS Mastery course 2 weeks ago (100% progress) but have not received my certificate yet. Please look into this.",
-    status: "Pending",
-    submittedAt: "Jun 28, 2026",
-    updatedAt: "Jun 28, 2026",
-    adminReply: null,
-  },
-  {
-    id: 3,
-    title: "Double charge on monthly subscription",
-    category: "fee",
-    priority: "High",
-    description: "I was charged twice for the month of June. My bank statement shows two deductions of PKR 2,500 each on June 1st. Please refund the extra charge.",
-    status: "Resolved",
-    submittedAt: "Jun 10, 2026",
-    updatedAt: "Jun 15, 2026",
-    adminReply: "The duplicate charge has been confirmed and a refund of PKR 2,500 has been initiated. It will reflect in your account within 3–5 business days.",
-  },
-];
+const STATUS_ORDER = { pending: 0, "in progress": 1, resolved: 2 };
+const STATUS_FILTERS = ["All", "pending", "in progress", "resolved"];
 
 // ─── Helpers ───────────────────────────────────────────────
-const getCategoryInfo = (value) =>
-  CATEGORIES.find((c) => c.value === value) || CATEGORIES[4];
-
 const formatRelative = (dateStr) => {
   const date = new Date(dateStr);
   return date.toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" });
@@ -91,73 +38,119 @@ function Toast({ msg, onClose }) {
 
 // ══════════════════════════════════════════════════════════
 export default function Complaint() {
-  const [complaints, setComplaints] = useState(DUMMY_COMPLAINTS);
+  const { user } = useAuth();
+
+  const [complaints, setComplaints] = useState([]);
+  const [loadingComplaints, setLoadingComplaints] = useState(true);
+  const [fetchError, setFetchError] = useState(null);
+
   const [showForm,   setShowForm]   = useState(false);
   const [expandedId, setExpandedId] = useState(null);
   const [search,     setSearch]     = useState("");
   const [filterStatus, setFilterStatus] = useState("All");
   const [toast,      setToast]      = useState(null);
+  const [deletingId, setDeletingId] = useState(null);
 
-  // ── Form state ───────────────────────────────────────────
-  const EMPTY_FORM = { title: "", category: "", priority: "Medium", description: "" };
+  // ── Fetch this user's real complaints ────────────────────
+  useEffect(() => {
+    if (!user?._id) return;
+
+    const fetchComplaints = async () => {
+      setLoadingComplaints(true);
+      setFetchError(null);
+      try {
+        // No verifyAuth on the backend yet, so userId has to be passed
+        // explicitly — see the note about this route needing auth.
+        const res = await api.get("/user-complaints", { params: { userId: user._id } });
+        setComplaints(res.data.complaints);
+      } catch (err) {
+        console.log("Failed to fetch complaints:", err);
+        setFetchError("Couldn't load your complaints. Please try again.");
+      } finally {
+        setLoadingComplaints(false);
+      }
+    };
+
+    fetchComplaints();
+  }, [user?._id]);
+
+  // ── Form state (only real schema fields: subject, description) ──
+  const EMPTY_FORM = { subject: "", description: "" };
   const [form,    setForm]    = useState(EMPTY_FORM);
   const [errors,  setErrors]  = useState({});
-  const [loading, setLoading] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
-  // ── Validate ─────────────────────────────────────────────
   const validate = () => {
     const e = {};
-    if (!form.title.trim())       e.title       = "Title is required.";
-    if (!form.category)           e.category    = "Select a category.";
-    if (!form.description.trim()) e.description = "Please describe your issue.";
-    if (form.description.trim().length < 20) e.description = "Please provide more detail (at least 20 characters).";
+    if (!form.subject.trim())       e.subject     = "Subject is required.";
+    if (!form.description.trim())   e.description = "Please describe your issue.";
+    else if (form.description.trim().length < 20) e.description = "Please provide more detail (at least 20 characters).";
     return e;
   };
 
-  // ── Submit ────────────────────────────────────────────────
-  const handleSubmit = (e) => {
+  // ── Submit — real POST to /submit-complaint ──────────────
+  const handleSubmit = async (e) => {
     e.preventDefault();
     const e2 = validate();
     if (Object.keys(e2).length) { setErrors(e2); return; }
 
-    setLoading(true);
-    // TODO: replace with API call → POST /api/complaints
-    setTimeout(() => {
-      const newComplaint = {
-        id: nextId++,
-        title: form.title,
-        category: form.category,
-        priority: form.priority,
+    setSubmitting(true);
+    try {
+      const res = await api.post("/submit-complaint", {
+        subject: form.subject,
         description: form.description,
-        status: "Pending",
-        submittedAt: new Date().toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" }),
-        updatedAt: new Date().toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" }),
-        adminReply: null,
-      };
-      setComplaints((prev) => [newComplaint, ...prev]);
+        userId: user._id, // required as-is, since the route has no auth middleware to derive it from
+      });
+
+      setComplaints((prev) => [res.data.complaint, ...prev]);
       setForm(EMPTY_FORM);
       setErrors({});
       setShowForm(false);
-      setLoading(false);
       setToast("Complaint submitted successfully.");
       setTimeout(() => setToast(null), 4000);
-    }, 900);
+    } catch (err) {
+      const msg = err.response?.data?.message || "Failed to submit complaint. Please try again.";
+      setErrors({ submit: msg });
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  // ── Delete — real DELETE to /delete-complaint/:id ────────
+  const handleDelete = async (complaintId, e) => {
+    e.stopPropagation(); // don't also toggle the card's expand/collapse
+    if (!window.confirm("Delete this complaint? This can't be undone.")) return;
+
+    setDeletingId(complaintId);
+    try {
+      await api.delete(`/delete-complaint/${complaintId}`);
+      setComplaints((prev) => prev.filter((c) => c._id !== complaintId));
+      if (expandedId === complaintId) setExpandedId(null);
+      setToast("Complaint deleted.");
+      setTimeout(() => setToast(null), 3000);
+    } catch (err) {
+      setToast(err.response?.data?.message || "Failed to delete complaint.");
+      setTimeout(() => setToast(null), 3000);
+    } finally {
+      setDeletingId(null);
+    }
   };
 
   // ── Filter ────────────────────────────────────────────────
   const filtered = complaints.filter((c) => {
-    const matchSearch = c.title.toLowerCase().includes(search.toLowerCase()) ||
-                        getCategoryInfo(c.category).label.toLowerCase().includes(search.toLowerCase());
+    const matchSearch =
+      c.subject.toLowerCase().includes(search.toLowerCase()) ||
+      c.description.toLowerCase().includes(search.toLowerCase());
     const matchStatus = filterStatus === "All" || c.status === filterStatus;
     return matchSearch && matchStatus;
   });
 
   // ── Summary counts ────────────────────────────────────────
   const counts = {
-    total:    complaints.length,
-    pending:  complaints.filter((c) => c.status === "Pending").length,
-    inReview: complaints.filter((c) => c.status === "In Review").length,
-    resolved: complaints.filter((c) => c.status === "Resolved").length,
+    total:      complaints.length,
+    pending:    complaints.filter((c) => c.status === "pending").length,
+    inProgress: complaints.filter((c) => c.status === "in progress").length,
+    resolved:   complaints.filter((c) => c.status === "resolved").length,
   };
 
   return (
@@ -180,10 +173,10 @@ export default function Complaint() {
       {/* ── Summary Cards ── */}
       <div className="cp-summary">
         {[
-          { label: "Total",     value: counts.total,    color: "#2563eb", bg: "#eff6ff"  },
-          { label: "Pending",   value: counts.pending,  color: "#d97706", bg: "#fffbeb"  },
-          { label: "In Review", value: counts.inReview, color: "#2563eb", bg: "#eff6ff"  },
-          { label: "Resolved",  value: counts.resolved, color: "#16a34a", bg: "#f0fdf4"  },
+          { label: "Total",       value: counts.total,      color: "#2563eb", bg: "#eff6ff" },
+          { label: "Pending",     value: counts.pending,    color: "#d97706", bg: "#fffbeb" },
+          { label: "In Progress", value: counts.inProgress, color: "#2563eb", bg: "#eff6ff" },
+          { label: "Resolved",    value: counts.resolved,   color: "#16a34a", bg: "#f0fdf4" },
         ].map((s) => (
           <div key={s.label} className="cp-summary-card" style={{ "--sc": s.color, "--sb": s.bg }}>
             <span className="cp-summary-value">{s.value}</span>
@@ -202,63 +195,20 @@ export default function Complaint() {
 
           <form className="cp-form" onSubmit={handleSubmit} noValidate>
 
-            {/* Title */}
+            {errors.submit && (
+              <p className="cp-error-msg"><FiAlertCircle /> {errors.submit}</p>
+            )}
+
+            {/* Subject */}
             <div className="cp-field">
               <label className="cp-label">Subject <span className="cp-required">*</span></label>
               <input
-                className={`cp-input ${errors.title ? "error" : ""}`}
+                className={`cp-input ${errors.subject ? "error" : ""}`}
                 placeholder="Briefly describe your issue…"
-                value={form.title}
-                onChange={(e) => { setForm((p) => ({ ...p, title: e.target.value })); setErrors((p) => ({ ...p, title: "" })); }}
+                value={form.subject}
+                onChange={(e) => { setForm((p) => ({ ...p, subject: e.target.value })); setErrors((p) => ({ ...p, subject: "" })); }}
               />
-              {errors.title && <p className="cp-error-msg"><FiAlertCircle /> {errors.title}</p>}
-            </div>
-
-            {/* Category + Priority row */}
-            <div className="cp-field-row">
-              <div className="cp-field">
-                <label className="cp-label">Category <span className="cp-required">*</span></label>
-                <div className="cp-category-grid">
-                  {CATEGORIES.map((cat) => {
-                    const Icon = cat.icon;
-                    const active = form.category === cat.value;
-                    return (
-                      <button
-                        key={cat.value}
-                        type="button"
-                        className={`cp-cat-btn ${active ? "active" : ""}`}
-                        style={active ? { "--cc": cat.color, borderColor: cat.color, background: cat.color + "12" } : {}}
-                        onClick={() => { setForm((p) => ({ ...p, category: cat.value })); setErrors((p) => ({ ...p, category: "" })); }}
-                      >
-                        <Icon style={active ? { color: cat.color } : {}} />
-                        <span>{cat.label}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-                {errors.category && <p className="cp-error-msg"><FiAlertCircle /> {errors.category}</p>}
-              </div>
-
-              <div className="cp-field cp-field-priority">
-                <label className="cp-label">Priority</label>
-                <div className="cp-priority-group">
-                  {PRIORITIES.map((p) => {
-                    const cfg = PRIORITY_CONFIG[p];
-                    const active = form.priority === p;
-                    return (
-                      <button
-                        key={p}
-                        type="button"
-                        className={`cp-priority-btn ${active ? "active" : ""}`}
-                        style={active ? { background: cfg.bg, color: cfg.color, borderColor: cfg.border } : {}}
-                        onClick={() => setForm((prev) => ({ ...prev, priority: p }))}
-                      >
-                        {p}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
+              {errors.subject && <p className="cp-error-msg"><FiAlertCircle /> {errors.subject}</p>}
             </div>
 
             {/* Description */}
@@ -286,8 +236,8 @@ export default function Complaint() {
               <button type="button" className="cp-btn-cancel" onClick={() => { setShowForm(false); setForm(EMPTY_FORM); setErrors({}); }}>
                 Cancel
               </button>
-              <button type="submit" className="cp-btn-submit" disabled={loading}>
-                {loading
+              <button type="submit" className="cp-btn-submit" disabled={submitting}>
+                {submitting
                   ? <><span className="cp-spinner" /> Submitting…</>
                   : <><FiSend /> Submit Complaint</>
                 }
@@ -314,21 +264,37 @@ export default function Complaint() {
             </div>
             {/* Status filter */}
             <div className="cp-status-pills">
-              {["All", "Pending", "In Review", "Resolved"].map((s) => (
+              {STATUS_FILTERS.map((s) => (
                 <button
                   key={s}
                   className={`cp-status-pill ${filterStatus === s ? "active" : ""}`}
                   onClick={() => setFilterStatus(s)}
                 >
-                  {s}
+                  {s === "All" ? "All" : STATUS_CONFIG[s].label}
                 </button>
               ))}
             </div>
           </div>
         </div>
 
+        {/* Loading */}
+        {loadingComplaints && (
+          <div className="cp-empty">
+            <FiRefreshCw className="cp-empty-icon cp-spin" />
+            <p className="cp-empty-title">Loading your complaints…</p>
+          </div>
+        )}
+
+        {/* Fetch error */}
+        {!loadingComplaints && fetchError && (
+          <div className="cp-empty">
+            <FiAlertCircle className="cp-empty-icon" />
+            <p className="cp-empty-title">{fetchError}</p>
+          </div>
+        )}
+
         {/* Empty state */}
-        {filtered.length === 0 && (
+        {!loadingComplaints && !fetchError && filtered.length === 0 && (
           <div className="cp-empty">
             <FiInbox className="cp-empty-icon" />
             <p className="cp-empty-title">No complaints found</p>
@@ -341,105 +307,108 @@ export default function Complaint() {
         )}
 
         {/* Complaint cards */}
-        <div className="cp-list">
-          {filtered.map((c) => {
-            const cat    = getCategoryInfo(c.category);
-            const status = STATUS_CONFIG[c.status];
-            const prio   = PRIORITY_CONFIG[c.priority];
-            const CatIcon    = cat.icon;
-            const StatusIcon = status.icon;
-            const isExpanded = expandedId === c.id;
+        {!loadingComplaints && !fetchError && (
+          <div className="cp-list">
+            {filtered.map((c) => {
+              const status = STATUS_CONFIG[c.status];
+              const StatusIcon = status.icon;
+              const isExpanded = expandedId === c._id;
+              const isDeleting = deletingId === c._id;
+              const wasUpdated = new Date(c.updatedAt).getTime() !== new Date(c.createdAt).getTime();
 
-            return (
-              <div key={c.id} className={`cp-card ${isExpanded ? "expanded" : ""}`}>
+              return (
+                <div key={c._id} className={`cp-card ${isExpanded ? "expanded" : ""}`}>
 
-                {/* Card header — always visible */}
-                <div className="cp-card-header" onClick={() => setExpandedId(isExpanded ? null : c.id)}>
-                  <div className="cp-card-icon" style={{ background: cat.color + "14", color: cat.color }}>
-                    <CatIcon />
-                  </div>
+                  {/* Card header — always visible */}
+                  <div className="cp-card-header" onClick={() => setExpandedId(isExpanded ? null : c._id)}>
+                    <div className="cp-card-icon" style={{ background: "#2563eb14", color: "#2563eb" }}>
+                      <FiMessageSquare />
+                    </div>
 
-                  <div className="cp-card-meta">
-                    <div className="cp-card-title-row">
-                      <p className="cp-card-title">{c.title}</p>
-                      <div className="cp-card-badges">
-                        <span className="cp-prio-badge" style={{ background: prio.bg, color: prio.color, border: `1px solid ${prio.border}` }}>
-                          {c.priority}
-                        </span>
-                        <span className="cp-status-badge" style={{ background: status.bg, color: status.color, border: `1px solid ${status.border}` }}>
-                          <StatusIcon /> {c.status}
-                        </span>
+                    <div className="cp-card-meta">
+                      <div className="cp-card-title-row">
+                        <p className="cp-card-title">{c.subject}</p>
+                        <div className="cp-card-badges">
+                          <span className="cp-status-badge" style={{ background: status.bg, color: status.color, border: `1px solid ${status.border}` }}>
+                            <StatusIcon /> {status.label}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="cp-card-info-row">
+                        <span className="cp-date">Submitted {formatRelative(c.createdAt)}</span>
+                        {wasUpdated && (
+                          <><span className="cp-dot" /><span className="cp-date">Updated {formatRelative(c.updatedAt)}</span></>
+                        )}
                       </div>
                     </div>
-                    <div className="cp-card-info-row">
-                      <span className="cp-cat-label" style={{ color: cat.color }}>
-                        <CatIcon /> {cat.label}
-                      </span>
-                      <span className="cp-dot" />
-                      <span className="cp-date">Submitted {formatRelative(c.submittedAt)}</span>
-                      {c.updatedAt !== c.submittedAt && (
-                        <><span className="cp-dot" /><span className="cp-date">Updated {formatRelative(c.updatedAt)}</span></>
+
+                    <button
+                      className="cp-expand-btn"
+                      aria-label="Delete complaint"
+                      title="Delete complaint"
+                      disabled={isDeleting}
+                      onClick={(e) => handleDelete(c._id, e)}
+                    >
+                      {isDeleting ? <FiRefreshCw className="cp-spin" /> : <FiTrash2 />}
+                    </button>
+
+                    <button className="cp-expand-btn" aria-label={isExpanded ? "Collapse" : "Expand"}>
+                      {isExpanded ? <FiChevronUp /> : <FiChevronDown />}
+                    </button>
+                  </div>
+
+                  {/* Expanded detail */}
+                  {isExpanded && (
+                    <div className="cp-card-body">
+
+                      {/* Status timeline */}
+                      <div className="cp-timeline">
+                        {["pending", "in progress", "resolved"].map((step, i) => {
+                          const stepCfg = STATUS_CONFIG[step];
+                          const StepIcon = stepCfg.icon;
+                          const currentOrder = STATUS_ORDER[c.status];
+                          const isDone    = STATUS_ORDER[step] <= currentOrder;
+                          const isCurrent = step === c.status;
+                          return (
+                            <div key={step} className={`cp-step ${isDone ? "done" : ""} ${isCurrent ? "current" : ""}`}>
+                              <div className="cp-step-icon" style={isDone ? { background: stepCfg.color, color: "#fff" } : {}}>
+                                <StepIcon />
+                              </div>
+                              <span className="cp-step-label" style={isCurrent ? { color: stepCfg.color, fontWeight: 700 } : {}}>{stepCfg.label}</span>
+                              {i < 2 && <div className={`cp-step-line ${STATUS_ORDER[step] < currentOrder ? "done" : ""}`} />}
+                            </div>
+                          );
+                        })}
+                      </div>
+
+                      {/* Description */}
+                      <div className="cp-detail-block">
+                        <p className="cp-detail-label">Your complaint</p>
+                        <p className="cp-detail-text">{c.description}</p>
+                      </div>
+
+                      {/* Admin reply (schema field is "answer") */}
+                      {c.answer && c.answer.trim().length > 0 ? (
+                        <div className="cp-reply-block">
+                          <div className="cp-reply-header">
+                            <FiCheckCircle className="cp-reply-icon" />
+                            <p className="cp-reply-label">Admin Response</p>
+                          </div>
+                          <p className="cp-reply-text">{c.answer}</p>
+                        </div>
+                      ) : (
+                        <div className="cp-no-reply">
+                          <FiClock />
+                          <span>Awaiting admin response — we typically respond within 24–48 hours.</span>
+                        </div>
                       )}
                     </div>
-                  </div>
-
-                  <button className="cp-expand-btn" aria-label={isExpanded ? "Collapse" : "Expand"}>
-                    {isExpanded ? <FiChevronUp /> : <FiChevronDown />}
-                  </button>
+                  )}
                 </div>
-
-                {/* Expanded detail */}
-                {isExpanded && (
-                  <div className="cp-card-body">
-
-                    {/* Status timeline */}
-                    <div className="cp-timeline">
-                      {["Pending", "In Review", "Resolved"].map((step, i) => {
-                        const stepCfg = STATUS_CONFIG[step];
-                        const StepIcon = stepCfg.icon;
-                        const statusOrder = { Pending: 0, "In Review": 1, Resolved: 2 };
-                        const currentOrder = statusOrder[c.status];
-                        const isDone    = statusOrder[step] <= currentOrder;
-                        const isCurrent = step === c.status;
-                        return (
-                          <div key={step} className={`cp-step ${isDone ? "done" : ""} ${isCurrent ? "current" : ""}`}>
-                            <div className="cp-step-icon" style={isDone ? { background: stepCfg.color, color: "#fff" } : {}}>
-                              <StepIcon />
-                            </div>
-                            <span className="cp-step-label" style={isCurrent ? { color: stepCfg.color, fontWeight: 700 } : {}}>{step}</span>
-                            {i < 2 && <div className={`cp-step-line ${statusOrder[step] < currentOrder ? "done" : ""}`} />}
-                          </div>
-                        );
-                      })}
-                    </div>
-
-                    {/* Description */}
-                    <div className="cp-detail-block">
-                      <p className="cp-detail-label">Your complaint</p>
-                      <p className="cp-detail-text">{c.description}</p>
-                    </div>
-
-                    {/* Admin reply */}
-                    {c.adminReply ? (
-                      <div className="cp-reply-block">
-                        <div className="cp-reply-header">
-                          <FiCheckCircle className="cp-reply-icon" />
-                          <p className="cp-reply-label">Admin Response</p>
-                        </div>
-                        <p className="cp-reply-text">{c.adminReply}</p>
-                      </div>
-                    ) : (
-                      <div className="cp-no-reply">
-                        <FiClock />
-                        <span>Awaiting admin response — we typically respond within 24–48 hours.</span>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
+              );
+            })}
+          </div>
+        )}
       </div>
     </div>
   );
