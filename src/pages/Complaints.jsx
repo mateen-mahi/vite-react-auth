@@ -9,8 +9,7 @@ import {
   FiRefreshCw,
 } from "react-icons/fi";
 
-// ─── Config — matches the REAL schema: subject, description, answer, status ───
-// status enum in the backend is lowercase: "pending" | "in progress" | "resolved"
+
 const STATUS_CONFIG = {
   pending:        { label: "Pending",     color: "#d97706", bg: "#fffbeb", border: "#fde68a", icon: FiClock },
   "in progress":  { label: "In Progress", color: "#2563eb", bg: "#eff6ff", border: "#bfdbfe", icon: FiAlertCircle },
@@ -24,6 +23,7 @@ const formatRelative = (dateStr) => {
   const date = new Date(dateStr);
   return date.toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" });
 };
+
 
 // ─── Toast ─────────────────────────────────────────────────
 function Toast({ msg, onClose }) {
@@ -59,8 +59,7 @@ export default function Complaint() {
       setLoadingComplaints(true);
       setFetchError(null);
       try {
-        // No verifyAuth on the backend yet, so userId has to be passed
-        // explicitly — see the note about this route needing auth.
+
         const res = await api.get("/complaints/user-complaints", { params: { userId: user._id } });
         setComplaints(res.data.complaints);
       } catch (err) {
@@ -73,8 +72,6 @@ export default function Complaint() {
 
     fetchComplaints();
   }, [user?._id]);
-
-  // ── Form state (only real schema fields: subject, description) ──
   const EMPTY_FORM = { subject: "", description: "" };
   const [form,    setForm]    = useState(EMPTY_FORM);
   const [errors,  setErrors]  = useState({});
@@ -99,7 +96,7 @@ export default function Complaint() {
       const res = await api.post("/complaints/submit-complaint", {
         subject: form.subject,
         description: form.description,
-        userId: user._id, // required as-is, since the route has no auth middleware to derive it from
+        userId: user._id, 
       });
 
       setComplaints((prev) => [res.data.complaint, ...prev]);
@@ -116,9 +113,8 @@ export default function Complaint() {
     }
   };
 
-  // ── Delete — real DELETE to /delete-complaint/:id ────────
-  const handleDelete = async (complaintId, e) => {
-    e.stopPropagation(); // don't also toggle the card's expand/collapse
+   const handleDelete = async (complaintId, e) => {
+    e.stopPropagation(); 
     if (!window.confirm("Delete this complaint? This can't be undone.")) return;
 
     setDeletingId(complaintId);
@@ -136,7 +132,6 @@ export default function Complaint() {
     }
   };
 
-  // ── Filter ────────────────────────────────────────────────
   const filtered = complaints.filter((c) => {
     const matchSearch =
       c.subject.toLowerCase().includes(search.toLowerCase()) ||
@@ -145,7 +140,6 @@ export default function Complaint() {
     return matchSearch && matchStatus;
   });
 
-  // ── Summary counts ────────────────────────────────────────
   const counts = {
     total:      complaints.length,
     pending:    complaints.filter((c) => c.status === "pending").length,

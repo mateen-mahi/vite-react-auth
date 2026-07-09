@@ -1,149 +1,20 @@
-import { useState, useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
+import api from "../services/api";
+import { useAuth } from "../context/AuthContext";
 import {
   FiSearch, FiClock, FiBarChart2, FiUser,
-  FiPlay, FiBookOpen, FiStar, FiAward,
+  FiPlay, FiBookOpen, FiAward, FiCheckCircle,
+  FiRefreshCw, FiAlertCircle, FiX, FiUserPlus, FiUserMinus,
 } from "react-icons/fi";
 import "../styles/courses.css";
 
-// ─── Dummy Data ────────────────────────────────────────────
-const COURSES = [
-  {
-    id: 1,
-    title: "Complete React Developer",
-    instructor: "Irfan Malik",
-    category: "Frontend",
-    level: "Intermediate",
-    duration: "24h 30m",
-    lessons: 142,
-    rating: 4.9,
-    students: 8420,
-    progress: 68,
-    featured: true,
-    color: "#2563eb",
-    emoji: "⚛️",
-    description: "Master React from scratch — hooks, routing, state management, performance optimization, and real-world project architecture.",
-  },
-  {
-    id: 2,
-    title: "Node.js & Express Bootcamp",
-    instructor: "Sara Ahmed",
-    category: "Backend",
-    level: "Intermediate",
-    duration: "18h 15m",
-    lessons: 98,
-    rating: 4.8,
-    students: 5310,
-    progress: 40,
-    featured: false,
-    color: "#16a34a",
-    emoji: "🟢",
-    description: "Build scalable REST APIs with Node.js, Express, JWT auth, file uploads, and deploy to production.",
-  },
-  {
-    id: 3,
-    title: "MongoDB — The Complete Guide",
-    instructor: "Ali Raza",
-    category: "Database",
-    level: "Beginner",
-    duration: "12h 45m",
-    lessons: 74,
-    rating: 4.7,
-    students: 3890,
-    progress: 20,
-    featured: false,
-    color: "#059669",
-    emoji: "🍃",
-    description: "Learn MongoDB from the ground up — schema design, Mongoose, aggregation pipelines, and indexing strategies.",
-  },
-  {
-    id: 4,
-    title: "JavaScript Algorithms & DSA",
-    instructor: "Usman Tariq",
-    category: "Core CS",
-    level: "Advanced",
-    duration: "30h 00m",
-    lessons: 180,
-    rating: 4.9,
-    students: 12100,
-    progress: 55,
-    featured: false,
-    color: "#d97706",
-    emoji: "🧠",
-    description: "Deep dive into data structures and algorithms using JavaScript — arrays, trees, graphs, sorting, and dynamic programming.",
-  },
-  {
-    id: 5,
-    title: "CSS Mastery & Modern Layouts",
-    instructor: "Hina Baig",
-    category: "Frontend",
-    level: "Beginner",
-    duration: "10h 20m",
-    lessons: 62,
-    rating: 4.6,
-    students: 4750,
-    progress: 90,
-    featured: false,
-    color: "#7c3aed",
-    emoji: "🎨",
-    description: "From Flexbox to CSS Grid, animations, custom properties, and building pixel-perfect responsive UIs.",
-  },
-  {
-    id: 6,
-    title: "System Design for Developers",
-    instructor: "Bilal Hassan",
-    category: "Core CS",
-    level: "Advanced",
-    duration: "22h 10m",
-    lessons: 115,
-    rating: 4.8,
-    students: 6200,
-    progress: 0,
-    featured: false,
-    color: "#0891b2",
-    emoji: "🏗️",
-    description: "Learn how to design scalable, fault-tolerant systems — load balancing, caching, databases, and microservices.",
-  },
-  {
-    id: 7,
-    title: "TypeScript from Zero to Hero",
-    instructor: "Zara Khan",
-    category: "Frontend",
-    level: "Intermediate",
-    duration: "15h 30m",
-    lessons: 88,
-    rating: 4.7,
-    students: 3100,
-    progress: 10,
-    featured: false,
-    color: "#1d4ed8",
-    emoji: "🔷",
-    description: "Master TypeScript — types, interfaces, generics, decorators, and integrating TS with React and Node projects.",
-  },
-  {
-    id: 8,
-    title: "Git & GitHub for Developers",
-    instructor: "Hamza Siddiq",
-    category: "Tools",
-    level: "Beginner",
-    duration: "6h 00m",
-    lessons: 38,
-    rating: 4.5,
-    students: 9800,
-    progress: 100,
-    featured: false,
-    color: "#be185d",
-    emoji: "🐙",
-    description: "Everything you need to know about version control — branching strategies, pull requests, resolving conflicts, and CI/CD.",
-  },
-];
-
-const CATEGORIES = ["All", "Frontend", "Backend", "Database", "Core CS", "Tools"];
-const LEVELS     = ["All Levels", "Beginner", "Intermediate", "Advanced"];
+const LEVELS = ["All Levels", "Beginner", "Intermediate", "Advanced"];
 const SORT_OPTIONS = [
-  { value: "popular",  label: "Most Popular" },
-  { value: "rating",   label: "Top Rated" },
-  { value: "newest",   label: "Newest" },
-  { value: "progress", label: "In Progress" },
+  { value: "popular",     label: "Most Popular" },
+  { value: "newest",      label: "Newest" },
+  { value: "price-low",   label: "Price: Low to High" },
+  { value: "price-high",  label: "Price: High to Low" },
 ];
 
 const LEVEL_COLOR = {
@@ -152,91 +23,265 @@ const LEVEL_COLOR = {
   Advanced:     { bg: "#fff5f5", color: "#ef4444", border: "#fecaca" },
 };
 
+// ── Helpers ──────────────────────────────────────────────
+// Assumes `duration` is stored in MINUTES — confirm this matches your schema
+const formatDuration = (mins) => {
+  if (mins === undefined || mins === null) return "—";
+  const h = Math.floor(mins / 60);
+  const m = mins % 60;
+  if (h === 0) return `${m}m`;
+  if (m === 0) return `${h}h`;
+  return `${h}h ${m}m`;
+};
+
+const formatPrice = (price) => (price === 0 ? "Free" : `$${price}`);
+
+// ── Lightweight toast (inline-styled, no external CSS dependency) ──
+function Toast({ msg, onClose }) {
+  return (
+    <div style={{
+      position: "fixed", bottom: 24, right: 24, background: "#0f172a", color: "#fff",
+      padding: "12px 16px", borderRadius: 10, display: "flex", alignItems: "center",
+      gap: 10, boxShadow: "0 8px 24px rgba(0,0,0,0.25)", zIndex: 1000, fontSize: 14,
+    }}>
+      <FiCheckCircle />
+      <span>{msg}</span>
+      <button onClick={onClose} style={{ background: "none", border: "none", color: "#94a3b8", cursor: "pointer", display: "flex" }}>
+        <FiX />
+      </button>
+    </div>
+  );
+}
+
 export default function Courses() {
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const isLoggedIn = Boolean(user);
+
+  const [courses, setCourses] = useState([]);
+  const [loadingCourses, setLoadingCourses] = useState(true);
+  const [coursesError, setCoursesError] = useState(null);
+
+  const [featuredCourses, setFeaturedCourses] = useState([]);
+  const [loadingFeatured, setLoadingFeatured] = useState(true);
+
+  const [enrollingId, setEnrollingId] = useState(null);
+  const [toast, setToast] = useState(null);
+  const showToast = (msg) => { setToast(msg); setTimeout(() => setToast(null), 3000); };
+
+  // ── Fetch real data — works for guests too (optionalAuth on the backend) ──
+  useEffect(() => {
+    const fetchCourses = async () => {
+      setLoadingCourses(true);
+      setCoursesError(null);
+      try {
+        const res = await api.get("/courses");
+        setCourses(res.data.data);
+      } catch (err) {
+        console.log("Failed to fetch courses:", err);
+        setCoursesError("Couldn't load courses. Please try again.");
+      } finally {
+        setLoadingCourses(false);
+      }
+    };
+
+    const fetchFeatured = async () => {
+      setLoadingFeatured(true);
+      try {
+        const res = await api.get("/featured");
+        setFeaturedCourses(res.data.data);
+      } catch (err) {
+        console.log("Failed to fetch featured courses:", err);
+        // Non-fatal — the page still works without the hero banner
+      } finally {
+        setLoadingFeatured(false);
+      }
+    };
+
+    fetchCourses();
+    fetchFeatured();
+  }, [isLoggedIn]); // refetch after login/logout so isEnrolled reflects the right user
+
+  // ── Filters ──
   const [search,   setSearch]   = useState("");
   const [category, setCategory] = useState("All");
   const [level,    setLevel]    = useState("All Levels");
   const [sort,     setSort]     = useState("popular");
 
-  const featured = COURSES.find((c) => c.featured);
+  // Categories come from real data instead of a hardcoded guess
+  const CATEGORIES = useMemo(() => {
+    const unique = [...new Set(courses.map((c) => c.category))];
+    return ["All", ...unique];
+  }, [courses]);
+
+  const featuredIds = useMemo(() => new Set(featuredCourses.map((c) => c._id)), [featuredCourses]);
+  const hero = featuredCourses[0];
+
+  // Split: enrolled (only meaningful when logged in) vs everything else,
+  // excluding whatever's already shown in the hero banner above.
+  const enrolledCourses = useMemo(
+    () => (isLoggedIn ? courses.filter((c) => c.isEnrolled && !featuredIds.has(c._id)) : []),
+    [courses, isLoggedIn, featuredIds]
+  );
+
+  const browsablePool = useMemo(
+    () => courses.filter((c) => !featuredIds.has(c._id) && !(isLoggedIn && c.isEnrolled)),
+    [courses, isLoggedIn, featuredIds]
+  );
 
   const filtered = useMemo(() => {
-    let list = COURSES.filter((c) => !c.featured);
+    let list = browsablePool;
 
-    if (search)           list = list.filter((c) => c.title.toLowerCase().includes(search.toLowerCase()) || c.instructor.toLowerCase().includes(search.toLowerCase()));
-    if (category !== "All")        list = list.filter((c) => c.category === category);
-    if (level !== "All Levels")    list = list.filter((c) => c.level === level);
+    if (search) {
+      list = list.filter(
+        (c) =>
+          c.title.toLowerCase().includes(search.toLowerCase()) ||
+          c.instructor?.username?.toLowerCase().includes(search.toLowerCase())
+      );
+    }
+    if (category !== "All") list = list.filter((c) => c.category === category);
+    if (level !== "All Levels") list = list.filter((c) => c.level === level);
 
     list = [...list].sort((a, b) => {
-      if (sort === "popular")  return b.students - a.students;
-      if (sort === "rating")   return b.rating - a.rating;
-      if (sort === "progress") return b.progress - a.progress;
-      return b.id - a.id; // newest
+      if (sort === "popular")    return (b.studentsEnrolledCount || 0) - (a.studentsEnrolledCount || 0);
+      if (sort === "price-low")  return a.price - b.price;
+      if (sort === "price-high") return b.price - a.price;
+      return new Date(b.createdAt) - new Date(a.createdAt); // newest
     });
 
     return list;
-  }, [search, category, level, sort]);
+  }, [browsablePool, search, category, level, sort]);
+
+  // ── Enroll / Unenroll ──
+  const handleEnroll = async (courseId) => {
+    if (!isLoggedIn) {
+      navigate("/login");
+      return;
+    }
+    setEnrollingId(courseId);
+    try {
+      await api.post(`/courses/${courseId}/enroll`);
+      setCourses((prev) =>
+        prev.map((c) =>
+          c._id === courseId
+            ? { ...c, isEnrolled: true, studentsEnrolledCount: (c.studentsEnrolledCount || 0) + 1 }
+            : c
+        )
+      );
+      showToast("Enrolled successfully!");
+    } catch (err) {
+      showToast(err.response?.data?.message || "Failed to enroll. Please try again.");
+    } finally {
+      setEnrollingId(null);
+    }
+  };
+
+  const handleUnenroll = async (courseId) => {
+    if (!window.confirm("Unenroll from this course?")) return;
+    setEnrollingId(courseId);
+    try {
+      await api.post(`/courses/${courseId}/unenroll`);
+      setCourses((prev) =>
+        prev.map((c) =>
+          c._id === courseId
+            ? { ...c, isEnrolled: false, studentsEnrolledCount: Math.max(0, (c.studentsEnrolledCount || 1) - 1) }
+            : c
+        )
+      );
+      showToast("Unenrolled.");
+    } catch (err) {
+      showToast(err.response?.data?.message || "Failed to unenroll.");
+    } finally {
+      setEnrollingId(null);
+    }
+  };
 
   return (
     <div className="courses-page">
 
+      {toast && <Toast msg={toast} onClose={() => setToast(null)} />}
+
       {/* ── Page Header ── */}
       <div className="courses-header">
         <div>
-          <h1 className="courses-title">My Courses</h1>
-          <p className="courses-subtitle">{COURSES.length} courses enrolled — keep learning.</p>
-        </div>
-        <div className="courses-header-stats">
-          <div className="courses-hstat">
-            <span className="courses-hstat-val">{COURSES.filter(c => c.progress === 100).length}</span>
-            <span className="courses-hstat-label">Completed</span>
-          </div>
-          <div className="courses-hstat">
-            <span className="courses-hstat-val">{COURSES.filter(c => c.progress > 0 && c.progress < 100).length}</span>
-            <span className="courses-hstat-label">In Progress</span>
-          </div>
-          <div className="courses-hstat">
-            <span className="courses-hstat-val">{COURSES.filter(c => c.progress === 0).length}</span>
-            <span className="courses-hstat-label">Not Started</span>
-          </div>
+          <h1 className="courses-title">{isLoggedIn ? "My Courses" : "All Courses"}</h1>
+          <p className="courses-subtitle">
+            {isLoggedIn
+              ? `${enrolledCourses.length} course${enrolledCourses.length !== 1 ? "s" : ""} enrolled — keep learning.`
+              : "Browse our full course catalog. Log in to enroll and track progress."}
+          </p>
         </div>
       </div>
 
-      {/* ── Featured Course ── */}
-      {featured && (
-        <div className="courses-featured" style={{ "--fc": featured.color }}>
+      {/* ── Featured hero ── */}
+      {!loadingFeatured && hero && (
+        <div className="courses-featured" style={{ "--fc": hero.color }}>
           <div className="courses-featured-left">
             <span className="courses-featured-tag"><FiAward /> Featured Course</span>
-            <h2 className="courses-featured-title">{featured.title}</h2>
-            <p className="courses-featured-desc">{featured.description}</p>
+            <h2 className="courses-featured-title">{hero.title}</h2>
+            <p className="courses-featured-desc">{hero.description}</p>
             <div className="courses-featured-meta">
-              <span><FiUser /> {featured.instructor}</span>
-              <span><FiClock /> {featured.duration}</span>
-              <span><FiBookOpen /> {featured.lessons} lessons</span>
-              <span><FiStar /> {featured.rating}</span>
+              <span><FiUser /> {hero.instructor?.username || "Unknown instructor"}</span>
+              <span><FiClock /> {formatDuration(hero.duration)}</span>
+              <span><FiBookOpen /> {hero.lessonsCount} lessons</span>
+              <span>{formatPrice(hero.price)}</span>
             </div>
-            <div className="courses-featured-progress-wrap">
-              <div className="courses-featured-progress-label">
-                <span>Progress</span>
-                <span>{featured.progress}%</span>
-              </div>
-              <div className="courses-featured-progress-track">
-                <div className="courses-featured-progress-fill" style={{ width: `${featured.progress}%` }} />
-              </div>
-            </div>
-            <button className="courses-featured-btn">
-              <FiPlay /> Continue Learning
-            </button>
+
+            {hero.isEnrolled ? (
+              <>
+                {/* Real percentage needs a LectureProgress backend — not built yet, see chat note */}
+                <div className="courses-featured-progress-wrap">
+                  <div className="courses-featured-progress-label">
+                    <span>Progress</span>
+                    <span>Not started yet</span>
+                  </div>
+                  <div className="courses-featured-progress-track">
+                    <div className="courses-featured-progress-fill" style={{ width: "0%" }} />
+                  </div>
+                </div>
+                <button className="courses-featured-btn">
+                  <FiPlay /> Continue Learning
+                </button>
+              </>
+            ) : (
+              <button
+                className="courses-featured-btn"
+                disabled={enrollingId === hero._id}
+                onClick={() => handleEnroll(hero._id)}
+              >
+                {enrollingId === hero._id
+                  ? <><FiRefreshCw className="cp-spin" /> Enrolling…</>
+                  : <><FiUserPlus /> {isLoggedIn ? "Enroll Now" : "Log In to Enroll"}</>}
+              </button>
+            )}
           </div>
           <div className="courses-featured-right">
-            <div className="courses-featured-emoji">{featured.emoji}</div>
+            <div className="courses-featured-emoji">{hero.emoji}</div>
           </div>
         </div>
       )}
 
+      {/* ── Continue Learning (logged-in, enrolled only) ── */}
+      {isLoggedIn && enrolledCourses.length > 0 && (
+        <>
+          <h2 className="courses-count" style={{ fontWeight: 700, fontSize: 16 }}>Continue Learning</h2>
+          <div className="courses-grid">
+            {enrolledCourses.map((course) => (
+              <CourseCard
+                key={course._id}
+                course={course}
+                isLoggedIn={isLoggedIn}
+                enrolling={enrollingId === course._id}
+                onEnroll={handleEnroll}
+                onUnenroll={handleUnenroll}
+              />
+            ))}
+          </div>
+        </>
+      )}
+
       {/* ── Filters ── */}
       <div className="courses-filters">
-        {/* Search */}
         <div className="courses-search-wrap">
           <FiSearch className="courses-search-icon" />
           <input
@@ -247,7 +292,6 @@ export default function Courses() {
           />
         </div>
 
-        {/* Category pills */}
         <div className="courses-category-pills">
           {CATEGORIES.map((cat) => (
             <button
@@ -260,92 +304,122 @@ export default function Courses() {
           ))}
         </div>
 
-        {/* Level + Sort */}
         <div className="courses-selects">
-          <select
-            className="courses-select"
-            value={level}
-            onChange={(e) => setLevel(e.target.value)}
-          >
+          <select className="courses-select" value={level} onChange={(e) => setLevel(e.target.value)}>
             {LEVELS.map((l) => <option key={l}>{l}</option>)}
           </select>
-          <select
-            className="courses-select"
-            value={sort}
-            onChange={(e) => setSort(e.target.value)}
-          >
-            {SORT_OPTIONS.map((o) => (
-              <option key={o.value} value={o.value}>{o.label}</option>
-            ))}
+          <select className="courses-select" value={sort} onChange={(e) => setSort(e.target.value)}>
+            {SORT_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
           </select>
         </div>
       </div>
 
-      {/* ── Results count ── */}
-      <p className="courses-count">
-        {filtered.length === 0
-          ? "No courses match your filters."
-          : `${filtered.length} course${filtered.length !== 1 ? "s" : ""}`}
-      </p>
+      {/* ── Explore grid ── */}
+      <h2 className="courses-count" style={{ fontWeight: 700, fontSize: 16 }}>
+        {isLoggedIn ? "Explore More Courses" : "All Courses"}
+      </h2>
 
-      {/* ── Grid ── */}
-      <div className="courses-grid">
-        {filtered.map((course) => {
-          const lvlStyle = LEVEL_COLOR[course.level];
-          return (
-            <div key={course.id} className="course-card">
+      {loadingCourses && (
+        <p className="courses-count"><FiRefreshCw className="cp-spin" /> Loading courses…</p>
+      )}
 
-              {/* Thumbnail */}
-              <div className="course-card-thumb" style={{ background: `linear-gradient(135deg, ${course.color}22, ${course.color}44)`, borderBottom: `3px solid ${course.color}` }}>
-                <span className="course-card-emoji">{course.emoji}</span>
-                <span
-                  className="course-card-level"
-                  style={{ background: lvlStyle.bg, color: lvlStyle.color, border: `1px solid ${lvlStyle.border}` }}
-                >
-                  <FiBarChart2 /> {course.level}
-                </span>
-              </div>
+      {!loadingCourses && coursesError && (
+        <p className="courses-count"><FiAlertCircle /> {coursesError}</p>
+      )}
 
-              {/* Body */}
-              <div className="course-card-body">
-                <span className="course-card-category" style={{ color: course.color }}>{course.category}</span>
-                <h3 className="course-card-title">{course.title}</h3>
-                <p className="course-card-instructor"><FiUser /> {course.instructor}</p>
+      {!loadingCourses && !coursesError && (
+        <>
+          <p className="courses-count">
+            {filtered.length === 0
+              ? "No courses match your filters."
+              : `${filtered.length} course${filtered.length !== 1 ? "s" : ""}`}
+          </p>
 
-                <div className="course-card-meta">
-                  <span><FiClock /> {course.duration}</span>
-                  <span><FiBookOpen /> {course.lessons} lessons</span>
-                  <span><FiStar /> {course.rating}</span>
-                </div>
+          <div className="courses-grid">
+            {filtered.map((course) => (
+              <CourseCard
+                key={course._id}
+                course={course}
+                isLoggedIn={isLoggedIn}
+                enrolling={enrollingId === course._id}
+                onEnroll={handleEnroll}
+                onUnenroll={handleUnenroll}
+              />
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
 
-                {/* Progress bar */}
-                <div className="course-card-progress">
-                  <div className="course-card-progress-label">
-                    {course.progress === 0   && <span className="cp-tag not-started">Not started</span>}
-                    {course.progress === 100 && <span className="cp-tag completed"><FiAward /> Completed</span>}
-                    {course.progress > 0 && course.progress < 100 && <span className="cp-tag in-progress">In progress</span>}
-                    <span className="cp-pct">{course.progress}%</span>
-                  </div>
-                  <div className="course-card-progress-track">
-                    <div
-                      className={`course-card-progress-fill ${course.progress === 100 ? "done" : ""}`}
-                      style={{ width: `${course.progress}%`, background: course.progress === 100 ? "#22c55e" : course.color }}
-                    />
-                  </div>
-                </div>
-              </div>
+// ── Course card ─────────────────────────────────────────────
+function CourseCard({ course, isLoggedIn, enrolling, onEnroll, onUnenroll }) {
+  const lvlStyle = LEVEL_COLOR[course.level] || LEVEL_COLOR.Beginner;
 
-              {/* Footer */}
-              <div className="course-card-footer">
-                <span className="course-card-students">{course.students.toLocaleString()} students</span>
-                <button className="course-card-btn" style={{ background: course.color }}>
-                  {course.progress === 0 ? "Start" : course.progress === 100 ? "Review" : "Continue"}
-                  <FiPlay />
-                </button>
-              </div>
+  return (
+    <div className="course-card">
+      <div
+        className="course-card-thumb"
+        style={{ background: `linear-gradient(135deg, ${course.color}22, ${course.color}44)`, borderBottom: `3px solid ${course.color}` }}
+      >
+        <span className="course-card-emoji">{course.emoji}</span>
+        <span
+          className="course-card-level"
+          style={{ background: lvlStyle.bg, color: lvlStyle.color, border: `1px solid ${lvlStyle.border}` }}
+        >
+          <FiBarChart2 /> {course.level}
+        </span>
+      </div>
+
+      <div className="course-card-body">
+        <span className="course-card-category" style={{ color: course.color }}>{course.category}</span>
+        <h3 className="course-card-title">{course.title}</h3>
+        <p className="course-card-instructor"><FiUser /> {course.instructor?.username || "Unknown instructor"}</p>
+
+        <div className="course-card-meta">
+          <span><FiClock /> {formatDuration(course.duration)}</span>
+          <span><FiBookOpen /> {course.lessonsCount} lessons</span>
+          <span>{formatPrice(course.price)}</span>
+        </div>
+
+        {course.isEnrolled && (
+          // Placeholder until real LectureProgress tracking exists
+          <div className="course-card-progress">
+            <div className="course-card-progress-label">
+              <span className="cp-tag in-progress"><FiCheckCircle /> Enrolled</span>
             </div>
-          );
-        })}
+            <div className="course-card-progress-track">
+              <div className="course-card-progress-fill" style={{ width: "0%", background: course.color }} />
+            </div>
+          </div>
+        )}
+      </div>
+
+      <div className="course-card-footer">
+        <span className="course-card-students">{(course.studentsEnrolledCount || 0).toLocaleString()} students</span>
+
+        {course.isEnrolled ? (
+          <button
+            className="course-card-btn"
+            style={{ background: "#64748b" }}
+            disabled={enrolling}
+            onClick={() => onUnenroll(course._id)}
+          >
+            {enrolling ? <FiRefreshCw className="cp-spin" /> : <><FiUserMinus /> Unenroll</>}
+          </button>
+        ) : (
+          <button
+            className="course-card-btn"
+            style={{ background: course.color }}
+            disabled={enrolling}
+            onClick={() => onEnroll(course._id)}
+          >
+            {enrolling
+              ? <FiRefreshCw className="cp-spin" />
+              : <>{isLoggedIn ? "Enroll" : "Log In"} <FiPlay /></>}
+          </button>
+        )}
       </div>
     </div>
   );
