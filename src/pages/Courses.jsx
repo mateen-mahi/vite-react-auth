@@ -100,7 +100,7 @@ export default function Courses() {
     const fetchFeatured = async () => {
       setLoadingFeatured(true);
       try {
-        const res = await api.get("/featured");
+        const res = await api.get("/courses/featured");
         setFeaturedCourses(res.data.data);
       } catch (err) {
         console.log("Failed to fetch featured courses:", err);
@@ -132,12 +132,12 @@ export default function Courses() {
   // Split: enrolled (only meaningful when logged in) vs everything else,
   // excluding whatever's already shown in the hero banner above.
   const enrolledCourses = useMemo(
-    () => (isLoggedIn ? courses.filter((c) => c.isEnrolled && !featuredIds.has(c._id)) : []),
+    () => (isLoggedIn ? courses.filter((c) => c.studentsEnrolled.includes(user._id) && !featuredIds.has(c._id)) : []),
     [courses, isLoggedIn, featuredIds]
   );
 
   const browsablePool = useMemo(
-    () => courses.filter((c) => !featuredIds.has(c._id) && !(isLoggedIn && c.isEnrolled)),
+    () => courses.filter((c) => !featuredIds.has(c._id) && !(isLoggedIn && c.studentsEnrolled.includes(user._id))),
     [courses, isLoggedIn, featuredIds]
   );
 
@@ -239,7 +239,7 @@ export default function Courses() {
               <span>{formatPrice(hero.price)}</span>
             </div>
 
-            {hero.isEnrolled ? (
+            {hero.studentsEnrolled.includes(user._id) ? (
               <>
                 {/* Real percentage needs a LectureProgress backend — not built yet, see chat note */}
                 <div className="courses-featured-progress-wrap">
