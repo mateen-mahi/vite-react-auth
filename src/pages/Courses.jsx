@@ -5,7 +5,8 @@ import { useAuth } from "../context/AuthContext";
 import {
   FiSearch, FiClock, FiBarChart2, FiUser,
   FiPlay, FiBookOpen, FiAward, FiCheckCircle,
-  FiRefreshCw, FiAlertCircle, FiX, FiUserPlus, FiUserMinus,
+  FiRefreshCw, FiAlertCircle, FiX, FiShoppingCart,
+  FiShuffle, FiTrash2, FiUserMinus,
 } from "react-icons/fi";
 import "../styles/courses.css";
 
@@ -23,26 +24,21 @@ const LEVEL_COLOR = {
   Advanced:     { bg: "#fff5f5", color: "#ef4444", border: "#fecaca" },
 };
 
-// ── Helpers ──────────────────────────────────────────────
-const formatDuration = (mins) => {
-  if (mins === undefined || mins === null) return "—";
-  const h = Math.floor(mins / 60);
-  const m = mins % 60;
-  if (h === 0) return `${m}m`;
-  if (m === 0) return `${h}h`;
-  return `${h}h ${m}m`;
-};
+const CART_STORAGE_KEY = "academy_course_cart";
 
+// ── Helpers ──────────────────────────────────────────────
 const formatPrice = (price) => (price === 0 ? "Free" : `$${price}`);
 
-// ── Reusable helper: check if user is enrolled in a course ──
-function isUserEnrolled(course, userId) {
-  if (!course.studentsEnrolled || !userId) return false;
-  return course.studentsEnrolled.some((u) => {
-    const id = typeof u === "string" ? u : u._id;
-    return id === userId;
-  });
-}
+// TEMPORARY dummy progress — deterministic per course, stable across
+// re-renders. Swap for real LectureProgress data later.
+const getDummyProgress = (id) => {
+  if (!id) return 0;
+  let hash = 0;
+  for (let i = 0; i < id.length; i++) {
+    hash = (hash * 31 + id.charCodeAt(i)) % 97;
+  }
+  return hash % 96;
+};
 
 // ── Lightweight toast ──
 function Toast({ msg, onClose }) {
@@ -67,21 +63,17 @@ export default function Courses() {
   const isLoggedIn = Boolean(user);
   const userId = user?._id;
 
+  // ── Real data ──
   const [courses, setCourses] = useState([]);
   const [loadingCourses, setLoadingCourses] = useState(true);
   const [coursesError, setCoursesError] = useState(null);
 
-  const [featuredCourses, setFeaturedCourses] = useState([]);
-  const [loadingFeatured, setLoadingFeatured] = useState(true);
+  const [enrolledCourses, setEnrolledCourses] = useState([]);
+  const [loadingEnrolled, setLoadingEnrolled] = useState(false);
 
-  const [myCourses, setMyCourses] = useState([]);
-  const [loadingMyCourses, setLoadingMyCourses] = useState(true);
-
-  const [enrollingId, setEnrollingId] = useState(null);
   const [toast, setToast] = useState(null);
   const showToast = (msg) => { setToast(msg); setTimeout(() => setToast(null), 3000); };
 
-  // ── Fetch real data from backend ──
   useEffect(() => {
     const fetchCourses = async () => {
       setLoadingCourses(true);
@@ -97,43 +89,89 @@ export default function Courses() {
       }
     };
 
-    const fetchFeatured = async () => {
-      setLoadingFeatured(true);
-      try {
-        const res = await api.get("/courses/featured");
-        setFeaturedCourses(res.data.data);
-      } catch (err) {
-        console.log("Failed to fetch featured courses:", err);
-        // Non-fatal — the page still works without the hero banner
-      } finally {
-        setLoadingFeatured(false);
-      }
-    };
-
     const fetchMyCourses = async () => {
-      if (!isLoggedIn || !userId) {
-        setMyCourses([]);
-        setLoadingMyCourses(false);
+      if (!userId) {
+        setEnrolledCourses([]);
         return;
       }
-      setLoadingMyCourses(true);
+      setLoadingEnrolled(true);
       try {
         const res = await api.get(`/courses/my-courses/${userId}`);
-        setMyCourses(res.data.data);
+        setEnrolledCourses(res.data.data || res.data.courses || []);
       } catch (err) {
-        console.log("Failed to fetch my courses:", err);
-        setMyCourses([]);
+        console.log("Failed to fetch enrolled courses:", err);
+        setEnrolledCourses([]);
       } finally {
-        setLoadingMyCourses(false);
+        setLoadingEnrolled(false);
       }
     };
 
     fetchCourses();
-    fetchFeatured();
     fetchMyCourses();
-  }, [isLoggedIn]);
+  }, [userId]);
 
-  // ── Filters ──
+  // ── Cart (localStorage-backed) ──
+  const [cart, setCart] = useState(() => {
+    try {
+      const saved = localStorage.getItem(CART_STORAGE_KEY);
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+  const [cartOpen, setCartOpen] = useState(false);
+
+  useEffect(() => {
+    localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(cart));
+  }, [cart]);
+
+  const cartTotal = useMemo(() => cart.reduce((sum, item) => sum + (item.price || 0), 0), [cart]);
+  const cartHasCourse = (courseId) => cart.some((item) => item._id === courseId);
+
+  const handleAddToCart = (course, e) => {
+    e?.stopPropagation();
+    if (!isLoggedIn) {
+      navigate("/login");
+      return;
+    }
+    if (cartHasCourse(course._id)) {
+      showToast("Already in your cart.");
+      return;
+    }
+    setCart((prev) => [...prev, {
+      _id: course._id, title: course.title, price: course.price,
+      emoji: course.emoji, color: course.color,
+    }]);
+    showToast("Added to cart.");
+  };
+
+  const handleRemoveFromCart = (courseId) => {
+    setCart((prev) => prev.filter((item) => item._id !== courseId));
+  };
+
+  const handleCheckout = () => {
+    if (cart.length === 0) return;
+    navigate("/payment-gateway", { state: { courseIds: cart.map((c) => c._id), total: cartTotal } });
+  };
+
+  // ── Unenroll (still a direct action, no cart involved) ──
+  const [unenrollingId, setUnenrollingId] = useState(null);
+  const handleUnenroll = async (courseId, e) => {
+    e?.stopPropagation();
+    if (!window.confirm("Unenroll from this course?")) return;
+    setUnenrollingId(courseId);
+    try {
+      await api.post(`/courses/${courseId}/unenroll`, { studentId: userId });
+      setEnrolledCourses((prev) => prev.filter((c) => c._id !== courseId));
+      showToast("Unenrolled.");
+    } catch (err) {
+      showToast(err.response?.data?.message || "Failed to unenroll.");
+    } finally {
+      setUnenrollingId(null);
+    }
+  };
+
+  // ── Filters (apply to the Explore grid only) ──
   const [search,   setSearch]   = useState("");
   const [category, setCategory] = useState("All");
   const [level,    setLevel]    = useState("All Levels");
@@ -144,20 +182,12 @@ export default function Courses() {
     return ["All", ...unique];
   }, [courses]);
 
-  const featuredIds = useMemo(() => new Set(featuredCourses.map((c) => c._id)), [featuredCourses]);
-  const hero = featuredCourses[0];
+  const enrolledIds = useMemo(() => new Set(enrolledCourses.map((c) => c._id)), [enrolledCourses]);
 
-  // ── Split: enrolled vs non-enrolled ──
-  const enrolledCourses = useMemo(
-    () => (isLoggedIn ? myCourses.filter((c) => !featuredIds.has(c._id)) : []),
-    [myCourses, isLoggedIn, featuredIds]
-  );
-
-  const myCourseIds = useMemo(() => new Set(myCourses.map((c) => c._id)), [myCourses]);
-
+  // Explore grid: guests see everything, logged-in users see everything MINUS what they're enrolled in
   const browsablePool = useMemo(
-    () => courses.filter((c) => !featuredIds.has(c._id) && !myCourseIds.has(c._id)),
-    [courses, featuredIds, myCourseIds]
+    () => (isLoggedIn ? courses.filter((c) => !enrolledIds.has(c._id)) : courses),
+    [courses, isLoggedIn, enrolledIds]
   );
 
   const filtered = useMemo(() => {
@@ -167,72 +197,37 @@ export default function Courses() {
       list = list.filter(
         (c) =>
           c.title.toLowerCase().includes(search.toLowerCase()) ||
-          c.instructor?.username?.toLowerCase().includes(search.toLowerCase())
+          (typeof c.instructor === "object" && c.instructor?.username?.toLowerCase().includes(search.toLowerCase()))
       );
     }
     if (category !== "All") list = list.filter((c) => c.category === category);
     if (level !== "All Levels") list = list.filter((c) => c.level === level);
 
     list = [...list].sort((a, b) => {
-      if (sort === "popular")    return (b.studentsEnrolledCount || 0) - (a.studentsEnrolledCount || 0);
+      if (sort === "popular")    return (b.studentsEnrolledCount || b.studentsEnrolled?.length || 0) - (a.studentsEnrolledCount || a.studentsEnrolled?.length || 0);
       if (sort === "price-low")  return a.price - b.price;
       if (sort === "price-high") return b.price - a.price;
-      return new Date(b.createdAt) - new Date(a.createdAt);
+      return new Date(b.createdAt) - new Date(a.createdAt); // newest
     });
 
     return list;
   }, [browsablePool, search, category, level, sort]);
 
-  // ── Enroll / Unenroll ──
-  const handleEnroll = async (courseId, event) => {
-    event.stopPropagation();
-    if (!isLoggedIn) {
-      navigate("/login");
-      return;
-    }
-    // Redirect to payment gateway with course ID
-    navigate(`/payment-gateway/${courseId}`);
-  };
+  // ── Hero: shuffles among enrolled courses when logged in; falls back to
+  // the actual featured course otherwise ──
+  const [spotlightIndex, setSpotlightIndex] = useState(0);
+  const hasEnrolled = isLoggedIn && enrolledCourses.length > 0;
 
-  const handleUnenroll = async (courseId, event) => {
-    event.stopPropagation();
-    if (!window.confirm("Unenroll from this course?")) return;
-    setEnrollingId(courseId);
-    try {
-      await api.post(`/courses/${courseId}/unenroll`);
-      setCourses((prev) =>
-        prev.map((c) =>
-          c._id === courseId
-            ? {
-                ...c,
-                studentsEnrolled: (c.studentsEnrolled || []).filter((u) => {
-                  const id = typeof u === "string" ? u : u._id;
-                  return id !== userId;
-                }),
-                studentsEnrolledCount: Math.max(0, (c.studentsEnrolledCount || 1) - 1),
-              }
-            : c
-        )
-      );
-      showToast("Unenrolled.");
-      // Refresh my courses from backend
-      try {
-        const res = await api.get(`/courses/my-courses/${userId}`);
-        setMyCourses(res.data.data);
-      } catch (refreshErr) {
-        console.log("Failed to refresh my courses:", refreshErr);
-      }
-    } catch (err) {
-      showToast(err.response?.data?.message || "Failed to unenroll.");
-    } finally {
-      setEnrollingId(null);
-    }
-  };
+  const featuredFallback = useMemo(() => courses.find((c) => c.featured), [courses]);
+  const heroCourse = hasEnrolled ? enrolledCourses[spotlightIndex % enrolledCourses.length] : featuredFallback;
 
-  const handleCardClick = (courseId, isEnrolled) => {
-    if (isEnrolled) {
-      navigate(`/lecture/${courseId}`);
-    }
+  const handleShuffleHero = () => {
+    if (enrolledCourses.length <= 1) return;
+    let nextIndex;
+    do {
+      nextIndex = Math.floor(Math.random() * enrolledCourses.length);
+    } while (nextIndex === spotlightIndex);
+    setSpotlightIndex(nextIndex);
   };
 
   return (
@@ -250,73 +245,157 @@ export default function Courses() {
               : "Browse our full course catalog. Log in to enroll and track progress."}
           </p>
         </div>
+
+        {/* ── Cart button ── */}
+        <div style={{ position: "relative" }}>
+          <button
+            onClick={() => setCartOpen((p) => !p)}
+            style={{
+              display: "flex", alignItems: "center", gap: 8, padding: "10px 16px",
+              background: "#2563eb", color: "#fff", border: "none", borderRadius: 10,
+              cursor: "pointer", fontWeight: 600, fontSize: 14,
+            }}
+          >
+            <FiShoppingCart /> Cart
+            {cart.length > 0 && (
+              <span style={{
+                background: "#fff", color: "#2563eb", borderRadius: "999px",
+                fontSize: 12, fontWeight: 700, padding: "1px 7px",
+              }}>
+                {cart.length}
+              </span>
+            )}
+          </button>
+
+          {cartOpen && (
+            <div style={{
+              position: "absolute", right: 0, top: "calc(100% + 8px)", width: 300,
+              background: "#fff", border: "1px solid #e2e8f0", borderRadius: 14,
+              boxShadow: "0 12px 32px rgba(0,0,0,0.12)", padding: 16, zIndex: 100,
+            }}>
+              <p style={{ fontWeight: 700, fontSize: 14, marginBottom: 10 }}>Your Cart</p>
+
+              {cart.length === 0 ? (
+                <p style={{ fontSize: 13, color: "#94a3b8" }}>Your cart is empty.</p>
+              ) : (
+                <>
+                  {cart.map((item) => (
+                    <div key={item._id} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+                      <span style={{ fontSize: 18 }}>{item.emoji}</span>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <p style={{ fontSize: 13, fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                          {item.title}
+                        </p>
+                        <p style={{ fontSize: 12, color: "#64748b" }}>{formatPrice(item.price)}</p>
+                      </div>
+                      <button
+                        onClick={() => handleRemoveFromCart(item._id)}
+                        style={{ background: "none", border: "none", color: "#ef4444", cursor: "pointer", display: "flex" }}
+                        aria-label="Remove from cart"
+                      >
+                        <FiTrash2 />
+                      </button>
+                    </div>
+                  ))}
+
+                  <div style={{ borderTop: "1px solid #f1f5f9", paddingTop: 10, marginTop: 6, display: "flex", justifyContent: "space-between", fontSize: 14, fontWeight: 700 }}>
+                    <span>Total</span>
+                    <span>{formatPrice(cartTotal)}</span>
+                  </div>
+
+                  <button
+                    onClick={handleCheckout}
+                    style={{
+                      width: "100%", marginTop: 12, padding: "10px 0", background: "#2563eb",
+                      color: "#fff", border: "none", borderRadius: 10, fontWeight: 600,
+                      fontSize: 14, cursor: "pointer",
+                    }}
+                  >
+                    Proceed to Payment
+                  </button>
+                </>
+              )}
+            </div>
+          )}
+        </div>
       </div>
 
-      {/* ── Featured hero ── */}
-      {!loadingFeatured && hero && (
-        <div className="courses-featured" style={{ "--fc": hero.color }}>
+      {/* ── Featured / Spotlight hero ── */}
+      {heroCourse && (
+        <div className="courses-featured" style={{ "--fc": heroCourse.color }}>
           <div className="courses-featured-left">
-            <span className="courses-featured-tag"><FiAward /> Featured Course</span>
-            <h2 className="courses-featured-title">{hero.title}</h2>
-            <p className="courses-featured-desc">{hero.description}</p>
+            <span className="courses-featured-tag">
+              <FiAward /> {hasEnrolled ? "Continue Learning" : "Featured Course"}
+            </span>
+            <h2 className="courses-featured-title">{heroCourse.title}</h2>
+            <p className="courses-featured-desc">{heroCourse.description}</p>
             <div className="courses-featured-meta">
-              <span><FiUser /> {hero.instructor?.username || "Unknown instructor"}</span>
-              <span><FiClock /> {formatDuration(hero.duration)}</span>
-              <span><FiBookOpen /> {hero.lessonsCount} lessons</span>
-              <span>{formatPrice(hero.price)}</span>
+              <span><FiUser /> {typeof heroCourse.instructor === "object" ? heroCourse.instructor?.username : "Instructor"}</span>
+              <span><FiClock /> {heroCourse.duration}</span>
+              <span><FiBookOpen /> {heroCourse.lessonsCount ?? heroCourse.lectures?.length ?? 0} lessons</span>
+              <span>{formatPrice(heroCourse.price)}</span>
             </div>
 
-            {isUserEnrolled(hero, userId) ? (
+            {hasEnrolled ? (
               <>
                 <div className="courses-featured-progress-wrap">
                   <div className="courses-featured-progress-label">
                     <span>Progress</span>
-                    <span>25%</span>
+                    <span>{getDummyProgress(heroCourse._id)}%</span>
                   </div>
                   <div className="courses-featured-progress-track">
-                    <div className="courses-featured-progress-fill" style={{ width: "25%" }} />
+                    <div className="courses-featured-progress-fill" style={{ width: `${getDummyProgress(heroCourse._id)}%` }} />
                   </div>
                 </div>
-                <button
-                  className="courses-featured-btn"
-                  onClick={() => navigate(`/lecture/${hero._id}`)}
-                >
-                  <FiPlay /> Continue Learning
-                </button>
+                <div style={{ display: "flex", gap: 10 }}>
+                  <button className="courses-featured-btn" onClick={() => navigate(`/lecture/${heroCourse._id}`)}>
+                    <FiPlay /> Continue Learning
+                  </button>
+                  {enrolledCourses.length > 1 && (
+                    <button
+                      onClick={handleShuffleHero}
+                      style={{
+                        display: "flex", alignItems: "center", gap: 6, padding: "0 16px",
+                        background: "#fff", border: "1.5px solid #e2e8f0", borderRadius: 10,
+                        cursor: "pointer", fontWeight: 600, fontSize: 14, color: "#334155",
+                      }}
+                    >
+                      <FiShuffle /> Shuffle
+                    </button>
+                  )}
+                </div>
               </>
             ) : (
               <button
                 className="courses-featured-btn"
-                disabled={enrollingId === hero._id}
-                onClick={(e) => handleEnroll(hero._id, e)}
+                disabled={cartHasCourse(heroCourse._id)}
+                onClick={(e) => handleAddToCart(heroCourse, e)}
               >
-                {enrollingId === hero._id
-                  ? <><FiRefreshCw className="cp-spin" /> Enrolling…</>
-                  : <><FiUserPlus /> {isLoggedIn ? "Enroll Now" : "Log In to Enroll"}</>}
+                {cartHasCourse(heroCourse._id)
+                  ? <><FiCheckCircle /> In Cart</>
+                  : <><FiShoppingCart /> {isLoggedIn ? "Add to Cart" : "Log In to Enroll"}</>}
               </button>
             )}
           </div>
           <div className="courses-featured-right">
-            <div className="courses-featured-emoji">{hero.emoji}</div>
+            <div className="courses-featured-emoji">{heroCourse.emoji}</div>
           </div>
         </div>
       )}
 
-      {/* ── Continue Learning (logged-in, enrolled only) ── */}
+      {/* ── My Courses (enrolled) ── */}
       {isLoggedIn && enrolledCourses.length > 0 && (
         <>
-          <h2 className="courses-count" style={{ fontWeight: 700, fontSize: 16 }}>Continue Learning</h2>
+          <h2 className="courses-count" style={{ fontWeight: 700, fontSize: 16 }}>My Courses</h2>
           <div className="courses-grid">
             {enrolledCourses.map((course) => (
               <CourseCard
                 key={course._id}
                 course={course}
-                isLoggedIn={isLoggedIn}
-                userId={userId}
-                enrolling={enrollingId === course._id}
-                onEnroll={handleEnroll}
+                enrolled
+                unenrolling={unenrollingId === course._id}
                 onUnenroll={handleUnenroll}
-                onCardClick={handleCardClick}
+                onNavigate={() => navigate(`/lecture/${course._id}`)}
               />
             ))}
           </div>
@@ -362,7 +441,7 @@ export default function Courses() {
         {isLoggedIn ? "Explore More Courses" : "All Courses"}
       </h2>
 
-      {loadingCourses && (
+      {(loadingCourses || loadingEnrolled) && (
         <p className="courses-count"><FiRefreshCw className="cp-spin" /> Loading courses…</p>
       )}
 
@@ -383,12 +462,10 @@ export default function Courses() {
               <CourseCard
                 key={course._id}
                 course={course}
+                enrolled={false}
+                inCart={cartHasCourse(course._id)}
                 isLoggedIn={isLoggedIn}
-                userId={userId}
-                enrolling={enrollingId === course._id}
-                onEnroll={handleEnroll}
-                onUnenroll={handleUnenroll}
-                onCardClick={handleCardClick}
+                onAddToCart={handleAddToCart}
               />
             ))}
           </div>
@@ -399,27 +476,16 @@ export default function Courses() {
 }
 
 // ── Course card ─────────────────────────────────────────────
-function CourseCard({ course, isLoggedIn, userId, enrolling, onEnroll, onUnenroll, onCardClick }) {
+function CourseCard({ course, enrolled, inCart, isLoggedIn, unenrolling, onAddToCart, onUnenroll, onNavigate }) {
   const lvlStyle = LEVEL_COLOR[course.level] || LEVEL_COLOR.Beginner;
-  const enrolled = isUserEnrolled(course, userId);
-
-  // Deterministic dummy progress based on course ID (consistent while page is open)
-  const dummyProgress = useMemo(() => {
-    if (!enrolled) return 0;
-    let hash = 0;
-    for (let i = 0; i < course._id.length; i++) {
-      hash = ((hash << 5) - hash) + course._id.charCodeAt(i);
-      hash |= 0;
-    }
-    const progressValues = [25, 48, 67, 82];
-    const index = Math.abs(hash) % progressValues.length;
-    return progressValues[index];
-  }, [course._id, enrolled]);
+  const instructorName = typeof course.instructor === "object" ? course.instructor?.username : "Instructor";
+  const lessonsCount = course.lessonsCount ?? course.lectures?.length ?? 0;
+  const studentsCount = course.studentsEnrolledCount ?? course.studentsEnrolled?.length ?? 0;
 
   return (
     <div
       className="course-card"
-      onClick={() => onCardClick(course._id, enrolled)}
+      onClick={enrolled ? onNavigate : undefined}
       style={{ cursor: enrolled ? "pointer" : "default" }}
     >
       <div
@@ -438,11 +504,11 @@ function CourseCard({ course, isLoggedIn, userId, enrolling, onEnroll, onUnenrol
       <div className="course-card-body">
         <span className="course-card-category" style={{ color: course.color }}>{course.category}</span>
         <h3 className="course-card-title">{course.title}</h3>
-        <p className="course-card-instructor"><FiUser /> {course.instructor?.username || "Unknown instructor"}</p>
+        <p className="course-card-instructor"><FiUser /> {instructorName}</p>
 
         <div className="course-card-meta">
-          <span><FiClock /> {formatDuration(course.duration)}</span>
-          <span><FiBookOpen /> {course.lessonsCount} lessons</span>
+          <span><FiClock /> {course.duration}</span>
+          <span><FiBookOpen /> {lessonsCount} lessons</span>
           <span>{formatPrice(course.price)}</span>
         </div>
 
@@ -450,40 +516,37 @@ function CourseCard({ course, isLoggedIn, userId, enrolling, onEnroll, onUnenrol
           <div className="course-card-progress">
             <div className="course-card-progress-label">
               <span className="cp-tag in-progress"><FiCheckCircle /> Enrolled</span>
-              <span className="cp-pct">{dummyProgress}%</span>
+              <span className="cp-pct">{getDummyProgress(course._id)}%</span>
             </div>
             <div className="course-card-progress-track">
-              <div className="course-card-progress-fill" style={{ width: `${dummyProgress}%`, background: course.color }} />
+              <div className="course-card-progress-fill" style={{ width: `${getDummyProgress(course._id)}%`, background: course.color }} />
             </div>
           </div>
         )}
       </div>
 
       <div className="course-card-footer">
-        <span className="course-card-students">{(course.studentsEnrolledCount || 0).toLocaleString()} students</span>
+        <span className="course-card-students">{studentsCount.toLocaleString()} students</span>
 
         {enrolled ? (
           <button
             className="course-card-btn"
-            style={{ background: course.color }}
-            disabled={enrolling}
-            onClick={(e) => {
-              e.stopPropagation();
-              onCardClick(course._id, true);
-            }}
+            style={{ background: "#64748b" }}
+            disabled={unenrolling}
+            onClick={(e) => onUnenroll(course._id, e)}
           >
-            <FiPlay /> Continue Learning
+            {unenrolling ? <FiRefreshCw className="cp-spin" /> : <><FiUserMinus /> Unenroll</>}
           </button>
         ) : (
           <button
             className="course-card-btn"
-            style={{ background: course.color }}
-            disabled={enrolling}
-            onClick={(e) => onEnroll(course._id, e)}
+            style={{ background: inCart ? "#94a3b8" : course.color }}
+            disabled={inCart}
+            onClick={(e) => onAddToCart(course, e)}
           >
-            {enrolling
-              ? <FiRefreshCw className="cp-spin" />
-              : <>{isLoggedIn ? "Enroll" : "Log In"} <FiPlay /></>}
+            {inCart
+              ? <><FiCheckCircle /> In Cart</>
+              : <>{isLoggedIn ? "Add to Cart" : "Log In"} <FiShoppingCart /></>}
           </button>
         )}
       </div>
