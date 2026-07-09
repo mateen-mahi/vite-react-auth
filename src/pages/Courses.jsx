@@ -74,6 +74,9 @@ export default function Courses() {
   const [featuredCourses, setFeaturedCourses] = useState([]);
   const [loadingFeatured, setLoadingFeatured] = useState(true);
 
+  const [myCourses, setMyCourses] = useState([]);
+  const [loadingMyCourses, setLoadingMyCourses] = useState(true);
+
   const [enrollingId, setEnrollingId] = useState(null);
   const [toast, setToast] = useState(null);
   const showToast = (msg) => { setToast(msg); setTimeout(() => setToast(null), 3000); };
@@ -107,8 +110,27 @@ export default function Courses() {
       }
     };
 
+    const fetchMyCourses = async () => {
+      if (!isLoggedIn || !userId) {
+        setMyCourses([]);
+        setLoadingMyCourses(false);
+        return;
+      }
+      setLoadingMyCourses(true);
+      try {
+        const res = await api.get(`/courses/my-courses/${userId}`);
+        setMyCourses(res.data.data);
+      } catch (err) {
+        console.log("Failed to fetch my courses:", err);
+        setMyCourses([]);
+      } finally {
+        setLoadingMyCourses(false);
+      }
+    };
+
     fetchCourses();
     fetchFeatured();
+    fetchMyCourses();
   }, [isLoggedIn]);
 
   // ── Filters ──
@@ -127,15 +149,15 @@ export default function Courses() {
 
   // ── Split: enrolled vs non-enrolled ──
   const enrolledCourses = useMemo(
-    () => (isLoggedIn
-      ? courses.filter((c) => isUserEnrolled(c, userId) && !featuredIds.has(c._id))
-      : []),
-    [courses, isLoggedIn, userId, featuredIds]
+    () => (isLoggedIn ? myCourses.filter((c) => !featuredIds.has(c._id)) : []),
+    [myCourses, isLoggedIn, featuredIds]
   );
 
+  const myCourseIds = useMemo(() => new Set(myCourses.map((c) => c._id)), [myCourses]);
+
   const browsablePool = useMemo(
-    () => courses.filter((c) => !featuredIds.has(c._id) && !(isLoggedIn && isUserEnrolled(c, userId))),
-    [courses, isLoggedIn, userId, featuredIds]
+    () => courses.filter((c) => !featuredIds.has(c._id) && !myCourseIds.has(c._id)),
+    [courses, featuredIds, myCourseIds]
   );
 
   const filtered = useMemo(() => {
@@ -193,6 +215,13 @@ export default function Courses() {
         )
       );
       showToast("Unenrolled.");
+      // Refresh my courses from backend
+      try {
+        const res = await api.get(`/courses/my-courses/${userId}`);
+        setMyCourses(res.data.data);
+      } catch (refreshErr) {
+        console.log("Failed to refresh my courses:", refreshErr);
+      }
     } catch (err) {
       showToast(err.response?.data?.message || "Failed to unenroll.");
     } finally {
