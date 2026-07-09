@@ -38,8 +38,8 @@ const formatPrice = (price) => (price === 0 ? "Free" : `$${price}`);
 
 // ── Reusable helper: check if user is enrolled in a course ──
 function isUserEnrolled(course, userId) {
-  if (!course.enrolledUsers || !userId) return false;
-  return course.enrolledUsers.some((u) => {
+  if (!course.studentsEnrolled || !userId) return false;
+  return course.studentsEnrolled.some((u) => {
     const id = typeof u === "string" ? u : u._id;
     return id === userId;
   });
@@ -178,7 +178,7 @@ export default function Courses() {
           c._id === courseId
             ? {
                 ...c,
-                enrolledUsers: [...(c.enrolledUsers || []), userId],
+                studentsEnrolled: [...(c.studentsEnrolled || []), userId],
                 studentsEnrolledCount: (c.studentsEnrolledCount || 0) + 1,
               }
             : c
@@ -203,7 +203,7 @@ export default function Courses() {
           c._id === courseId
             ? {
                 ...c,
-                enrolledUsers: (c.enrolledUsers || []).filter((u) => {
+                studentsEnrolled: (c.studentsEnrolled || []).filter((u) => {
                   const id = typeof u === "string" ? u : u._id;
                   return id !== userId;
                 }),
