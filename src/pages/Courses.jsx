@@ -36,6 +36,15 @@ const formatDuration = (mins) => {
 
 const formatPrice = (price) => (price === 0 ? "Free" : `$${price}`);
 
+// ── Reusable helper: check if user is enrolled in a course ──
+function isUserEnrolled(course, userId) {
+  if (!course.enrolledUsers || !userId) return false;
+  return course.enrolledUsers.some((u) => {
+    const id = typeof u === "string" ? u : u._id;
+    return id === userId;
+  });
+}
+
 // ── Lightweight toast (inline-styled, no external CSS dependency) ──
 function Toast({ msg, onClose }) {
   return (
@@ -57,6 +66,7 @@ export default function Courses() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const isLoggedIn = Boolean(user);
+  const userId = user?._id;
 
   const [courses, setCourses] = useState([]);
   const [loadingCourses, setLoadingCourses] = useState(true);
@@ -100,7 +110,7 @@ export default function Courses() {
 
     fetchCourses();
     fetchFeatured();
-  }, [isLoggedIn]); // refetch after login/logout so isEnrolled reflects the right user
+  }, [isLoggedIn]); // refetch after login/logout so enrollment reflects the right user
 
   // ── Filters ──
   const [search,   setSearch]   = useState("");
@@ -117,16 +127,17 @@ export default function Courses() {
   const featuredIds = useMemo(() => new Set(featuredCourses.map((c) => c._id)), [featuredCourses]);
   const hero = featuredCourses[0];
 
-  // Split: enrolled (only meaningful when logged in) vs everything else,
-  // excluding whatever's already shown in the hero banner above.
+  // ── Split: enrolled vs non-enrolled ──
   const enrolledCourses = useMemo(
-    () => (isLoggedIn ? courses.filter((c) => c.isEnrolled && !featuredIds.has(c._id)) : []),
-    [courses, isLoggedIn, featuredIds]
+    () => (isLoggedIn
+      ? courses.filter((c) => isUserEnrolled(c, userId) && !featuredIds.has(c._id))
+      : []),
+    [courses, isLoggedIn, userId, featuredIds]
   );
 
   const browsablePool = useMemo(
-    () => courses.filter((c) => !featuredIds.has(c._id) && !(isLoggedIn && c.isEnrolled)),
-    [courses, isLoggedIn, featuredIds]
+    () => courses.filter((c) => !featuredIds.has(c._id) && !(isLoggedIn && isUserEnrolled(c, userId))),
+    [courses, isLoggedIn, userId, featuredIds]
   );
 
   const filtered = useMemo(() => {
@@ -153,18 +164,23 @@ export default function Courses() {
   }, [browsablePool, search, category, level, sort]);
 
   // ── Enroll / Unenroll ──
-  const handleEnroll = async (courseId) => {
+  const handleEnroll = async (courseId, event) => {
+    event.stopPropagation();
     if (!isLoggedIn) {
       navigate("/login");
       return;
     }
     setEnrollingId(courseId);
     try {
-      await api.post(`/courses/${courseId}/enroll`);
+      await api.post(`/courses/${courseId}/enroll`, { studentId: userId });
       setCourses((prev) =>
         prev.map((c) =>
           c._id === courseId
-            ? { ...c, isEnrolled: true, studentsEnrolledCount: (c.studentsEnrolledCount || 0) + 1 }
+            ? {
+                ...c,
+                enrolledUsers: [...(c.enrolledUsers || []), userId],
+                studentsEnrolledCount: (c.studentsEnrolledCount || 0) + 1,
+              }
             : c
         )
       );
@@ -176,7 +192,8 @@ export default function Courses() {
     }
   };
 
-  const handleUnenroll = async (courseId) => {
+  const handleUnenroll = async (courseId, event) => {
+    event.stopPropagation();
     if (!window.confirm("Unenroll from this course?")) return;
     setEnrollingId(courseId);
     try {
@@ -184,7 +201,14 @@ export default function Courses() {
       setCourses((prev) =>
         prev.map((c) =>
           c._id === courseId
-            ? { ...c, isEnrolled: false, studentsEnrolledCount: Math.max(0, (c.studentsEnrolledCount || 1) - 1) }
+            ? {
+                ...c,
+                enrolledUsers: (c.enrolledUsers || []).filter((u) => {
+                  const id = typeof u === "string" ? u : u._id;
+                  return id !== userId;
+                }),
+                studentsEnrolledCount: Math.max(0, (c.studentsEnrolledCount || 1) - 1),
+              }
             : c
         )
       );
@@ -193,6 +217,12 @@ export default function Courses() {
       showToast(err.response?.data?.message || "Failed to unenroll.");
     } finally {
       setEnrollingId(null);
+    }
+  };
+
+  const handleCardClick = (courseId, isEnrolled) => {
+    if (isEnrolled) {
+      navigate(`/lecture/${courseId}`);
     }
   };
 
@@ -227,19 +257,21 @@ export default function Courses() {
               <span>{formatPrice(hero.price)}</span>
             </div>
 
-            {hero.isEnrolled ? (
+            {isUserEnrolled(hero, userId) ? (
               <>
-                {/* Real percentage needs a LectureProgress backend — not built yet, see chat note */}
                 <div className="courses-featured-progress-wrap">
                   <div className="courses-featured-progress-label">
                     <span>Progress</span>
-                    <span>Not started yet</span>
+                    <span>25%</span>
                   </div>
                   <div className="courses-featured-progress-track">
-                    <div className="courses-featured-progress-fill" style={{ width: "0%" }} />
+                    <div className="courses-featured-progress-fill" style={{ width: "25%" }} />
                   </div>
                 </div>
-                <button className="courses-featured-btn">
+                <button
+                  className="courses-featured-btn"
+                  onClick={() => navigate(`/lecture/${hero._id}`)}
+                >
                   <FiPlay /> Continue Learning
                 </button>
               </>
@@ -247,7 +279,7 @@ export default function Courses() {
               <button
                 className="courses-featured-btn"
                 disabled={enrollingId === hero._id}
-                onClick={() => handleEnroll(hero._id)}
+                onClick={(e) => handleEnroll(hero._id, e)}
               >
                 {enrollingId === hero._id
                   ? <><FiRefreshCw className="cp-spin" /> Enrolling…</>
@@ -271,9 +303,11 @@ export default function Courses() {
                 key={course._id}
                 course={course}
                 isLoggedIn={isLoggedIn}
+                userId={userId}
                 enrolling={enrollingId === course._id}
                 onEnroll={handleEnroll}
                 onUnenroll={handleUnenroll}
+                onCardClick={handleCardClick}
               />
             ))}
           </div>
@@ -341,9 +375,11 @@ export default function Courses() {
                 key={course._id}
                 course={course}
                 isLoggedIn={isLoggedIn}
+                userId={userId}
                 enrolling={enrollingId === course._id}
                 onEnroll={handleEnroll}
                 onUnenroll={handleUnenroll}
+                onCardClick={handleCardClick}
               />
             ))}
           </div>
@@ -354,11 +390,29 @@ export default function Courses() {
 }
 
 // ── Course card ─────────────────────────────────────────────
-function CourseCard({ course, isLoggedIn, enrolling, onEnroll, onUnenroll }) {
+function CourseCard({ course, isLoggedIn, userId, enrolling, onEnroll, onUnenroll, onCardClick }) {
   const lvlStyle = LEVEL_COLOR[course.level] || LEVEL_COLOR.Beginner;
+  const enrolled = isUserEnrolled(course, userId);
+
+  // Deterministic dummy progress based on course ID (consistent while page is open)
+  const dummyProgress = useMemo(() => {
+    if (!enrolled) return 0;
+    let hash = 0;
+    for (let i = 0; i < course._id.length; i++) {
+      hash = ((hash << 5) - hash) + course._id.charCodeAt(i);
+      hash |= 0;
+    }
+    const progressValues = [25, 48, 67, 82];
+    const index = Math.abs(hash) % progressValues.length;
+    return progressValues[index];
+  }, [course._id, enrolled]);
 
   return (
-    <div className="course-card">
+    <div
+      className="course-card"
+      onClick={() => onCardClick(course._id, enrolled)}
+      style={{ cursor: enrolled ? "pointer" : "default" }}
+    >
       <div
         className="course-card-thumb"
         style={{ background: `linear-gradient(135deg, ${course.color}22, ${course.color}44)`, borderBottom: `3px solid ${course.color}` }}
@@ -383,14 +437,14 @@ function CourseCard({ course, isLoggedIn, enrolling, onEnroll, onUnenroll }) {
           <span>{formatPrice(course.price)}</span>
         </div>
 
-        {course.isEnrolled && (
-          // Placeholder until real LectureProgress tracking exists
+        {enrolled && (
           <div className="course-card-progress">
             <div className="course-card-progress-label">
               <span className="cp-tag in-progress"><FiCheckCircle /> Enrolled</span>
+              <span className="cp-pct">{dummyProgress}%</span>
             </div>
             <div className="course-card-progress-track">
-              <div className="course-card-progress-fill" style={{ width: "0%", background: course.color }} />
+              <div className="course-card-progress-fill" style={{ width: `${dummyProgress}%`, background: course.color }} />
             </div>
           </div>
         )}
@@ -399,21 +453,24 @@ function CourseCard({ course, isLoggedIn, enrolling, onEnroll, onUnenroll }) {
       <div className="course-card-footer">
         <span className="course-card-students">{(course.studentsEnrolledCount || 0).toLocaleString()} students</span>
 
-        {course.isEnrolled ? (
+        {enrolled ? (
           <button
             className="course-card-btn"
-            style={{ background: "#64748b" }}
+            style={{ background: course.color }}
             disabled={enrolling}
-            onClick={() => onUnenroll(course._id)}
+            onClick={(e) => {
+              e.stopPropagation();
+              onCardClick(course._id, true);
+            }}
           >
-            {enrolling ? <FiRefreshCw className="cp-spin" /> : <><FiUserMinus /> Unenroll</>}
+            <FiPlay /> Continue Learning
           </button>
         ) : (
           <button
             className="course-card-btn"
             style={{ background: course.color }}
             disabled={enrolling}
-            onClick={() => onEnroll(course._id)}
+            onClick={(e) => onEnroll(course._id, e)}
           >
             {enrolling
               ? <FiRefreshCw className="cp-spin" />
