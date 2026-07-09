@@ -124,12 +124,13 @@ export default function Courses() {
   const hero = featuredCourses[0];
 
   // ── Split: enrolled vs non-enrolled ──
-  const enrolledCourses = useMemo(
-    () => (isLoggedIn
-      ? courses.filter((c) => isUserEnrolled(c, userId) && !featuredIds.has(c._id))
-      : []),
-    [courses, isLoggedIn, userId, featuredIds]
-  );
+const enrolledCourses = useMemo(
+  () => (isLoggedIn
+    ? courses.filter((c) => isUserEnrolled(c, userId))
+    : []),
+  [courses, isLoggedIn, userId]
+);
+
 
   const browsablePool = useMemo(
     () => courses.filter((c) => !featuredIds.has(c._id) && !(isLoggedIn && isUserEnrolled(c, userId))),
