@@ -36,11 +36,17 @@ const formatDuration = (mins) => {
 
 const formatPrice = (price) => (price === 0 ? "Free" : `$${price}`);
 
-function isUserEnrolled(course, userId) {
-  if (!course.studentsEnrolled || !userId) return false;
-  return course.studentsEnrolled.some((u) => u === userId);
-}
-
+// TEMPORARY — deterministic dummy progress per course (stable across
+// re-renders, not random noise) until real LectureProgress tracking exists.
+// Swap this out entirely once that backend is built.
+const getDummyProgress = (id) => {
+  if (!id) return 0;
+  let hash = 0;
+  for (let i = 0; i < id.length; i++) {
+    hash = (hash * 31 + id.charCodeAt(i)) % 97;
+  }
+  return hash % 96; // keeps it in a believable 0–95 range
+};
 
 // ── Lightweight toast (inline-styled, no external CSS dependency) ──
 function Toast({ msg, onClose }) {
@@ -63,7 +69,6 @@ export default function Courses() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const isLoggedIn = Boolean(user);
-  const userId = user?._id;
 
   const [courses, setCourses] = useState([]);
   const [loadingCourses, setLoadingCourses] = useState(true);
@@ -76,6 +81,7 @@ export default function Courses() {
   const [toast, setToast] = useState(null);
   const showToast = (msg) => { setToast(msg); setTimeout(() => setToast(null), 3000); };
 
+  // ── Fetch real data — works for guests too (optionalAuth on the backend) ──
   useEffect(() => {
     const fetchCourses = async () => {
       setLoadingCourses(true);
@@ -94,7 +100,7 @@ export default function Courses() {
     const fetchFeatured = async () => {
       setLoadingFeatured(true);
       try {
-        const res = await api.get("/courses/featured");
+        const res = await api.get("/featured");
         setFeaturedCourses(res.data.data);
       } catch (err) {
         console.log("Failed to fetch featured courses:", err);
@@ -106,7 +112,7 @@ export default function Courses() {
 
     fetchCourses();
     fetchFeatured();
-  }, [isLoggedIn]); // refetch after login/logout so enrollment reflects the right user
+  }, [isLoggedIn]); // refetch after login/logout so isEnrolled reflects the right user
 
   // ── Filters ──
   const [search,   setSearch]   = useState("");
@@ -123,18 +129,16 @@ export default function Courses() {
   const featuredIds = useMemo(() => new Set(featuredCourses.map((c) => c._id)), [featuredCourses]);
   const hero = featuredCourses[0];
 
-  // ── Split: enrolled vs non-enrolled ──
-const enrolledCourses = useMemo(
-  () => (isLoggedIn
-    ? courses.filter((c) => isUserEnrolled(c, userId))
-    : []),
-  [courses, isLoggedIn, userId]
-);
-
+  // Split: enrolled (only meaningful when logged in) vs everything else,
+  // excluding whatever's already shown in the hero banner above.
+  const enrolledCourses = useMemo(
+    () => (isLoggedIn ? courses.filter((c) => c.isEnrolled && !featuredIds.has(c._id)) : []),
+    [courses, isLoggedIn, featuredIds]
+  );
 
   const browsablePool = useMemo(
-    () => courses.filter((c) => !featuredIds.has(c._id) && !(isLoggedIn && isUserEnrolled(c, userId))),
-    [courses, isLoggedIn, userId, featuredIds]
+    () => courses.filter((c) => !featuredIds.has(c._id) && !(isLoggedIn && c.isEnrolled)),
+    [courses, isLoggedIn, featuredIds]
   );
 
   const filtered = useMemo(() => {
@@ -161,23 +165,18 @@ const enrolledCourses = useMemo(
   }, [browsablePool, search, category, level, sort]);
 
   // ── Enroll / Unenroll ──
-  const handleEnroll = async (courseId, event) => {
-    event.stopPropagation();
+  const handleEnroll = async (courseId) => {
     if (!isLoggedIn) {
       navigate("/login");
       return;
     }
     setEnrollingId(courseId);
     try {
-      await api.post(`/courses/${courseId}/enroll`, { studentId: userId });
+      await api.post(`/courses/${courseId}/enroll`);
       setCourses((prev) =>
         prev.map((c) =>
           c._id === courseId
-            ? {
-                ...c,
-                studentsEnrolled: [...(c.studentsEnrolled || []), userId],
-                studentsEnrolledCount: (c.studentsEnrolledCount || 0) + 1,
-              }
+            ? { ...c, isEnrolled: true, studentsEnrolledCount: (c.studentsEnrolledCount || 0) + 1 }
             : c
         )
       );
@@ -189,8 +188,7 @@ const enrolledCourses = useMemo(
     }
   };
 
-  const handleUnenroll = async (courseId, event) => {
-    event.stopPropagation();
+  const handleUnenroll = async (courseId) => {
     if (!window.confirm("Unenroll from this course?")) return;
     setEnrollingId(courseId);
     try {
@@ -198,14 +196,7 @@ const enrolledCourses = useMemo(
       setCourses((prev) =>
         prev.map((c) =>
           c._id === courseId
-            ? {
-                ...c,
-                studentsEnrolled: (c.studentsEnrolled || []).filter((u) => {
-                  const id = typeof u === "string" ? u : u._id;
-                  return id !== userId;
-                }),
-                studentsEnrolledCount: Math.max(0, (c.studentsEnrolledCount || 1) - 1),
-              }
+            ? { ...c, isEnrolled: false, studentsEnrolledCount: Math.max(0, (c.studentsEnrolledCount || 1) - 1) }
             : c
         )
       );
@@ -214,12 +205,6 @@ const enrolledCourses = useMemo(
       showToast(err.response?.data?.message || "Failed to unenroll.");
     } finally {
       setEnrollingId(null);
-    }
-  };
-
-  const handleCardClick = (courseId, isEnrolled) => {
-    if (isEnrolled) {
-      navigate(`/lecture/${courseId}`);
     }
   };
 
@@ -254,21 +239,19 @@ const enrolledCourses = useMemo(
               <span>{formatPrice(hero.price)}</span>
             </div>
 
-            {isUserEnrolled(hero, userId) ? (
+            {hero.isEnrolled ? (
               <>
+                {/* Real percentage needs a LectureProgress backend — not built yet, see chat note */}
                 <div className="courses-featured-progress-wrap">
                   <div className="courses-featured-progress-label">
                     <span>Progress</span>
-                    <span>25%</span>
+                    <span>Not started yet</span>
                   </div>
                   <div className="courses-featured-progress-track">
-                    <div className="courses-featured-progress-fill" style={{ width: "25%" }} />
+                    <div className="courses-featured-progress-fill" style={{ width: "0%" }} />
                   </div>
                 </div>
-                <button
-                  className="courses-featured-btn"
-                  onClick={() => navigate(`/lecture/${hero._id}`)}
-                >
+                <button className="courses-featured-btn">
                   <FiPlay /> Continue Learning
                 </button>
               </>
@@ -276,7 +259,7 @@ const enrolledCourses = useMemo(
               <button
                 className="courses-featured-btn"
                 disabled={enrollingId === hero._id}
-                onClick={(e) => handleEnroll(hero._id, e)}
+                onClick={() => handleEnroll(hero._id)}
               >
                 {enrollingId === hero._id
                   ? <><FiRefreshCw className="cp-spin" /> Enrolling…</>
@@ -300,11 +283,9 @@ const enrolledCourses = useMemo(
                 key={course._id}
                 course={course}
                 isLoggedIn={isLoggedIn}
-                userId={userId}
                 enrolling={enrollingId === course._id}
                 onEnroll={handleEnroll}
                 onUnenroll={handleUnenroll}
-                onCardClick={handleCardClick}
               />
             ))}
           </div>
@@ -372,11 +353,9 @@ const enrolledCourses = useMemo(
                 key={course._id}
                 course={course}
                 isLoggedIn={isLoggedIn}
-                userId={userId}
                 enrolling={enrollingId === course._id}
                 onEnroll={handleEnroll}
                 onUnenroll={handleUnenroll}
-                onCardClick={handleCardClick}
               />
             ))}
           </div>
@@ -387,29 +366,11 @@ const enrolledCourses = useMemo(
 }
 
 // ── Course card ─────────────────────────────────────────────
-function CourseCard({ course, isLoggedIn, userId, enrolling, onEnroll, onUnenroll, onCardClick }) {
+function CourseCard({ course, isLoggedIn, enrolling, onEnroll, onUnenroll }) {
   const lvlStyle = LEVEL_COLOR[course.level] || LEVEL_COLOR.Beginner;
-  const enrolled = isUserEnrolled(course, userId);
-
-  // Deterministic dummy progress based on course ID (consistent while page is open)
-  const dummyProgress = useMemo(() => {
-    if (!enrolled) return 0;
-    let hash = 0;
-    for (let i = 0; i < course._id.length; i++) {
-      hash = ((hash << 5) - hash) + course._id.charCodeAt(i);
-      hash |= 0;
-    }
-    const progressValues = [25, 48, 67, 82];
-    const index = Math.abs(hash) % progressValues.length;
-    return progressValues[index];
-  }, [course._id, enrolled]);
 
   return (
-    <div
-      className="course-card"
-      onClick={() => onCardClick(course._id, enrolled)}
-      style={{ cursor: enrolled ? "pointer" : "default" }}
-    >
+    <div className="course-card">
       <div
         className="course-card-thumb"
         style={{ background: `linear-gradient(135deg, ${course.color}22, ${course.color}44)`, borderBottom: `3px solid ${course.color}` }}
@@ -434,14 +395,14 @@ function CourseCard({ course, isLoggedIn, userId, enrolling, onEnroll, onUnenrol
           <span>{formatPrice(course.price)}</span>
         </div>
 
-        {enrolled && (
+        {course.isEnrolled && (
+          // Placeholder until real LectureProgress tracking exists
           <div className="course-card-progress">
             <div className="course-card-progress-label">
               <span className="cp-tag in-progress"><FiCheckCircle /> Enrolled</span>
-              <span className="cp-pct">{dummyProgress}%</span>
             </div>
             <div className="course-card-progress-track">
-              <div className="course-card-progress-fill" style={{ width: `${dummyProgress}%`, background: course.color }} />
+              <div className="course-card-progress-fill" style={{ width: "0%", background: course.color }} />
             </div>
           </div>
         )}
@@ -450,24 +411,21 @@ function CourseCard({ course, isLoggedIn, userId, enrolling, onEnroll, onUnenrol
       <div className="course-card-footer">
         <span className="course-card-students">{(course.studentsEnrolledCount || 0).toLocaleString()} students</span>
 
-        {enrolled ? (
+        {course.isEnrolled ? (
           <button
             className="course-card-btn"
-            style={{ background: course.color }}
+            style={{ background: "#64748b" }}
             disabled={enrolling}
-            onClick={(e) => {
-              e.stopPropagation();
-              onCardClick(course._id, true);
-            }}
+            onClick={() => onUnenroll(course._id)}
           >
-            <FiPlay /> Continue Learning
+            {enrolling ? <FiRefreshCw className="cp-spin" /> : <><FiUserMinus /> Unenroll</>}
           </button>
         ) : (
           <button
             className="course-card-btn"
             style={{ background: course.color }}
             disabled={enrolling}
-            onClick={(e) => onEnroll(course._id, e)}
+            onClick={() => onEnroll(course._id)}
           >
             {enrolling
               ? <FiRefreshCw className="cp-spin" />
