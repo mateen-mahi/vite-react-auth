@@ -24,7 +24,6 @@ const LEVEL_COLOR = {
 };
 
 // ── Helpers ──────────────────────────────────────────────
-// Assumes `duration` is stored in MINUTES — confirm this matches your schema
 const formatDuration = (mins) => {
   if (mins === undefined || mins === null) return "—";
   const h = Math.floor(mins / 60);
@@ -39,17 +38,13 @@ const formatPrice = (price) => (price === 0 ? "Free" : `$${price}`);
 // ── Reusable helper: check if user is enrolled in a course ──
 function isUserEnrolled(course, userId) {
   if (!course.studentsEnrolled || !userId) return false;
-    const currentUserIdStr = typeof userId === "object" ? (userId.$oid || userId._id || userId) : userId;
-
-  return course.studentsEnrolled.some((student) => {
-    const enrolledStudentIdStr = student && typeof student === "object" ? (student.$oid || student._id || student) : student;
-    
-    return String(enrolledStudentIdStr).trim() === String(currentUserIdStr).trim();
+  return course.studentsEnrolled.some((u) => {
+    const id = typeof u === "string" ? u : u._id;
+    return id === userId;
   });
 }
 
-
-// ── Lightweight toast (inline-styled, no external CSS dependency) ──
+// ── Lightweight toast ──
 function Toast({ msg, onClose }) {
   return (
     <div style={{
@@ -83,6 +78,7 @@ export default function Courses() {
   const [toast, setToast] = useState(null);
   const showToast = (msg) => { setToast(msg); setTimeout(() => setToast(null), 3000); };
 
+  // ── Fetch real data from backend ──
   useEffect(() => {
     const fetchCourses = async () => {
       setLoadingCourses(true);
@@ -113,7 +109,7 @@ export default function Courses() {
 
     fetchCourses();
     fetchFeatured();
-  }, [isLoggedIn]); // refetch after login/logout so enrollment reflects the right user
+  }, [isLoggedIn]);
 
   // ── Filters ──
   const [search,   setSearch]   = useState("");
@@ -121,7 +117,6 @@ export default function Courses() {
   const [level,    setLevel]    = useState("All Levels");
   const [sort,     setSort]     = useState("popular");
 
-  // Categories come from real data instead of a hardcoded guess
   const CATEGORIES = useMemo(() => {
     const unique = [...new Set(courses.map((c) => c.category))];
     return ["All", ...unique];
@@ -160,7 +155,7 @@ export default function Courses() {
       if (sort === "popular")    return (b.studentsEnrolledCount || 0) - (a.studentsEnrolledCount || 0);
       if (sort === "price-low")  return a.price - b.price;
       if (sort === "price-high") return b.price - a.price;
-      return new Date(b.createdAt) - new Date(a.createdAt); // newest
+      return new Date(b.createdAt) - new Date(a.createdAt);
     });
 
     return list;
@@ -173,26 +168,8 @@ export default function Courses() {
       navigate("/login");
       return;
     }
-    setEnrollingId(courseId);
-    try {
-      await api.post(`/courses/${courseId}/enroll`, { studentId: userId });
-      setCourses((prev) =>
-        prev.map((c) =>
-          c._id === courseId
-            ? {
-                ...c,
-                studentsEnrolled: [...(c.studentsEnrolled || []), userId],
-                studentsEnrolledCount: (c.studentsEnrolledCount || 0) + 1,
-              }
-            : c
-        )
-      );
-      showToast("Enrolled successfully!");
-    } catch (err) {
-      showToast(err.response?.data?.message || "Failed to enroll. Please try again.");
-    } finally {
-      setEnrollingId(null);
-    }
+    // Redirect to payment gateway with course ID
+    navigate(`/payment-gateway/${courseId}`);
   };
 
   const handleUnenroll = async (courseId, event) => {
