@@ -39,11 +39,15 @@ const formatPrice = (price) => (price === 0 ? "Free" : `$${price}`);
 // ── Reusable helper: check if user is enrolled in a course ──
 function isUserEnrolled(course, userId) {
   if (!course.studentsEnrolled || !userId) return false;
-  return course.studentsEnrolled.some((u) => {
-    const id = typeof u === "string" ? u : u._id;
-    return id === userId;
+    const currentUserIdStr = typeof userId === "object" ? (userId.$oid || userId._id || userId) : userId;
+
+  return course.studentsEnrolled.some((student) => {
+    const enrolledStudentIdStr = student && typeof student === "object" ? (student.$oid || student._id || student) : student;
+    
+    return String(enrolledStudentIdStr).trim() === String(currentUserIdStr).trim();
   });
 }
+
 
 // ── Lightweight toast (inline-styled, no external CSS dependency) ──
 function Toast({ msg, onClose }) {
@@ -79,7 +83,6 @@ export default function Courses() {
   const [toast, setToast] = useState(null);
   const showToast = (msg) => { setToast(msg); setTimeout(() => setToast(null), 3000); };
 
-  // ── Fetch real data — works for guests too (optionalAuth on the backend) ──
   useEffect(() => {
     const fetchCourses = async () => {
       setLoadingCourses(true);
