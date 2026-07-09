@@ -94,7 +94,7 @@ export default function Courses() {
     const fetchFeatured = async () => {
       setLoadingFeatured(true);
       try {
-        const res = await api.get("/featured");
+        const res = await api.get("/courses/featured");
         setFeaturedCourses(res.data.data);
       } catch (err) {
         console.log("Failed to fetch featured courses:", err);
