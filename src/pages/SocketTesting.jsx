@@ -405,7 +405,7 @@ const SocketTestPage = () => {
       </div>
 
       {/* Event Log */}
-      <div style={styles.card}>
+      {/* <div style={styles.card}>
         <h2>📋 Event Log</h2>
         <div style={styles.eventLog}>
           {socketEvents.length === 0 ? (
@@ -430,7 +430,7 @@ const SocketTestPage = () => {
         >
           🗑️ Clear Log
         </button>
-      </div>
+      </div> */}
 
       <style jsx>{`
         .spinner {
