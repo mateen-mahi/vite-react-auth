@@ -22,6 +22,7 @@ import Notes from "./pages/Notes";
 import Courses from "./pages/Courses";
 import Certificate from "./pages/Certificate";
 import Complaints from "./pages/Complaints";
+import SocketTestPage from "./pages/SocketTesting";
 
 
 function App() {
@@ -49,6 +50,9 @@ function App() {
     <Route path="/dashboard" element={<Dashboard />} />
     <Route path="/lectures" element={<LectureWatching />} />
     <Route path="/grand-quiz" element={<GrandQuiz />} />
+    <Route path="/socket-test" element={<SocketTestPage />} />
+
+
     <Route element={<RoleRoute allowedRoles={["admin", "super-admin"]} />}>
       <Route path="/user-management" element={<UserManagement />} />
       <Route path="/admin" element={<Admin />} />
