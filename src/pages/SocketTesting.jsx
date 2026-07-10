@@ -1,5 +1,5 @@
-// pages/SocketTestPage.jsx
-import { useEffect, useState } from 'react';
+// pages/SocketTestPage.jsx (Optimized Version)
+import { useEffect, useState, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 
@@ -21,24 +21,70 @@ const SocketTestPage = () => {
   const [roomId, setRoomId] = useState('test-room-123');
   const [isInRoom, setIsInRoom] = useState(false);
   const [socketEvents, setSocketEvents] = useState([]);
+  const messagesEndRef = useRef(null);
+  const messageIdCounter = useRef(0);
+  const sentMessages = useRef(new Set()); // Track sent message IDs
+
+  // Auto-scroll to bottom of messages
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [testMessages]);
 
   // Add event listener for receiving messages
   useEffect(() => {
     // Listen for room messages
     const cleanup = onEvent('receive-room-message', (messageData) => {
-      console.log('📩 Received message:', messageData);
-      setTestMessages(prev => [...prev, {
-        ...messageData,
-        received: true,
-        timestamp: new Date().toISOString()
-      }]);
-      addSocketEvent('📩 Message Received', messageData);
+      console.log('📩 Received message from server:', messageData);
+      
+      // Check if this message was sent by the current user
+      const isOwnMessage = messageData.senderId === user?._id || 
+                          messageData.userId === user?._id;
+      
+      // Check if we already have this message (by ID or content)
+      const messageId = messageData.id || `${messageData.text}-${messageData.timestamp}`;
+      
+      setTestMessages(prev => {
+        // Check if message already exists by ID
+        const exists = prev.some(msg => msg.id === messageId);
+        
+        if (exists) {
+          console.log('⚠️ Duplicate message detected (ID exists), skipping...');
+          return prev;
+        }
+
+        // Also check by content and timestamp (fallback)
+        const contentMatch = prev.some(msg => 
+          msg.text === messageData.text && 
+          msg.timestamp === messageData.timestamp &&
+          msg.sender === messageData.sender
+        );
+        
+        if (contentMatch) {
+          console.log('⚠️ Duplicate message detected (content match), skipping...');
+          return prev;
+        }
+        
+        console.log('✅ Adding new message to state');
+        return [...prev, {
+          ...messageData,
+          id: messageId,
+          received: true,
+          isOwnMessage: isOwnMessage,
+          timestamp: messageData.timestamp || new Date().toISOString()
+        }];
+      });
+      
+      addSocketEvent('📩 Message Received', { 
+        id: messageId,
+        text: messageData.text,
+        sender: messageData.sender
+      });
     });
 
     return () => {
       if (cleanup) cleanup();
     };
-  }, [onEvent]);
+  }, [onEvent, user?._id]);
 
   // Log connection status changes
   useEffect(() => {
@@ -51,6 +97,7 @@ const SocketTestPage = () => {
 
   const addSocketEvent = (event, data) => {
     setSocketEvents(prev => [...prev, {
+      id: messageIdCounter.current++,
       event,
       data,
       timestamp: new Date().toISOString()
@@ -74,6 +121,7 @@ const SocketTestPage = () => {
     setIsInRoom(true);
     addSocketEvent(`🟢 Joined Room: ${roomId}`, { roomId });
     setTestMessages([]); // Clear previous messages
+    sentMessages.current.clear(); // Clear sent message tracking
   };
 
   // Leave Room
@@ -86,7 +134,7 @@ const SocketTestPage = () => {
     addSocketEvent(`🔴 Left Room: ${roomId}`, { roomId });
   };
 
-  // Send Message
+  // Send Message - with better duplicate prevention
   const sendMessage = () => {
     if (!isConnected) {
       alert('Socket not connected!');
@@ -103,10 +151,14 @@ const SocketTestPage = () => {
       return;
     }
 
+    const messageId = `msg-${Date.now()}-${messageIdCounter.current++}`;
+    const messageText = newMessage.trim();
+    
     const messageData = {
       roomId: roomId,
       messageData: {
-        text: newMessage,
+        id: messageId,
+        text: messageText,
         sender: user?.name || user?.email || 'Anonymous',
         userId: user?._id || 'unknown',
         timestamp: new Date().toISOString()
@@ -114,17 +166,27 @@ const SocketTestPage = () => {
     };
 
     console.log('📤 Sending message:', messageData);
+    
+    // Track that we sent this message
+    sentMessages.current.add(messageId);
+    
     const success = emitEvent('room-message', messageData);
     
     if (success) {
-      // Add to local messages (optimistic update)
+      // Add to local messages with sent status
       setTestMessages(prev => [...prev, {
         ...messageData.messageData,
         sent: true,
-        timestamp: new Date().toISOString()
+        isOwnMessage: true,
+        id: messageId,
+        status: 'sent'
       }]);
       setNewMessage('');
-      addSocketEvent('📤 Message Sent', messageData.messageData);
+      addSocketEvent('📤 Message Sent', { 
+        id: messageId,
+        text: messageText,
+        to: roomId
+      });
     } else {
       alert('Failed to send message. Socket may not be ready.');
     }
@@ -134,6 +196,13 @@ const SocketTestPage = () => {
   const handleRefresh = async () => {
     addSocketEvent('🔄 Refreshing Auth', {});
     await refreshAuth();
+  };
+
+  // Clear messages
+  const clearMessages = () => {
+    setTestMessages([]);
+    sentMessages.current.clear();
+    addSocketEvent('🗑️ Messages Cleared', {});
   };
 
   // If still loading
@@ -259,6 +328,11 @@ const SocketTestPage = () => {
           }}>
             {isInRoom ? `✅ In Room: ${roomId}` : '❌ Not in any room'}
           </span>
+          {isInRoom && (
+            <span style={{ marginLeft: '20px', fontSize: '12px', color: '#666' }}>
+              Messages: {testMessages.length}
+            </span>
+          )}
         </div>
       </div>
 
@@ -272,11 +346,13 @@ const SocketTestPage = () => {
             ) : (
               testMessages.map((msg, idx) => (
                 <div 
-                  key={idx} 
+                  key={msg.id || idx} 
                   style={{
                     ...styles.message,
-                    backgroundColor: msg.sent ? '#e3f2fd' : '#f3e5f5',
-                    alignSelf: msg.sent ? 'flex-end' : 'flex-start'
+                    backgroundColor: msg.isOwnMessage ? '#e3f2fd' : '#f3e5f5',
+                    alignSelf: msg.isOwnMessage ? 'flex-end' : 'flex-start',
+                    marginLeft: msg.isOwnMessage ? 'auto' : '0',
+                    marginRight: msg.isOwnMessage ? '0' : 'auto',
                   }}
                 >
                   <div style={styles.messageHeader}>
@@ -284,13 +360,22 @@ const SocketTestPage = () => {
                     <span style={styles.messageTime}>
                       {new Date(msg.timestamp).toLocaleTimeString()}
                     </span>
-                    {msg.sent && <span style={styles.sentBadge}>✅ Sent</span>}
-                    {msg.received && <span style={styles.receivedBadge}>📩 Received</span>}
+                    {/* Status badges */}
+                    {msg.isOwnMessage && msg.status === 'sent' && !msg.received && (
+                      <span style={styles.sentBadge}>⏳ Sent</span>
+                    )}
+                    {msg.isOwnMessage && msg.received && (
+                      <span style={styles.deliveredBadge}>✅ Delivered</span>
+                    )}
+                    {!msg.isOwnMessage && msg.received && (
+                      <span style={styles.receivedBadge}>📩 Received</span>
+                    )}
                   </div>
                   <div style={styles.messageText}>{msg.text}</div>
                 </div>
               ))
             )}
+            <div ref={messagesEndRef} />
           </div>
           <div style={styles.chatInput}>
             <input
@@ -309,6 +394,12 @@ const SocketTestPage = () => {
             >
               Send
             </button>
+            <button 
+              onClick={clearMessages}
+              style={styles.buttonSecondary}
+            >
+              🗑️ Clear
+            </button>
           </div>
         </div>
       </div>
@@ -320,14 +411,14 @@ const SocketTestPage = () => {
           {socketEvents.length === 0 ? (
             <p style={styles.emptyMessage}>No events logged yet.</p>
           ) : (
-            socketEvents.slice().reverse().map((event, idx) => (
-              <div key={idx} style={styles.eventItem}>
+            socketEvents.slice().reverse().map((event) => (
+              <div key={event.id} style={styles.eventItem}>
                 <span style={styles.eventTime}>
                   {new Date(event.timestamp).toLocaleTimeString()}
                 </span>
                 <span style={styles.eventName}>{event.event}</span>
                 <span style={styles.eventData}>
-                  {JSON.stringify(event.data).slice(0, 50)}
+                  {typeof event.data === 'object' ? JSON.stringify(event.data).slice(0, 50) : event.data}
                 </span>
               </div>
             ))
@@ -360,7 +451,7 @@ const SocketTestPage = () => {
   );
 };
 
-// Styles
+// Styles (same as before)
 const styles = {
   container: {
     padding: '20px',
@@ -481,7 +572,8 @@ const styles = {
     maxWidth: '70%',
     padding: '10px 15px',
     borderRadius: '8px',
-    boxShadow: '0 1px 2px rgba(0,0,0,0.1)'
+    boxShadow: '0 1px 2px rgba(0,0,0,0.1)',
+    wordBreak: 'break-word'
   },
   messageHeader: {
     display: 'flex',
@@ -496,10 +588,14 @@ const styles = {
     fontSize: '11px'
   },
   messageText: {
-    fontSize: '14px',
-    wordBreak: 'break-word'
+    fontSize: '14px'
   },
   sentBadge: {
+    color: '#ffc107',
+    fontSize: '11px',
+    fontWeight: 'bold'
+  },
+  deliveredBadge: {
     color: '#28a745',
     fontSize: '11px',
     fontWeight: 'bold'
