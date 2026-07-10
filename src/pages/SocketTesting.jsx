@@ -1,4 +1,4 @@
-// pages/SocketTestPage.jsx
+// pages/SocketTestPage.jsx (Fixed Version)
 import { useEffect, useState, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
@@ -6,68 +6,73 @@ import { useNavigate } from 'react-router-dom';
 const SocketTestPage = () => {
   const navigate = useNavigate();
   
-  // ============================================
-  // 1. GET SOCKET FUNCTIONS FROM CONTEXT
-  // ============================================
   const { 
-    isConnected,      // true/false - is socket connected?
-    socketId,         // unique socket ID from server
-    connectionError,  // any error message
-    user,             // logged in user data
-    loading,          // is auth loading?
-    emitEvent,        // function to send events
-    onEvent,          // function to listen to events
-    refreshAuth       // function to refresh auth
+    isConnected, 
+    socketId, 
+    connectionError,
+    user,
+    loading,
+    emitEvent,
+    onEvent,
+    refreshAuth
   } = useAuth();
 
-  // ============================================
-  // 2. STATE VARIABLES
-  // ============================================
-  const [messages, setMessages] = useState([]);        // All chat messages
-  const [newMessage, setNewMessage] = useState('');    // Current input text
-  const [roomId, setRoomId] = useState('test-room-123'); // Current room
-  const [isInRoom, setIsInRoom] = useState(false);     // Are we in a room?
+  const [messages, setMessages] = useState([]);
+  const [newMessage, setNewMessage] = useState('');
+  const [roomId, setRoomId] = useState('Mahi');
+  const [isInRoom, setIsInRoom] = useState(false);
   
-  const messagesEndRef = useRef(null);                 // For auto-scroll
-  const messageCounter = useRef(0);                    // Unique ID counter
+  const messagesEndRef = useRef(null);
+  const messageCounter = useRef(0);
+  
+  // Track message IDs we've already added
+  const processedMessageIds = useRef(new Set());
 
-  // ============================================
-  // 3. AUTO-SCROLL TO LATEST MESSAGE
-  // ============================================
+  // Auto-scroll
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
   // ============================================
-  // 4. LISTEN FOR INCOMING MESSAGES
+  // LISTEN FOR INCOMING MESSAGES (FIXED)
   // ============================================
   useEffect(() => {
-    // onEvent() sets up a listener for 'receive-room-message'
     const cleanup = onEvent('receive-room-message', (messageData) => {
-      console.log('📩 New message received:', messageData);
+      console.log('📩 Received:', messageData);
       
-      // Check if message is from current user
+      // Create a unique ID for this message
+      const messageId = messageData.id || `${messageData.text}-${messageData.timestamp}`;
+      
+      // ✅ CHECK: Have we already added this message?
+      if (processedMessageIds.current.has(messageId)) {
+        console.log('⚠️ Duplicate message ignored:', messageId);
+        return; // Skip duplicate
+      }
+      
+      // ✅ Mark as processed
+      processedMessageIds.current.add(messageId);
+      
+      // Check if it's our own message
       const isOwnMessage = messageData.userId === user?._id;
       
-      // Add message to state
+      // Add to messages
       setMessages(prev => [...prev, {
         ...messageData,
+        id: messageId,
         isOwnMessage: isOwnMessage,
         received: true
       }]);
     });
 
-    // Cleanup: remove listener when component unmounts
     return () => {
       if (cleanup) cleanup();
     };
   }, [onEvent, user?._id]);
 
   // ============================================
-  // 5. SEND A MESSAGE
+  // SEND MESSAGE (FIXED)
   // ============================================
   const sendMessage = () => {
-    // Validation checks
     if (!isConnected) {
       alert('Socket not connected!');
       return;
@@ -83,23 +88,29 @@ const SocketTestPage = () => {
       return;
     }
 
-    // Create message object
+    // Generate unique message ID
+    const messageId = `msg-${Date.now()}-${messageCounter.current++}`;
+    const messageText = newMessage.trim();
+    
+    // ✅ Add to processed set BEFORE sending
+    processedMessageIds.current.add(messageId);
+    
     const messageData = {
       roomId: roomId,
       messageData: {
-        id: `msg-${Date.now()}-${messageCounter.current++}`,
-        text: newMessage.trim(),
+        id: messageId,
+        text: messageText,
         sender: user?.name || user?.email || 'Anonymous',
         userId: user?._id,
         timestamp: new Date().toISOString()
       }
     };
 
-    // Send message via socket
-    console.log('📤 Sending message:', messageData);
+    // Send via socket
+    console.log('📤 Sending:', messageData);
     emitEvent('room-message', messageData);
 
-    // Add message to local state (optimistic update)
+    // ✅ Add to UI immediately (optimistic update)
     setMessages(prev => [...prev, {
       ...messageData.messageData,
       isOwnMessage: true,
@@ -111,7 +122,7 @@ const SocketTestPage = () => {
   };
 
   // ============================================
-  // 6. JOIN A ROOM
+  // JOIN ROOM
   // ============================================
   const joinRoom = () => {
     if (!isConnected) {
@@ -127,11 +138,12 @@ const SocketTestPage = () => {
     console.log(`🟢 Joining room: ${roomId}`);
     emitEvent('join-room', roomId);
     setIsInRoom(true);
-    setMessages([]); // Clear old messages
+    setMessages([]);
+    processedMessageIds.current.clear(); // ✅ Clear when joining new room
   };
 
   // ============================================
-  // 7. LEAVE A ROOM
+  // LEAVE ROOM
   // ============================================
   const leaveRoom = () => {
     if (!isInRoom) return;
@@ -142,14 +154,15 @@ const SocketTestPage = () => {
   };
 
   // ============================================
-  // 8. CLEAR MESSAGES
+  // CLEAR MESSAGES
   // ============================================
   const clearMessages = () => {
     setMessages([]);
+    processedMessageIds.current.clear();
   };
 
   // ============================================
-  // 9. LOADING STATE
+  // LOADING / AUTH CHECKS
   // ============================================
   if (loading) {
     return (
@@ -160,9 +173,6 @@ const SocketTestPage = () => {
     );
   }
 
-  // ============================================
-  // 10. NOT AUTHENTICATED
-  // ============================================
   if (!user) {
     return (
       <div style={styles.container}>
@@ -179,13 +189,13 @@ const SocketTestPage = () => {
   }
 
   // ============================================
-  // 11. MAIN UI
+  // MAIN UI
   // ============================================
   return (
     <div style={styles.container}>
       <h1>🔌 Socket Connection Test</h1>
       
-      {/* Section 1: Connection Status */}
+      {/* Connection Status */}
       <div style={styles.card}>
         <h2>📡 Connection Status</h2>
         <div>
@@ -197,14 +207,20 @@ const SocketTestPage = () => {
           </p>
           {socketId && <p><strong>Socket ID:</strong> {socketId}</p>}
           <p><strong>User:</strong> {user?.email}</p>
+          {connectionError && (
+            <p style={{ color: 'red' }}><strong>Error:</strong> {connectionError}</p>
+          )}
         </div>
+        <button onClick={refreshAuth} style={styles.buttonSecondary}>
+          🔄 Refresh Auth
+        </button>
       </div>
 
-      {/* Section 2: Room Controls */}
+      {/* Room Controls */}
       <div style={styles.card}>
         <h2>🏠 Room Controls</h2>
         
-        <div style={{ display: 'flex', gap: '10px', marginBottom: '10px' }}>
+        <div style={{ display: 'flex', gap: '10px', marginBottom: '10px', flexWrap: 'wrap' }}>
           <input
             type="text"
             value={roomId}
@@ -217,7 +233,7 @@ const SocketTestPage = () => {
           <button 
             onClick={joinRoom}
             style={isInRoom ? styles.buttonDisabled : styles.buttonSuccess}
-            disabled={isInRoom}
+            disabled={isInRoom || !isConnected}
           >
             🟢 Join Room
           </button>
@@ -237,12 +253,12 @@ const SocketTestPage = () => {
         </p>
       </div>
 
-      {/* Section 3: Chat */}
+      {/* Chat Section */}
       <div style={styles.card}>
         <h2>💬 Chat</h2>
         
-        {/* Messages Container */}
         <div style={styles.chatBox}>
+          {/* Messages */}
           <div style={styles.messagesContainer}>
             {messages.length === 0 ? (
               <p style={{ textAlign: 'center', color: '#999' }}>
@@ -263,7 +279,7 @@ const SocketTestPage = () => {
                     <span style={styles.messageTime}>
                       {new Date(msg.timestamp).toLocaleTimeString()}
                     </span>
-                    {msg.isOwnMessage && <span>✅</span>}
+                    {msg.isOwnMessage && <span style={{ color: 'green' }}>✅</span>}
                   </div>
                   <div>{msg.text}</div>
                 </div>
@@ -272,7 +288,7 @@ const SocketTestPage = () => {
             <div ref={messagesEndRef} />
           </div>
 
-          {/* Input Area */}
+          {/* Input */}
           <div style={styles.chatInput}>
             <input
               type="text"
@@ -301,7 +317,7 @@ const SocketTestPage = () => {
 };
 
 // ============================================
-// 12. STYLES
+// STYLES
 // ============================================
 const styles = {
   container: {
@@ -322,7 +338,8 @@ const styles = {
     padding: '8px 12px',
     border: '1px solid #ccc',
     borderRadius: '4px',
-    fontSize: '14px'
+    fontSize: '14px',
+    minWidth: '150px'
   },
   buttonPrimary: {
     padding: '8px 16px',
@@ -403,7 +420,8 @@ const styles = {
     gap: '10px',
     padding: '10px',
     borderTop: '1px solid #ddd',
-    backgroundColor: 'white'
+    backgroundColor: 'white',
+    flexWrap: 'wrap'
   }
 };
 
