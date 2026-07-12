@@ -16,6 +16,7 @@ import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Link from "@tiptap/extension-link";
 import Placeholder from "@tiptap/extension-placeholder";
+import Underline from "@tiptap/extension-underline"; // ✅ NEW
 import { useAuth } from "../context/AuthContext";
 import api from "../services/api";
 import "../styles/notes.css";
@@ -35,7 +36,7 @@ const timeAgo = (dateStr) => {
 const stripHtml = (html) =>
   html.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
 
-// ─── Toolbar button groups (commands now map to TipTap methods) ──
+// ─── Toolbar button groups (commands map to TipTap methods) ──
 const TOOLBAR = [
   [
     { cmd: "undo",            icon: MdUndo,                title: "Undo" },
@@ -67,32 +68,33 @@ export default function Notes() {
   const [mobileView, setMobileView] = useState("list");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const editorRef = useRef(null);
   const saveTimeout = useRef(null);
 
   // ── Fetch notes ───────────────────────────────────────────
-useEffect(() => {
-  const fetchNotes = async () => {
-    // 1️⃣ Guard: don't call API if user isn't ready
-    if (!user?._id) return;
+  useEffect(() => {
+    const fetchNotes = async () => {
+      // Guard: only fetch if user is available
+      if (!user?._id) return;
 
-    try {
-      setLoading(true);
-      const res = await api.get(`/notes/user/${user._id}`);
-      setNotes(res.data.data);
-      if (res.data.data.length > 0) {
-        setActiveId(res.data.data[0]._id);
+      try {
+        setLoading(true);
+        const res = await api.get(`/notes/user/${user._id}`);
+        setNotes(res.data.data);
+        if (res.data.data.length > 0) {
+          setActiveId(res.data.data[0]._id);
+        }
+      } catch (err) {
+        setError("Failed to load notes.");
+        console.error(err);
+      } finally {
+        setLoading(false);
       }
-    } catch (err) {
-      setError("Failed to load notes.");
-    } finally {
-      setLoading(false);
-    }
-  };
-  fetchNotes();
+    };
+    fetchNotes();
+  }, [user?._id]); // Re‑fetch when user changes
 
-  // 2️⃣ Dependency: re‑run whenever user._id changes
-}, [user?._id]);
+  const activeNote = notes.find((n) => n._id === activeId);
+
   // ── TipTap Editor ─────────────────────────────────────────
   const editor = useEditor({
     extensions: [
@@ -106,6 +108,7 @@ useEffect(() => {
       Placeholder.configure({
         placeholder: "Start writing your note…",
       }),
+      Underline, // ✅ Now underline works
     ],
     content: activeNote?.content || "<p></p>",
     onUpdate: ({ editor }) => {
@@ -140,47 +143,23 @@ useEffect(() => {
   const execCmd = (cmd, val = null) => {
     if (!editor) return;
     switch (cmd) {
-      case "undo":
-        editor.commands.undo();
-        break;
-      case "redo":
-        editor.commands.redo();
-        break;
-      case "bold":
-        editor.commands.toggleBold();
-        break;
-      case "italic":
-        editor.commands.toggleItalic();
-        break;
-      case "underline":
-        editor.commands.toggleUnderline();
-        break;
-      case "strike":
-        editor.commands.toggleStrike();
-        break;
-      case "heading":
-        editor.commands.toggleHeading({ level: parseInt(val.replace("h", "")) });
-        break;
-      case "bulletList":
-        editor.commands.toggleBulletList();
-        break;
-      case "orderedList":
-        editor.commands.toggleOrderedList();
-        break;
-      case "blockquote":
-        editor.commands.toggleBlockquote();
-        break;
-      case "horizontalRule":
-        editor.commands.setHorizontalRule();
-        break;
-      case "link":
+      case "undo":        editor.commands.undo(); break;
+      case "redo":        editor.commands.redo(); break;
+      case "bold":        editor.commands.toggleBold(); break;
+      case "italic":      editor.commands.toggleItalic(); break;
+      case "underline":   editor.commands.toggleUnderline(); break;
+      case "strike":      editor.commands.toggleStrike(); break;
+      case "heading":     editor.commands.toggleHeading({ level: parseInt(val.replace("h", "")) }); break;
+      case "bulletList":  editor.commands.toggleBulletList(); break;
+      case "orderedList": editor.commands.toggleOrderedList(); break;
+      case "blockquote":  editor.commands.toggleBlockquote(); break;
+      case "horizontalRule": editor.commands.setHorizontalRule(); break;
+      case "link": {
         const url = prompt("Enter URL:", "https://");
-        if (url) {
-          editor.commands.setLink({ href: url });
-        }
+        if (url) editor.commands.setLink({ href: url });
         break;
-      default:
-        break;
+      }
+      default: break;
     }
     editor.commands.focus();
   };
