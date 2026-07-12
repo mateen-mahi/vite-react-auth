@@ -1,427 +1,538 @@
-import { useEffect, useState, useRef } from 'react';
-import { useAuth } from '../context/AuthContext';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect, useRef, useCallback } from "react";
+import { useAuth } from "../context/AuthContext";
+import api from "../services/api";
+import {
+  FiSend, FiSearch, FiGlobe, FiMessageCircle,
+  FiX, FiAlertCircle, FiRefreshCw,
+} from "react-icons/fi";
+import "../styles/chat.css";
 
-const SocketTestPage = () => {
-  const navigate = useNavigate();
-  
-  const { 
-    isConnected, 
-    socketId, 
-    connectionError,
-    user,
-    loading,
-    emitEvent,
-    onEvent,
-    refreshAuth
-  } = useAuth();
+// ─── Helpers ──────────────────────────────────────────────────────────────
+const formatTime = (ts) =>
+  ts
+    ? new Date(ts).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+    : "";
 
+const formatDay = (ts) => {
+  if (!ts) return "";
+  const d = new Date(ts);
+  const today = new Date();
+  const yesterday = new Date(today);
+  yesterday.setDate(today.getDate() - 1);
+  if (d.toDateString() === today.toDateString()) return "Today";
+  if (d.toDateString() === yesterday.toDateString()) return "Yesterday";
+  return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+};
+
+// ─── Message bubble ────────────────────────────────────────────────────────
+function MessageBubble({ message, currentUserId, showName = true }) {
+  const isOwn = message.senderId === currentUserId;
+  const initial = (message.sender || "?")[0].toUpperCase();
+
+  return (
+    <div className={`chat-message ${isOwn ? "own" : "other"}`}>
+      {!isOwn && (
+        <div className="chat-msg-avatar" title={message.sender}>
+          {initial}
+        </div>
+      )}
+      <div className="chat-bubble-wrap">
+        {!isOwn && showName && (
+          <p className="chat-sender-name">{message.sender}</p>
+        )}
+        <div className={`chat-bubble ${isOwn ? "own" : "other"}`}>
+          {message.text}
+        </div>
+        <p className={`chat-timestamp ${isOwn ? "own" : ""}`}>
+          {formatTime(message.timestamp)}
+        </p>
+      </div>
+    </div>
+  );
+}
+
+// ─── Day separator ──────────────────────────────────────────────────────────
+function DaySeparator({ label }) {
+  return (
+    <div className="chat-day-sep">
+      <span>{label}</span>
+    </div>
+  );
+}
+
+// Groups messages by day for inserting day separators
+function groupByDay(messages) {
+  const groups = [];
+  let lastDay = null;
+  messages.forEach((msg) => {
+    const day = formatDay(msg.timestamp);
+    if (day !== lastDay) {
+      groups.push({ type: "separator", label: day, key: `sep-${msg.timestamp}` });
+      lastDay = day;
+    }
+    groups.push({ type: "message", data: msg, key: msg.id });
+  });
+  return groups;
+}
+
+// ─── Shared input bar ──────────────────────────────────────────────────────
+function InputBar({ value, onChange, onSend, placeholder, disabled }) {
+  return (
+    <div className="chat-input-bar">
+      <input
+        className="chat-input"
+        placeholder={placeholder}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        onKeyDown={(e) => e.key === "Enter" && !disabled && onSend()}
+        disabled={disabled}
+      />
+      <button
+        className="chat-send-btn"
+        onClick={onSend}
+        disabled={disabled || !value.trim()}
+        title="Send"
+      >
+        <FiSend />
+      </button>
+    </div>
+  );
+}
+
+// ─── Global Chat ───────────────────────────────────────────────────────────
+function GlobalChat({ user, emitEvent, onEvent, isConnected }) {
   const [messages, setMessages] = useState([]);
-  const [newMessage, setNewMessage] = useState('');
-  const [roomId, setRoomId] = useState('Mahi');
-  const [isInRoom, setIsInRoom] = useState(false);
-  
-  const messagesEndRef = useRef(null);
-  const messageCounter = useRef(0);
-  
-  // Track message IDs we've already added
-  const processedMessageIds = useRef(new Set());
+  const [input, setInput] = useState("");
+  const processedIds = useRef(new Set());
+  const counter = useRef(0);
+  const bottomRef = useRef(null);
 
-  // Auto-scroll
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // ============================================
-  // LISTEN FOR INCOMING MESSAGES (FIXED)
-  // ============================================
   useEffect(() => {
-    const cleanup = onEvent('receive-room-message', (messageData) => {
-      console.log('📩 Received:', messageData);
-      
-      // Create a unique ID for this message
-      const messageId = messageData.id || `${messageData.text}-${messageData.timestamp}`;
-      
-      // ✅ CHECK: Have we already added this message?
-      if (processedMessageIds.current.has(messageId)) {
-        console.log('⚠️ Duplicate message ignored:', messageId);
-        return; // Skip duplicate
-      }
-      
-      // ✅ Mark as processed
-      processedMessageIds.current.add(messageId);
-      
-      // Check if it's our own message
-      const isOwnMessage = messageData.userId === user?._id;
-      
-      // Add to messages
-      setMessages(prev => [...prev, {
-        ...messageData,
-        id: messageId,
-        isOwnMessage: isOwnMessage,
-        received: true
-      }]);
+    const cleanup = onEvent("receive-global-message", (msg) => {
+      if (processedIds.current.has(msg.id)) return;
+      processedIds.current.add(msg.id);
+      setMessages((prev) => [...prev, msg]);
     });
+    return cleanup;
+  }, [onEvent]);
 
-    return () => {
-      if (cleanup) cleanup();
+  const send = useCallback(() => {
+    if (!input.trim() || !isConnected) return;
+    const id = `global-${Date.now()}-${counter.current++}`;
+    const msg = {
+      id,
+      text: input.trim(),
+      sender: user.username,
+      senderId: user._id,
+      timestamp: new Date().toISOString(),
     };
-  }, [onEvent, user?._id]);
+    processedIds.current.add(id);
+    emitEvent("global-message", msg);
+    setMessages((prev) => [...prev, msg]);
+    setInput("");
+  }, [input, isConnected, user, emitEvent]);
 
-  // ============================================
-  // SEND MESSAGE (FIXED)
-  // ============================================
-  const sendMessage = () => {
-    if (!isConnected) {
-      alert('Socket not connected!');
+  const grouped = groupByDay(messages);
+
+  return (
+    <div className="chat-window">
+      <div className="chat-messages">
+        {messages.length === 0 ? (
+          <div className="chat-empty-state">
+            <FiGlobe className="chat-empty-icon" />
+            <p className="chat-empty-title">Global Chat</p>
+            <p className="chat-empty-sub">
+              Messages here are broadcast to every connected user.
+            </p>
+          </div>
+        ) : (
+          grouped.map((item) =>
+            item.type === "separator" ? (
+              <DaySeparator key={item.key} label={item.label} />
+            ) : (
+              <MessageBubble
+                key={item.key}
+                message={item.data}
+                currentUserId={user._id}
+                showName
+              />
+            )
+          )
+        )}
+        <div ref={bottomRef} />
+      </div>
+      <InputBar
+        value={input}
+        onChange={setInput}
+        onSend={send}
+        placeholder={
+          isConnected ? "Broadcast a message to everyone…" : "Connecting…"
+        }
+        disabled={!isConnected}
+      />
+    </div>
+  );
+}
+
+// ─── Direct Messages ───────────────────────────────────────────────────────
+function DirectChat({ user, emitEvent, onEvent, isConnected }) {
+  // contacts: { [userId]: { _id, username, role } }
+  const [contacts, setContacts] = useState({});
+  // conversations: { [userId]: message[] }
+  const [conversations, setConversations] = useState({});
+  const [selectedId, setSelectedId] = useState(null);
+
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState([]);
+  const [searching, setSearching] = useState(false);
+
+  const [input, setInput] = useState("");
+  const processedIds = useRef(new Set());
+  const counter = useRef(0);
+  const bottomRef = useRef(null);
+  const searchTimer = useRef(null);
+
+  // Scroll to bottom when conversation or selection changes
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [conversations, selectedId]);
+
+  // Listen for incoming DMs
+  useEffect(() => {
+    const cleanup = onEvent("receive-direct-message", (msg) => {
+      if (processedIds.current.has(msg.id)) return;
+      processedIds.current.add(msg.id);
+
+      const isOwn = msg.senderId === user._id;
+      // The "other" side of this conversation
+      const convKey = isOwn ? msg.toUserId : msg.senderId;
+      const contactInfo = isOwn
+        ? { _id: msg.toUserId, username: msg.toUsername || "User", role: "" }
+        : { _id: msg.senderId, username: msg.sender || "User", role: "" };
+
+      setContacts((prev) => ({
+        ...prev,
+        [convKey]: prev[convKey] || contactInfo,
+      }));
+
+      setConversations((prev) => ({
+        ...prev,
+        [convKey]: [...(prev[convKey] || []), msg],
+      }));
+    });
+    return cleanup;
+  }, [onEvent, user._id]);
+
+  // Debounced username search
+  useEffect(() => {
+    if (!searchQuery.trim()) {
+      setSearchResults([]);
       return;
     }
-
-    if (!isInRoom) {
-      alert('Please join a room first!');
-      return;
-    }
-
-    if (!newMessage.trim()) {
-      alert('Please enter a message');
-      return;
-    }
-
-    // Generate unique message ID
-    const messageId = `msg-${Date.now()}-${messageCounter.current++}`;
-    const messageText = newMessage.trim();
-    
-    // ✅ Add to processed set BEFORE sending
-    processedMessageIds.current.add(messageId);
-    
-    const messageData = {
-      roomId: roomId,
-      messageData: {
-        id: messageId,
-        text: messageText,
-        sender: user?.name || user?.email || 'Anonymous',
-        userId: user?._id,
-        timestamp: new Date().toISOString()
+    clearTimeout(searchTimer.current);
+    searchTimer.current = setTimeout(async () => {
+      setSearching(true);
+      try {
+        const res = await api.get("/users/all-users");
+        const all = res.data.users || [];
+        const matched = all.filter(
+          (u) =>
+            u._id !== user._id &&
+            u.username.toLowerCase().includes(searchQuery.toLowerCase())
+        );
+        setSearchResults(matched.slice(0, 8));
+      } catch {
+        setSearchResults([]);
+      } finally {
+        setSearching(false);
       }
+    }, 300);
+    return () => clearTimeout(searchTimer.current);
+  }, [searchQuery, user._id]);
+
+  const selectContact = (contact) => {
+    setContacts((prev) => ({ ...prev, [contact._id]: contact }));
+    setConversations((prev) => ({ ...prev, [contact._id]: prev[contact._id] || [] }));
+    setSelectedId(contact._id);
+    setSearchQuery("");
+    setSearchResults([]);
+  };
+
+  const send = useCallback(() => {
+    if (!input.trim() || !selectedId || !isConnected) return;
+    const id = `dm-${Date.now()}-${counter.current++}`;
+    const msg = {
+      id,
+      text: input.trim(),
+      sender: user.username,
+      senderId: user._id,
+      toUserId: selectedId,
+      toUsername: contacts[selectedId]?.username || "",
+      timestamp: new Date().toISOString(),
     };
+    processedIds.current.add(id);
+    emitEvent("direct-message", { toUserId: selectedId, messageData: msg });
+    setConversations((prev) => ({
+      ...prev,
+      [selectedId]: [...(prev[selectedId] || []), msg],
+    }));
+    setInput("");
+  }, [input, selectedId, isConnected, user, contacts, emitEvent]);
 
-    // Send via socket
-    console.log('📤 Sending:', messageData);
-    emitEvent('room-message', messageData);
+  const selectedContact = selectedId ? contacts[selectedId] : null;
+  const currentMessages = selectedId ? conversations[selectedId] || [] : [];
+  const grouped = groupByDay(currentMessages);
 
-    // ✅ Add to UI immediately (optimistic update)
-    setMessages(prev => [...prev, {
-      ...messageData.messageData,
-      isOwnMessage: true,
-      sent: true
-    }]);
+  return (
+    <div className="dm-layout">
 
-    // Clear input
-    setNewMessage('');
-  };
+      {/* ── Sidebar ── */}
+      <div className="dm-sidebar">
+        <div className="dm-search-wrap">
+          <FiSearch className="dm-search-icon" />
+          <input
+            className="dm-search"
+            placeholder="Search by username…"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+          {searchQuery && (
+            <button
+              className="dm-clear-btn"
+              onClick={() => { setSearchQuery(""); setSearchResults([]); }}
+            >
+              <FiX />
+            </button>
+          )}
+        </div>
 
-  // ============================================
-  // JOIN ROOM
-  // ============================================
-  const joinRoom = () => {
-    if (!isConnected) {
-      alert('Socket not connected!');
-      return;
-    }
+        {/* Search results */}
+        {(searchResults.length > 0 || searching) && (
+          <div className="dm-results">
+            {searching && (
+              <div className="dm-searching">
+                <FiRefreshCw className="cp-spin" /> Searching…
+              </div>
+            )}
+            {searchResults.map((u) => (
+              <button
+                key={u._id}
+                className="dm-result-item"
+                onClick={() => selectContact(u)}
+              >
+                <div className="dm-result-avatar">{u.username[0].toUpperCase()}</div>
+                <div className="dm-result-info">
+                  <p className="dm-result-name">{u.username}</p>
+                  <p className="dm-result-role">{u.role}</p>
+                </div>
+              </button>
+            ))}
+            {!searching && searchResults.length === 0 && (
+              <p className="dm-no-results">No users found.</p>
+            )}
+          </div>
+        )}
 
-    if (!roomId.trim()) {
-      alert('Please enter a room ID');
-      return;
-    }
+        {/* Conversation list */}
+        <div className="dm-conv-list">
+          {Object.keys(contacts).length === 0 ? (
+            <p className="dm-conv-empty">
+              Search for a user above to start a conversation.
+            </p>
+          ) : (
+            Object.values(contacts).map((contact) => {
+              const msgs = conversations[contact._id] || [];
+              const last = msgs[msgs.length - 1];
+              const isActive = selectedId === contact._id;
+              return (
+                <button
+                  key={contact._id}
+                  className={`dm-conv-item ${isActive ? "active" : ""}`}
+                  onClick={() => selectContact(contact)}
+                >
+                  <div className="dm-conv-avatar">
+                    {contact.username[0].toUpperCase()}
+                  </div>
+                  <div className="dm-conv-info">
+                    <div className="dm-conv-row">
+                      <p className="dm-conv-name">{contact.username}</p>
+                      {last && (
+                        <span className="dm-conv-time">
+                          {formatTime(last.timestamp)}
+                        </span>
+                      )}
+                    </div>
+                    {last && (
+                      <p className="dm-conv-preview">
+                        {last.senderId === user._id ? "You: " : ""}
+                        {last.text}
+                      </p>
+                    )}
+                  </div>
+                </button>
+              );
+            })
+          )}
+        </div>
+      </div>
 
-    console.log(`🟢 Joining room: ${roomId}`);
-    emitEvent('join-room', roomId);
-    setIsInRoom(true);
-    setMessages([]);
-    processedMessageIds.current.clear(); // ✅ Clear when joining new room
-  };
+      {/* ── Chat panel ── */}
+      <div className="dm-chat-panel">
+        {!selectedContact ? (
+          <div className="chat-empty-state">
+            <FiMessageCircle className="chat-empty-icon" />
+            <p className="chat-empty-title">Direct Messages</p>
+            <p className="chat-empty-sub">
+              Select a conversation or search for a user to get started.
+            </p>
+          </div>
+        ) : (
+          <>
+            {/* DM header */}
+            <div className="dm-chat-header">
+              <div className="dm-chat-avatar">
+                {selectedContact.username[0].toUpperCase()}
+              </div>
+              <div>
+                <p className="dm-chat-name">{selectedContact.username}</p>
+                {selectedContact.role && (
+                  <p className="dm-chat-role">{selectedContact.role}</p>
+                )}
+              </div>
+            </div>
 
-  // ============================================
-  // LEAVE ROOM
-  // ============================================
-  const leaveRoom = () => {
-    if (!isInRoom) return;
-    
-    console.log(`🔴 Leaving room: ${roomId}`);
-    emitEvent('leave-room', roomId);
-    setIsInRoom(false);
-  };
+            {/* Messages */}
+            <div className="chat-messages">
+              {currentMessages.length === 0 ? (
+                <div className="chat-empty-state">
+                  <FiMessageCircle className="chat-empty-icon small" />
+                  <p className="chat-empty-sub">
+                    No messages yet — say hi to {selectedContact.username}!
+                  </p>
+                </div>
+              ) : (
+                grouped.map((item) =>
+                  item.type === "separator" ? (
+                    <DaySeparator key={item.key} label={item.label} />
+                  ) : (
+                    <MessageBubble
+                      key={item.key}
+                      message={item.data}
+                      currentUserId={user._id}
+                      showName={false}
+                    />
+                  )
+                )
+              )}
+              <div ref={bottomRef} />
+            </div>
 
-  // ============================================
-  // CLEAR MESSAGES
-  // ============================================
-  const clearMessages = () => {
-    setMessages([]);
-    processedMessageIds.current.clear();
-  };
+            <InputBar
+              value={input}
+              onChange={setInput}
+              onSend={send}
+              placeholder={`Message ${selectedContact.username}…`}
+              disabled={!isConnected}
+            />
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
 
-  // ============================================
-  // LOADING / AUTH CHECKS
-  // ============================================
+// ─── Main Chat page ────────────────────────────────────────────────────────
+export default function Chat() {
+  const { user, loading, isConnected, socketId, connectionError, emitEvent, onEvent } =
+    useAuth();
+  const [activeTab, setActiveTab] = useState("global");
+
   if (loading) {
     return (
-      <div style={styles.container}>
-        <h1>🔌 Socket Connection Test</h1>
-        <p>Loading...</p>
+      <div className="chat-page">
+        <div className="chat-empty-state">
+          <FiRefreshCw className="chat-empty-icon cp-spin" />
+          <p className="chat-empty-sub">Loading…</p>
+        </div>
       </div>
     );
   }
 
   if (!user) {
     return (
-      <div style={styles.container}>
-        <h1>🔌 Socket Connection Test</h1>
-        <div style={styles.card}>
-          <h2>⚠️ Not Authenticated</h2>
-          <p>Please login to test socket connections.</p>
-          <button onClick={() => navigate('/login')} style={styles.buttonPrimary}>
-            Go to Login
-          </button>
+      <div className="chat-page">
+        <div className="chat-empty-state">
+          <FiAlertCircle className="chat-empty-icon" />
+          <p className="chat-empty-title">Not authenticated</p>
+          <p className="chat-empty-sub">Please log in to use the chat.</p>
         </div>
       </div>
     );
   }
 
-  // ============================================
-  // MAIN UI
-  // ============================================
   return (
-    <div style={styles.container}>
-      <h1>🔌 Socket Connection Test</h1>
-      
-      {/* Connection Status */}
-      <div style={styles.card}>
-        <h2>📡 Connection Status</h2>
+    <div className="chat-page">
+
+      {/* ── Header ── */}
+      <div className="chat-page-header">
         <div>
-          <p>
-            <strong>Status:</strong> 
-            <span style={{ color: isConnected ? 'green' : 'red' }}>
-              {isConnected ? '🟢 Connected' : '🔴 Disconnected'}
-            </span>
+          <h1 className="chat-page-title">Chat</h1>
+          <p className="chat-page-sub">
+            {isConnected
+              ? `Connected · ${socketId?.slice(0, 10)}…`
+              : "Connecting to server…"}
           </p>
-          {socketId && <p><strong>Socket ID:</strong> {socketId}</p>}
-          <p><strong>User:</strong> {user?.email}</p>
-          {connectionError && (
-            <p style={{ color: 'red' }}><strong>Error:</strong> {connectionError}</p>
-          )}
         </div>
-        <button onClick={refreshAuth} style={styles.buttonSecondary}>
-          🔄 Refresh Auth
+        <span className={`chat-connection-badge ${isConnected ? "online" : "offline"}`}>
+          <span className="chat-badge-dot" />
+          {isConnected ? "Online" : "Offline"}
+        </span>
+      </div>
+
+      {connectionError && (
+        <div className="chat-error-bar">
+          <FiAlertCircle /> {connectionError}
+        </div>
+      )}
+
+      {/* ── Tabs ── */}
+      <div className="chat-tabs">
+        <button
+          className={`chat-tab ${activeTab === "global" ? "active" : ""}`}
+          onClick={() => setActiveTab("global")}
+        >
+          <FiGlobe /> Global Chat
+        </button>
+        <button
+          className={`chat-tab ${activeTab === "dm" ? "active" : ""}`}
+          onClick={() => setActiveTab("dm")}
+        >
+          <FiMessageCircle /> Direct Messages
         </button>
       </div>
 
-      {/* Room Controls */}
-      <div style={styles.card}>
-        <h2>🏠 Room Controls</h2>
-        
-        <div style={{ display: 'flex', gap: '10px', marginBottom: '10px', flexWrap: 'wrap' }}>
-          <input
-            type="text"
-            value={roomId}
-            onChange={(e) => setRoomId(e.target.value)}
-            placeholder="Enter room ID"
-            style={styles.input}
-            disabled={isInRoom}
+      {/* ── Content ── */}
+      <div className="chat-content">
+        {activeTab === "global" ? (
+          <GlobalChat
+            user={user}
+            emitEvent={emitEvent}
+            onEvent={onEvent}
+            isConnected={isConnected}
           />
-          
-          <button 
-            onClick={joinRoom}
-            style={isInRoom ? styles.buttonDisabled : styles.buttonSuccess}
-            disabled={isInRoom || !isConnected}
-          >
-            🟢 Join Room
-          </button>
-          
-          <button 
-            onClick={leaveRoom}
-            style={!isInRoom ? styles.buttonDisabled : styles.buttonDanger}
-            disabled={!isInRoom}
-          >
-            🔴 Leave Room
-          </button>
-        </div>
-
-        <p>
-          <strong>Status:</strong> 
-          {isInRoom ? ` ✅ In Room: ${roomId}` : ' ❌ Not in any room'}
-        </p>
-      </div>
-
-      {/* Chat Section */}
-      <div style={styles.card}>
-        <h2>💬 Chat</h2>
-        
-        <div style={styles.chatBox}>
-          {/* Messages */}
-          <div style={styles.messagesContainer}>
-            {messages.length === 0 ? (
-              <p style={{ textAlign: 'center', color: '#999' }}>
-                No messages yet. Send a test message!
-              </p>
-            ) : (
-              messages.map((msg, index) => (
-                <div 
-                  key={msg.id || index}
-                  style={{
-                    ...styles.message,
-                    backgroundColor: msg.isOwnMessage ? '#e3f2fd' : '#f3e5f5',
-                    alignSelf: msg.isOwnMessage ? 'flex-end' : 'flex-start',
-                  }}
-                >
-                  <div style={styles.messageHeader}>
-                    <strong>{msg.sender}</strong>
-                    <span style={styles.messageTime}>
-                      {new Date(msg.timestamp).toLocaleTimeString()}
-                    </span>
-                    {msg.isOwnMessage && <span style={{ color: 'green' }}>✅</span>}
-                  </div>
-                  <div>{msg.text}</div>
-                </div>
-              ))
-            )}
-            <div ref={messagesEndRef} />
-          </div>
-
-          {/* Input */}
-          <div style={styles.chatInput}>
-            <input
-              type="text"
-              value={newMessage}
-              onChange={(e) => setNewMessage(e.target.value)}
-              placeholder="Type a message..."
-              style={styles.input}
-              onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
-              disabled={!isConnected || !isInRoom}
-            />
-            <button 
-              onClick={sendMessage}
-              style={(!isConnected || !isInRoom) ? styles.buttonDisabled : styles.buttonPrimary}
-              disabled={!isConnected || !isInRoom}
-            >
-              Send
-            </button>
-            <button onClick={clearMessages} style={styles.buttonSecondary}>
-              Clear
-            </button>
-          </div>
-        </div>
+        ) : (
+          <DirectChat
+            user={user}
+            emitEvent={emitEvent}
+            onEvent={onEvent}
+            isConnected={isConnected}
+          />
+        )}
       </div>
     </div>
   );
-};
-
-// ============================================
-// STYLES
-// ============================================
-const styles = {
-  container: {
-    padding: '20px',
-    maxWidth: '800px',
-    margin: '0 auto'
-  },
-  card: {
-    backgroundColor: 'white',
-    borderRadius: '8px',
-    padding: '20px',
-    marginBottom: '20px',
-    boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-    border: '1px solid #ddd'
-  },
-  input: {
-    flex: 1,
-    padding: '8px 12px',
-    border: '1px solid #ccc',
-    borderRadius: '4px',
-    fontSize: '14px',
-    minWidth: '150px'
-  },
-  buttonPrimary: {
-    padding: '8px 16px',
-    backgroundColor: '#007bff',
-    color: 'white',
-    border: 'none',
-    borderRadius: '4px',
-    cursor: 'pointer'
-  },
-  buttonSecondary: {
-    padding: '8px 16px',
-    backgroundColor: '#6c757d',
-    color: 'white',
-    border: 'none',
-    borderRadius: '4px',
-    cursor: 'pointer'
-  },
-  buttonSuccess: {
-    padding: '8px 16px',
-    backgroundColor: '#28a745',
-    color: 'white',
-    border: 'none',
-    borderRadius: '4px',
-    cursor: 'pointer'
-  },
-  buttonDanger: {
-    padding: '8px 16px',
-    backgroundColor: '#dc3545',
-    color: 'white',
-    border: 'none',
-    borderRadius: '4px',
-    cursor: 'pointer'
-  },
-  buttonDisabled: {
-    padding: '8px 16px',
-    backgroundColor: '#6c757d',
-    color: 'white',
-    border: 'none',
-    borderRadius: '4px',
-    cursor: 'not-allowed',
-    opacity: 0.65
-  },
-  chatBox: {
-    border: '1px solid #ddd',
-    borderRadius: '4px',
-    overflow: 'hidden'
-  },
-  messagesContainer: {
-    height: '300px',
-    overflow: 'auto',
-    padding: '15px',
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '10px',
-    backgroundColor: '#fafafa'
-  },
-  message: {
-    maxWidth: '70%',
-    padding: '10px 15px',
-    borderRadius: '8px',
-    boxShadow: '0 1px 2px rgba(0,0,0,0.1)',
-    wordBreak: 'break-word'
-  },
-  messageHeader: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '10px',
-    marginBottom: '5px',
-    fontSize: '12px',
-    flexWrap: 'wrap'
-  },
-  messageTime: {
-    color: '#666',
-    fontSize: '11px'
-  },
-  chatInput: {
-    display: 'flex',
-    gap: '10px',
-    padding: '10px',
-    borderTop: '1px solid #ddd',
-    backgroundColor: 'white',
-    flexWrap: 'wrap'
-  }
-};
-
-export default SocketTestPage;
+}
