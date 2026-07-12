@@ -545,7 +545,7 @@ import {
   FiSend, FiSearch, FiGlobe, FiMessageCircle,
   FiX, FiAlertCircle, FiRefreshCw, FiChevronsUp,
 } from "react-icons/fi";
-import "../styles/Chat.css";
+import "../styles/chat.css";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────
 const formatTime = (ts) =>
