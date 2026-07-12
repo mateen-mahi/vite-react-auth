@@ -220,6 +220,7 @@ export default function Notes() {
     setIsSaving(true);
     try {
       const payload = {
+        userId:user._id,
         title,
         content,
         isPinned: editingNote.isPinned || false,
