@@ -79,16 +79,37 @@ export default function Notes() {
   // ── Fetch notes ───────────────────────────────────────────
   useEffect(() => {
     const fetchNotes = async () => {
-      if (!user?._id) return;
+      if (!user?._id) {
+        setNotes([]);
+        setLoading(false);
+        return;
+      }
       try {
         setLoading(true);
         const res = await api.get(`/notes/user/${user._id}`);
-        // Handle different response formats
-        const data = res.data?.data;
+        console.log("Notes API response:", res);
+        console.log("res.data:", res.data);
+        console.log("res.data?.data:", res.data?.data);
+
+        // Handle multiple possible response formats
+        let data = null;
+        if (Array.isArray(res.data)) {
+          data = res.data;
+        } else if (res.data && Array.isArray(res.data.data)) {
+          data = res.data.data;
+        } else if (res.data && res.data.notes && Array.isArray(res.data.notes)) {
+          data = res.data.notes;
+        } else if (res.data && typeof res.data === 'object') {
+          // Try to find any array property
+          const arrKey = Object.keys(res.data).find(k => Array.isArray(res.data[k]));
+          if (arrKey) data = res.data[arrKey];
+        }
+
         setNotes(Array.isArray(data) ? data : []);
       } catch (err) {
         console.error("Fetch notes error:", err.response?.data || err.message);
         setError("Failed to load notes.");
+        setNotes([]);
       } finally {
         setLoading(false);
       }
@@ -263,7 +284,8 @@ export default function Notes() {
   };
 
   // ── Filtered notes ────────────────────────────────────────
-  const filteredNotes = notes.filter((n) => {
+  const safeNotes = Array.isArray(notes) ? notes : [];
+  const filteredNotes = safeNotes.filter((n) => {
     const q = search.toLowerCase();
     return (
       (n.title?.toLowerCase() || "").includes(q) ||
@@ -286,7 +308,7 @@ export default function Notes() {
           <div>
             <h1 className="notes-brand-title">My Notes</h1>
             <p className="notes-brand-count">
-              {notes.length} note{notes.length !== 1 ? "s" : ""}
+              {safeNotes.length} note{safeNotes.length !== 1 ? "s" : ""}
             </p>
           </div>
         </div>
