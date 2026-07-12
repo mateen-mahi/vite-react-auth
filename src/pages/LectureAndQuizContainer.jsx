@@ -10,7 +10,7 @@ export default function Container() {
   return (
     <div className="container">
       {/* Navigation Tabs */}
-      <nav className="container-nav">
+      <nav className="container-nav">   
         <button
           className={activeView === "lecture" ? "active" : ""}
           onClick={() => setActiveView("lecture")}

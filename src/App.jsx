@@ -49,7 +49,7 @@ function App() {
 <Route element={<ProtectedRoute />}>
   <Route element={<Layout />}>
     <Route path="/dashboard" element={<Dashboard />} />
-    <Route path="/activities/:courseId"/>
+    <Route path="/activities/:courseId" element={<LectureAndQuizContainer/>}/>
     <Route path="/lectures/:courseId" element={<LectureWatching />} />
     <Route path="/grand-quiz/:courseId" element={<GrandQuiz />} />
     <Route path="/socket-test" element={<SocketTestPage />} />
