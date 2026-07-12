@@ -395,7 +395,7 @@ export default function Courses() {
                 enrolled
                 unenrolling={unenrollingId === course._id}
                 onUnenroll={handleUnenroll}
-                onNavigate={() => navigate(`/lecture/${course._id}`)}
+                onNavigate={() => navigate(`/activities/${course._id}`)}
               />
             ))}
           </div>
