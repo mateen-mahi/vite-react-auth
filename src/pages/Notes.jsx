@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import {
   FiPlus, FiTrash2, FiSearch, FiFileText,
   FiBold, FiItalic, FiUnderline, FiLink,
@@ -12,35 +12,13 @@ import {
   MdRedo,
   MdTitle,
 } from "react-icons/md";
+import { useEditor, EditorContent } from "@tiptap/react";
+import StarterKit from "@tiptap/starter-kit";
+import Link from "@tiptap/extension-link";
+import Placeholder from "@tiptap/extension-placeholder";
+import { useAuth } from "../context/AuthContext";
+import api from "../services/api";
 import "../styles/notes.css";
-
-// ─── Dummy Data ────────────────────────────────────────────
-const INITIAL_NOTES = [
-  {
-    id: 1,
-    title: "React Learning Roadmap",
-    content: "<h2>React Learning Roadmap</h2><p>Topics to cover this month:</p><ul><li><strong>Hooks</strong> — useState, useEffect, useRef, useContext</li><li><strong>React Router v6</strong> — Outlet, NavLink, params</li><li><strong>State Management</strong> — Context API first, then Zustand</li></ul><blockquote>Focus on building projects, not just watching tutorials.</blockquote>",
-    updatedAt: new Date(Date.now() - 1000 * 60 * 15).toISOString(),
-  },
-  {
-    id: 2,
-    title: "API Integration Checklist",
-    content: "<h2>API Integration Checklist</h2><ol><li>Set up Axios instance with base URL</li><li>Add request interceptor for auth token</li><li>Add response interceptor for 401 handling</li><li>Create service files per feature</li><li>Handle loading &amp; error states in UI</li></ol>",
-    updatedAt: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(),
-  },
-  {
-    id: 3,
-    title: "Project Ideas",
-    content: "<h2>Project Ideas</h2><p>Full-stack projects to build for portfolio:</p><ul><li>LMS — <strong>in progress ✅</strong></li><li>Job board with auth</li><li>Real-time chat app (Socket.io)</li><li>AI-powered quiz generator</li></ul>",
-    updatedAt: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(),
-  },
-  {
-    id: 4,
-    title: "MongoDB Notes",
-    content: "<h2>MongoDB Notes</h2><p>Key concepts to remember:</p><ul><li>Documents are stored as <strong>BSON</strong></li><li>Use <strong>Mongoose</strong> for schema validation</li><li>Indexes improve query performance significantly</li><li>Aggregation pipeline for complex queries</li></ul><p><u>Practice aggregation more this week.</u></p>",
-    updatedAt: new Date(Date.now() - 1000 * 60 * 60 * 48).toISOString(),
-  },
-];
 
 // ─── Helpers ───────────────────────────────────────────────
 const timeAgo = (dateStr) => {
@@ -57,126 +35,223 @@ const timeAgo = (dateStr) => {
 const stripHtml = (html) =>
   html.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
 
-let nextId = INITIAL_NOTES.length + 1;
-
-// ─── Toolbar button groups ─────────────────────────────────
+// ─── Toolbar button groups (commands now map to TipTap methods) ──
 const TOOLBAR = [
   [
     { cmd: "undo",            icon: MdUndo,                title: "Undo" },
     { cmd: "redo",            icon: MdRedo,                title: "Redo" },
   ],
   [
-    { cmd: "formatBlock",     icon: MdTitle,               title: "Heading",      val: "H2" },
+    { cmd: "heading",         icon: MdTitle,               title: "Heading",      val: "h2" },
     { cmd: "bold",            icon: FiBold,                title: "Bold" },
     { cmd: "italic",          icon: FiItalic,              title: "Italic" },
     { cmd: "underline",       icon: FiUnderline,           title: "Underline" },
-    { cmd: "strikeThrough",   icon: MdFormatStrikethrough, title: "Strikethrough" },
+    { cmd: "strike",          icon: MdFormatStrikethrough, title: "Strikethrough" },
   ],
   [
-    { cmd: "insertUnorderedList", icon: FiList,                title: "Bullet list" },
-    { cmd: "insertOrderedList",   icon: MdFormatListNumbered,  title: "Numbered list" },
-    { cmd: "formatBlock",         icon: MdFormatQuote,         title: "Blockquote",   val: "BLOCKQUOTE" },
+    { cmd: "bulletList",      icon: FiList,                title: "Bullet list" },
+    { cmd: "orderedList",     icon: MdFormatListNumbered,  title: "Numbered list" },
+    { cmd: "blockquote",      icon: MdFormatQuote,         title: "Blockquote" },
   ],
   [
-    { cmd: "createLink",      icon: FiLink,                title: "Insert link" },
-    { cmd: "insertHorizontalRule", icon: FiMinus,          title: "Divider" },
+    { cmd: "link",            icon: FiLink,                title: "Insert link" },
+    { cmd: "horizontalRule",  icon: FiMinus,               title: "Divider" },
   ],
 ];
 
 export default function Notes() {
-  const [notes, setNotes]           = useState(INITIAL_NOTES);
-  const [activeId, setActiveId]     = useState(INITIAL_NOTES[0].id);
-  const [search, setSearch]         = useState("");
-  const [mobileView, setMobileView] = useState("list"); // "list" | "editor"
-  const editorRef                   = useRef(null);
+  const { user } = useAuth();
+  const [notes, setNotes] = useState([]);
+  const [activeId, setActiveId] = useState(null);
+  const [search, setSearch] = useState("");
+  const [mobileView, setMobileView] = useState("list");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const editorRef = useRef(null);
+  const saveTimeout = useRef(null);
 
-  const activeNote = notes.find((n) => n.id === activeId);
+  // ── Fetch notes ───────────────────────────────────────────
+useEffect(() => {
+  const fetchNotes = async () => {
+    // 1️⃣ Guard: don't call API if user isn't ready
+    if (!user?._id) return;
 
-  // ── Filtered notes ───────────────────────────────────────
+    try {
+      setLoading(true);
+      const res = await api.get(`/notes/user/${user._id}`);
+      setNotes(res.data.data);
+      if (res.data.data.length > 0) {
+        setActiveId(res.data.data[0]._id);
+      }
+    } catch (err) {
+      setError("Failed to load notes.");
+    } finally {
+      setLoading(false);
+    }
+  };
+  fetchNotes();
+
+  // 2️⃣ Dependency: re‑run whenever user._id changes
+}, [user?._id]);
+  // ── TipTap Editor ─────────────────────────────────────────
+  const editor = useEditor({
+    extensions: [
+      StarterKit.configure({
+        heading: { levels: [1, 2, 3] },
+      }),
+      Link.configure({
+        openOnClick: false,
+        linkOnPaste: true,
+      }),
+      Placeholder.configure({
+        placeholder: "Start writing your note…",
+      }),
+    ],
+    content: activeNote?.content || "<p></p>",
+    onUpdate: ({ editor }) => {
+      // Debounced save
+      const html = editor.getHTML();
+      const plain = stripHtml(html);
+      const firstLine = plain.split(/\n/)[0]?.slice(0, 60) || "Untitled note";
+
+      // Optimistic update
+      if (activeNote) {
+        const updated = { ...activeNote, content: html, title: firstLine, updatedAt: new Date().toISOString() };
+        setNotes((prev) => prev.map((n) => (n._id === updated._id ? updated : n)));
+      }
+
+      clearTimeout(saveTimeout.current);
+      saveTimeout.current = setTimeout(() => {
+        if (activeId) {
+          api.put(`/notes/${activeId}`, { title: firstLine, content: html }).catch(console.error);
+        }
+      }, 500);
+    },
+  });
+
+  // Update editor content when switching notes
+  useEffect(() => {
+    if (editor && activeNote) {
+      editor.commands.setContent(activeNote.content || "<p></p>");
+    }
+  }, [activeNote, editor]);
+
+  // ── Toolbar command handler ──────────────────────────────
+  const execCmd = (cmd, val = null) => {
+    if (!editor) return;
+    switch (cmd) {
+      case "undo":
+        editor.commands.undo();
+        break;
+      case "redo":
+        editor.commands.redo();
+        break;
+      case "bold":
+        editor.commands.toggleBold();
+        break;
+      case "italic":
+        editor.commands.toggleItalic();
+        break;
+      case "underline":
+        editor.commands.toggleUnderline();
+        break;
+      case "strike":
+        editor.commands.toggleStrike();
+        break;
+      case "heading":
+        editor.commands.toggleHeading({ level: parseInt(val.replace("h", "")) });
+        break;
+      case "bulletList":
+        editor.commands.toggleBulletList();
+        break;
+      case "orderedList":
+        editor.commands.toggleOrderedList();
+        break;
+      case "blockquote":
+        editor.commands.toggleBlockquote();
+        break;
+      case "horizontalRule":
+        editor.commands.setHorizontalRule();
+        break;
+      case "link":
+        const url = prompt("Enter URL:", "https://");
+        if (url) {
+          editor.commands.setLink({ href: url });
+        }
+        break;
+      default:
+        break;
+    }
+    editor.commands.focus();
+  };
+
+  // ── CRUD operations ──────────────────────────────────────
+  const handleNew = async () => {
+    try {
+      const newNote = { title: "Untitled note", content: "<p></p>", isPinned: false };
+      const res = await api.post("/notes", newNote);
+      const created = res.data.data;
+      setNotes((prev) => [created, ...prev]);
+      setActiveId(created._id);
+      setMobileView("editor");
+    } catch (err) {
+      setError("Failed to create note.");
+      console.error(err);
+    }
+  };
+
+  const handleDelete = async (id, e) => {
+    e.stopPropagation();
+    const original = [...notes];
+    setNotes((prev) => prev.filter((n) => n._id !== id));
+    if (activeId === id) {
+      setActiveId(notes.length > 1 ? notes[0]?._id : null);
+      setMobileView("list");
+    }
+    try {
+      await api.delete(`/notes/${id}`);
+    } catch (err) {
+      setNotes(original);
+      setError("Failed to delete note.");
+      console.error(err);
+    }
+  };
+
+  const handleSelect = (note) => {
+    setActiveId(note._id);
+    setMobileView("editor");
+  };
+
+  const togglePin = async (id, e) => {
+    e.stopPropagation();
+    const original = [...notes];
+    const note = notes.find((n) => n._id === id);
+    if (!note) return;
+    const updated = { ...note, isPinned: !note.isPinned };
+    setNotes((prev) => prev.map((n) => (n._id === updated._id ? updated : n)));
+    try {
+      await api.patch(`/notes/${id}/pin`);
+    } catch (err) {
+      setNotes(original);
+      setError("Failed to toggle pin.");
+      console.error(err);
+    }
+  };
+
   const filtered = notes.filter((n) =>
-    n.title.toLowerCase().includes(search.toLowerCase()) ||
+    n.title?.toLowerCase().includes(search.toLowerCase()) ||
     stripHtml(n.content).toLowerCase().includes(search.toLowerCase())
   );
 
-  // ── Create new note ──────────────────────────────────────
-  const handleNew = () => {
-    const note = {
-      id: nextId++,
-      title: "Untitled note",
-      content: "<p></p>",
-      updatedAt: new Date().toISOString(),
-    };
-    setNotes((prev) => [note, ...prev]);
-    setActiveId(note.id);
-    setMobileView("editor");
-    setTimeout(() => editorRef.current?.focus(), 50);
-  };
-
-  // ── Delete note ──────────────────────────────────────────
-  const handleDelete = (id, e) => {
-    e.stopPropagation();
-    const remaining = notes.filter((n) => n.id !== id);
-    setNotes(remaining);
-    if (activeId === id) {
-      setActiveId(remaining[0]?.id ?? null);
-      setMobileView("list");
-    }
-  };
-
-  // ── Select note ──────────────────────────────────────────
-  const handleSelect = (note) => {
-    setActiveId(note.id);
-    setMobileView("editor");
-  };
-
-  // ── Editor input — sync content + derive title ───────────
-  const handleEditorInput = useCallback(() => {
-    if (!editorRef.current) return;
-    const html = editorRef.current.innerHTML;
-    const plain = stripHtml(html);
-    const firstLine = plain.split(/\n/)[0]?.slice(0, 60) || "Untitled note";
-
-    setNotes((prev) =>
-      prev.map((n) =>
-        n.id === activeId
-          ? { ...n, content: html, title: firstLine, updatedAt: new Date().toISOString() }
-          : n
-      )
-    );
-  }, [activeId]);
-
-  // ── Toolbar command ──────────────────────────────────────
-  const execCmd = (cmd, val = null) => {
-    if (cmd === "createLink") {
-      const url = prompt("Enter URL:", "https://");
-      if (url) document.execCommand("createLink", false, url);
-    } else if (val) {
-      document.execCommand("formatBlock", false, val);
-    } else {
-      document.execCommand(cmd, false, null);
-    }
-    editorRef.current?.focus();
-    handleEditorInput();
-  };
-
   return (
     <div className="notes-page">
-
-      {/* ══ LEFT PANEL ══ */}
+      {/* ══ SIDEBAR ══ */}
       <aside className={`notes-sidebar ${mobileView === "editor" ? "mobile-hide" : ""}`}>
-
-        {/* Header */}
         <div className="notes-sidebar-header">
           <div className="notes-sidebar-title-row">
-            <h2 className="notes-sidebar-title">
-              <FiFileText /> Notes
-            </h2>
-            <button className="notes-new-btn" onClick={handleNew} title="New note">
-              <FiPlus />
-            </button>
+            <h2 className="notes-sidebar-title"><FiFileText /> Notes</h2>
+            <button className="notes-new-btn" onClick={handleNew}><FiPlus /></button>
           </div>
-
-          {/* Search */}
           <div className="notes-search-wrap">
             <FiSearch className="notes-search-icon" />
             <input
@@ -187,60 +262,50 @@ export default function Notes() {
             />
           </div>
         </div>
-
-        {/* Notes list */}
         <div className="notes-list">
-          {filtered.length === 0 && (
-            <p className="notes-empty">No notes found.</p>
-          )}
+          {loading && <p className="notes-empty">Loading…</p>}
+          {!loading && error && <p className="notes-empty" style={{ color: "#ef4444" }}>{error}</p>}
+          {!loading && filtered.length === 0 && !error && <p className="notes-empty">No notes found.</p>}
           {filtered.map((note) => (
             <button
-              key={note.id}
-              className={`notes-list-item ${note.id === activeId ? "active" : ""}`}
+              key={note._id}
+              className={`notes-list-item ${note._id === activeId ? "active" : ""}`}
               onClick={() => handleSelect(note)}
             >
               <div className="notes-item-body">
-                <p className="notes-item-title">{note.title}</p>
+                <p className="notes-item-title">
+                  {note.title}
+                  {note.isPinned && <span className="notes-pin-badge">📌</span>}
+                </p>
                 <p className="notes-item-preview">{stripHtml(note.content).slice(0, 80)}</p>
                 <p className="notes-item-time">{timeAgo(note.updatedAt)}</p>
               </div>
-              <button
-                className="notes-delete-btn"
-                onClick={(e) => handleDelete(note.id, e)}
-                title="Delete note"
-              >
-                <FiTrash2 />
-              </button>
+              <div className="notes-item-actions">
+                <button className="notes-pin-btn" onClick={(e) => togglePin(note._id, e)}>
+                  📌
+                </button>
+                <button className="notes-delete-btn" onClick={(e) => handleDelete(note._id, e)}>
+                  <FiTrash2 />
+                </button>
+              </div>
             </button>
           ))}
         </div>
-
-        <div className="notes-sidebar-footer">
-          {notes.length} note{notes.length !== 1 ? "s" : ""}
-        </div>
+        <div className="notes-sidebar-footer">{notes.length} note{notes.length !== 1 ? "s" : ""}</div>
       </aside>
 
-      {/* ══ EDITOR PANEL ══ */}
+      {/* ══ EDITOR ══ */}
       <main className={`notes-editor-panel ${mobileView === "list" ? "mobile-hide" : ""}`}>
-        {!activeNote ? (
+        {!loading && !activeNote ? (
           <div className="notes-no-selection">
             <FiFileText className="notes-no-icon" />
-            <p>Select a note or create a new one</p>
-            <button className="notes-new-btn-lg" onClick={handleNew}>
-              <FiPlus /> New Note
-            </button>
+            <p>Select or create a note</p>
+            <button className="notes-new-btn-lg" onClick={handleNew}><FiPlus /> New Note</button>
           </div>
         ) : (
           <>
-            {/* Mobile back button */}
-            <button
-              className="notes-back-btn"
-              onClick={() => setMobileView("list")}
-            >
-              ← All Notes
-            </button>
+            <button className="notes-back-btn" onClick={() => setMobileView("list")}>← All Notes</button>
 
-            {/* Toolbar */}
             <div className="notes-toolbar">
               {TOOLBAR.map((group, gi) => (
                 <div key={gi} className="notes-toolbar-group">
@@ -258,22 +323,13 @@ export default function Notes() {
               ))}
             </div>
 
-            {/* Editable area */}
-            <div
-              ref={editorRef}
-              className="notes-editor"
-              contentEditable
-              suppressContentEditableWarning
-              onInput={handleEditorInput}
-              dangerouslySetInnerHTML={{ __html: activeNote.content }}
-              key={activeNote.id} /* remount editor when switching notes */
-              spellCheck
-            />
+            <div className="notes-editor-wrapper">
+              <EditorContent editor={editor} className="notes-editor" />
+            </div>
 
-            {/* Footer */}
             <div className="notes-editor-footer">
-              <span><FiAlignLeft /> {stripHtml(activeNote.content).split(/\s+/).filter(Boolean).length} words</span>
-              <span>Last edited {timeAgo(activeNote.updatedAt)}</span>
+              <span><FiAlignLeft /> {activeNote ? stripHtml(activeNote.content).split(/\s+/).filter(Boolean).length : 0} words</span>
+              <span>Last edited {activeNote ? timeAgo(activeNote.updatedAt) : "just now"}</span>
             </div>
           </>
         )}
