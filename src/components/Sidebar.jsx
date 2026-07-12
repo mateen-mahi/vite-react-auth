@@ -90,9 +90,9 @@ export default function Sidebar({ isOpen, setIsOpen, isMobile }) {
             <FiAlertCircle className="nav-icon" />
             {isOpen && <span>Complaints</span>}
           </NavLink>
-          <NavLink to="/settings" onClick={closeSidebar} title="Settings">
+          <NavLink to="/socket-test" onClick={closeSidebar} title="Settings">
             <FiSettings className="nav-icon" />
-            {isOpen && <span>Settings</span>}
+            {isOpen && <span>Chat app</span>}
           </NavLink>
           <NavLink to="/settings" onClick={closeSidebar} title="Settings">
             <FiSettings className="nav-icon" />
