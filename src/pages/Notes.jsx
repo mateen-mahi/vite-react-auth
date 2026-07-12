@@ -71,8 +71,8 @@ export default function Notes() {
 
   // ── Fetch notes ───────────────────────────────────────────
   useEffect(() => {
-    console.log("Fetching notes for user:", user);
     const fetchNotes = async () => {
+      console.log("Fetching notes for user:", user);
       if (!user?._id) return;
       try {
         setLoading(true);
