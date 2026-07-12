@@ -119,13 +119,13 @@ export default function Notes() {
   });
 
   // Sync editor content when opening a note
-  // useEffect(() => {
-  //   if (editor && editingNote) {
-  //     if (editor.getHTML() !== (editingNote.content || "<p></p>")) {
-  //       editor.commands.setContent(editingNote.content || "<p></p>");
-  //     }
-  //   }
-  // }, [editingNote?._id, editor]);
+  useEffect(() => {
+    if (editor && editingNote) {
+      if (editor.getHTML() !== (editingNote.content || "<p></p>")) {
+        editor.commands.setContent(editingNote.content || "<p></p>");
+      }
+    }
+  }, [editingNote?._id, editor]);
 
   // ── Toolbar commands ──────────────────────────────────────
   const execCmd = useCallback((cmd, val = null) => {
@@ -154,46 +154,17 @@ export default function Notes() {
 
   // ── Modal Management ────────────────────────────────────
   const openNewNote = () => {
-    const newNote = { title: "", content: "<p></p>", isPinned: false, _id: null };
+    const newNote = {
+      title: "",
+      content: "<p></p>",
+      isPinned: false,
+      _id: null,
+    };
     setTitleDraft("");
     setEditingNote(newNote);
     setModalOpen(true);
-    if (editor) {
-      editor.commands.setContent("<p></p>");
-      setTimeout(() => editor.commands.focus("end"), 100);
-    }
-  };
-
-  const openEditNote = (note) => {
-    setTitleDraft(note.title || "");
-    setEditingNote({ ...note });
-    setModalOpen(true);
-    if (editor) {
-      editor.commands.setContent(note.content || "<p></p>");
-      setTimeout(() => editor.commands.focus("end"), 100);
-    }
-  };
-
-  const togglePin = async (id, e) => {
-    e?.stopPropagation();
-    const original = [...notes];
-    const note = notes.find((n) => n._id === id);
-    if (!note) return;
-
-    const updated = { ...note, isPinned: !note.isPinned };
-    setNotes((prev) =>
-      prev
-        .map((n) => (n._id === id ? updated : n))
-        .sort((a, b) => (b.isPinned ? 1 : 0) - (a.isPinned ? 1 : 0))
-    );
-
-    try {
-      await api.patch(`/notes/${id}/pin`);
-    } catch (err) {
-      console.error("Toggle pin error:", err.response?.data || err.message);
-      setNotes(original);
-      setError("Failed to update pinning state.");
-    }
+    // Focus editor after modal opens
+    setTimeout(() => editor?.commands.focus("end"), 100);
   };
 
   const openEditNote = (note) => {
