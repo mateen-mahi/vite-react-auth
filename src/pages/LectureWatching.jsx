@@ -1,6 +1,7 @@
 // Lectures.jsx
 import { useEffect, useRef, useState } from "react";
-import { useParams } from "react-router-dom";  // 👈 added
+import { useParams } from "react-router-dom"; 
+import api from "../services/api";
 import { FiCheckCircle, FiCircle, FiClock, FiPlayCircle } from "react-icons/fi";
 import "../styles/lectures.css";
 
@@ -38,7 +39,7 @@ const formatDuration = (minutes) => {
 };
 
 export default function Lectures() {
-  const { courseId } = useParams(); // 👈 from URL
+  const { courseId } = useParams(); 
 
   const [lectures, setLectures] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -57,7 +58,7 @@ export default function Lectures() {
     const fetchLectures = async () => {
       try {
         setLoading(true);
-        const res = await fetch(`/lectures/course/${courseId}`);
+        const res = await api.get(`/lectures/course/${courseId}`);
         if (!res.ok) throw new Error("Failed to fetch lectures");
         const data = await res.json();
         // data.data is the array of lectures (from your API sample)
