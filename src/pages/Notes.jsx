@@ -84,7 +84,7 @@ export default function Notes() {
         setLoading(true);
         const res = await api.get(`/notes/user/${user._id}`);
         // Handle different response formats
-        const data = res.data;
+        const data = res.data?.data;
         setNotes(Array.isArray(data) ? data : []);
       } catch (err) {
         console.error("Fetch notes error:", err.response?.data || err.message);
@@ -206,13 +206,13 @@ export default function Notes() {
 
       if (editingNote._id) {
         const res = await api.put(`/notes/${editingNote._id}`, payload);
-        const updated = res.data;
+        const updated = res.data?.data;
         if (updated) {
           setNotes((prev) => prev.map((n) => (n._id === updated._id ? updated : n)));
         }
       } else {
         const res = await api.post("/notes", payload);
-        const created = res.data;
+        const created = res.data?.data;
         if (created) {
           setNotes((prev) => [created, ...prev]);
         }
