@@ -1,8 +1,9 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import {
   FiPlus, FiTrash2, FiSearch, FiFileText,
   FiBold, FiItalic, FiUnderline, FiLink,
-  FiList, FiAlignLeft, FiMinus,
+  FiList, FiAlignLeft, FiMinus, FiX,
+  FiGrid, FiList as FiListIcon,
 } from "react-icons/fi";
 import {
   MdFormatStrikethrough,
@@ -36,6 +37,7 @@ const timeAgo = (dateStr) => {
 const stripHtml = (html) =>
   html.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
 
+// ─── Toolbar (same as before) ─────────────────────────────
 const TOOLBAR = [
   [
     { cmd: "undo",            icon: MdUndo,                title: "Undo" },
@@ -62,25 +64,22 @@ const TOOLBAR = [
 export default function Notes() {
   const { user } = useAuth();
   const [notes, setNotes] = useState([]);
-  const [activeId, setActiveId] = useState(null);
   const [search, setSearch] = useState("");
-  const [mobileView, setMobileView] = useState("list");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [viewMode, setViewMode] = useState("grid"); // "grid" | "list"
+  const [modalOpen, setModalOpen] = useState(false);
+  const [editingNote, setEditingNote] = useState(null); // null = new note
   const saveTimeout = useRef(null);
 
   // ── Fetch notes ───────────────────────────────────────────
   useEffect(() => {
     const fetchNotes = async () => {
-      console.log("Fetching notes for user:", user);
       if (!user?._id) return;
       try {
         setLoading(true);
         const res = await api.get(`/notes/user/${user._id}`);
         setNotes(res.data.data);
-        if (res.data.data.length > 0) {
-          setActiveId(res.data.data[0]._id);
-        }
       } catch (err) {
         console.error("Fetch notes error:", err.response?.data || err.message);
         setError("Failed to load notes.");
@@ -91,9 +90,7 @@ export default function Notes() {
     fetchNotes();
   }, [user?._id]);
 
-  const activeNote = notes.find((n) => n._id === activeId);
-
-  // ── TipTap Editor ─────────────────────────────────────────
+  // ── TipTap Editor (for modal) ────────────────────────────
   const editor = useEditor({
     extensions: [
       StarterKit.configure({ heading: { levels: [1, 2, 3] } }),
@@ -101,33 +98,27 @@ export default function Notes() {
       Placeholder.configure({ placeholder: "Start writing your note…" }),
       Underline,
     ],
-    content: activeNote?.content || "<p></p>",
+    content: editingNote?.content || "<p></p>",
     onUpdate: ({ editor }) => {
+      // Update the editingNote content in real time
       const html = editor.getHTML();
       const plain = stripHtml(html);
       const firstLine = plain.split(/\n/)[0]?.slice(0, 60) || "Untitled note";
-
-      if (activeNote) {
-        const updated = { ...activeNote, content: html, title: firstLine, updatedAt: new Date().toISOString() };
-        setNotes((prev) => prev.map((n) => (n._id === updated._id ? updated : n)));
-      }
-
-      clearTimeout(saveTimeout.current);
-      saveTimeout.current = setTimeout(() => {
-        if (activeId) {
-          api.put(`/notes/${activeId}`, { title: firstLine, content: html }).catch((err) => {
-            console.error("Auto-save error:", err.response?.data || err.message);
-          });
-        }
-      }, 500);
+      setEditingNote((prev) => ({
+        ...prev,
+        content: html,
+        title: firstLine,
+        updatedAt: new Date().toISOString(),
+      }));
     },
   });
 
+  // Update editor content when editingNote changes
   useEffect(() => {
-    if (editor && activeNote) {
-      editor.commands.setContent(activeNote.content || "<p></p>");
+    if (editor && editingNote) {
+      editor.commands.setContent(editingNote.content || "<p></p>");
     }
-  }, [activeNote, editor]);
+  }, [editingNote, editor]);
 
   // ── Toolbar commands ──────────────────────────────────────
   const execCmd = (cmd, val = null) => {
@@ -155,30 +146,52 @@ export default function Notes() {
   };
 
   // ── CRUD ──────────────────────────────────────────────────
-  const handleNew = async () => {
+  const openNewNote = () => {
+    setEditingNote({
+      title: "Untitled note",
+      content: "<p></p>",
+      isPinned: false,
+      _id: null, // new
+    });
+    setModalOpen(true);
+  };
+
+  const openEditNote = (note) => {
+    setEditingNote({ ...note });
+    setModalOpen(true);
+  };
+
+  const closeModal = () => {
+    setModalOpen(false);
+    setEditingNote(null);
+  };
+
+  const saveNote = async () => {
+    if (!editingNote) return;
     try {
-      const newNote = { title: "Untitled note", content: "<p></p>", isPinned: false };
-      const res = await api.post("/notes", newNote);
-      const created = res.data.data;
-      setNotes((prev) => [created, ...prev]);
-      setActiveId(created._id);
-      setMobileView("editor");
-      setError(null);
+      const { title, content, isPinned, _id } = editingNote;
+      if (_id) {
+        // Update existing
+        const res = await api.put(`/notes/${_id}`, { title, content, isPinned });
+        const updated = res.data.data;
+        setNotes((prev) => prev.map((n) => (n._id === updated._id ? updated : n)));
+      } else {
+        // Create new
+        const res = await api.post("/notes", { title, content, isPinned });
+        const created = res.data.data;
+        setNotes((prev) => [created, ...prev]);
+      }
+      closeModal();
     } catch (err) {
-      console.error("Create note error:", err.response?.data || err.message);
-      const serverMessage = err.response?.data?.message || "Failed to create note.";
-      setError(serverMessage);
+      console.error("Save note error:", err.response?.data || err.message);
+      setError("Failed to save note.");
     }
   };
 
   const handleDelete = async (id, e) => {
-    e.stopPropagation();
+    e?.stopPropagation();
     const original = [...notes];
     setNotes((prev) => prev.filter((n) => n._id !== id));
-    if (activeId === id) {
-      setActiveId(notes.length > 1 ? notes[0]?._id : null);
-      setMobileView("list");
-    }
     try {
       await api.delete(`/notes/${id}`);
     } catch (err) {
@@ -188,13 +201,8 @@ export default function Notes() {
     }
   };
 
-  const handleSelect = (note) => {
-    setActiveId(note._id);
-    setMobileView("editor");
-  };
-
   const togglePin = async (id, e) => {
-    e.stopPropagation();
+    e?.stopPropagation();
     const original = [...notes];
     const note = notes.find((n) => n._id === id);
     if (!note) return;
@@ -209,20 +217,19 @@ export default function Notes() {
     }
   };
 
+  // ── Filtered notes ────────────────────────────────────────
   const filtered = notes.filter((n) =>
     n.title?.toLowerCase().includes(search.toLowerCase()) ||
     stripHtml(n.content).toLowerCase().includes(search.toLowerCase())
   );
 
+  // ── Render ────────────────────────────────────────────────
   return (
-    <div className="notes-page">
-      {/* Sidebar */}
-      <aside className={`notes-sidebar ${mobileView === "editor" ? "mobile-hide" : ""}`}>
-        <div className="notes-sidebar-header">
-          <div className="notes-sidebar-title-row">
-            <h2 className="notes-sidebar-title"><FiFileText /> Notes</h2>
-            <button className="notes-new-btn" onClick={handleNew}><FiPlus /></button>
-          </div>
+    <div className="notes-page-redesign">
+      {/* Header */}
+      <header className="notes-header">
+        <h1 className="notes-title"><FiFileText /> My Notes</h1>
+        <div className="notes-header-controls">
           <div className="notes-search-wrap">
             <FiSearch className="notes-search-icon" />
             <input
@@ -232,51 +239,99 @@ export default function Notes() {
               onChange={(e) => setSearch(e.target.value)}
             />
           </div>
-        </div>
-        <div className="notes-list">
-          {loading && <p className="notes-empty">Loading…</p>}
-          {!loading && error && <p className="notes-empty" style={{ color: "#ef4444" }}>{error}</p>}
-          {!loading && filtered.length === 0 && !error && <p className="notes-empty">No notes found.</p>}
-          {filtered.map((note) => (
+          <div className="notes-view-toggle">
             <button
-              key={note._id}
-              className={`notes-list-item ${note._id === activeId ? "active" : ""}`}
-              onClick={() => handleSelect(note)}
+              className={`notes-view-btn ${viewMode === "grid" ? "active" : ""}`}
+              onClick={() => setViewMode("grid")}
             >
-              <div className="notes-item-body">
-                <p className="notes-item-title">
-                  {note.title}
-                  {note.isPinned && <span className="notes-pin-badge">📌</span>}
-                </p>
-                <p className="notes-item-preview">{stripHtml(note.content).slice(0, 80)}</p>
-                <p className="notes-item-time">{timeAgo(note.updatedAt)}</p>
-              </div>
-              <div className="notes-item-actions">
-                <button className="notes-pin-btn" onClick={(e) => togglePin(note._id, e)}>
+              <FiGrid />
+            </button>
+            <button
+              className={`notes-view-btn ${viewMode === "list" ? "active" : ""}`}
+              onClick={() => setViewMode("list")}
+            >
+              <FiListIcon />
+            </button>
+          </div>
+          <button className="notes-new-btn" onClick={openNewNote}>
+            <FiPlus /> New Note
+          </button>
+        </div>
+      </header>
+
+      {/* Error display */}
+      {error && (
+        <div className="notes-error-banner">
+          <span>{error}</span>
+          <button onClick={() => setError(null)}><FiX /></button>
+        </div>
+      )}
+
+      {/* Notes grid / list */}
+      <div className={`notes-container ${viewMode}`}>
+        {loading && <p className="notes-loading">Loading notes…</p>}
+        {!loading && filtered.length === 0 && (
+          <div className="notes-empty-state">
+            <FiFileText className="notes-empty-icon" />
+            <p>No notes yet. Create your first note!</p>
+            <button className="notes-new-btn-lg" onClick={openNewNote}>
+              <FiPlus /> New Note
+            </button>
+          </div>
+        )}
+        {filtered.map((note) => (
+          <div
+            key={note._id}
+            className={`notes-card ${note.isPinned ? "pinned" : ""}`}
+            onClick={() => openEditNote(note)}
+          >
+            <div className="notes-card-header">
+              <h3 className="notes-card-title">
+                {note.title}
+                {note.isPinned && <span className="notes-pin-badge">📌</span>}
+              </h3>
+              <div className="notes-card-actions">
+                <button
+                  className="notes-pin-btn"
+                  onClick={(e) => togglePin(note._id, e)}
+                  title={note.isPinned ? "Unpin" : "Pin"}
+                >
                   📌
                 </button>
-                <button className="notes-delete-btn" onClick={(e) => handleDelete(note._id, e)}>
+                <button
+                  className="notes-delete-btn"
+                  onClick={(e) => handleDelete(note._id, e)}
+                  title="Delete"
+                >
                   <FiTrash2 />
                 </button>
               </div>
-            </button>
-          ))}
-        </div>
-        <div className="notes-sidebar-footer">{notes.length} note{notes.length !== 1 ? "s" : ""}</div>
-      </aside>
-
-      {/* Editor */}
-      <main className={`notes-editor-panel ${mobileView === "list" ? "mobile-hide" : ""}`}>
-        {!loading && !activeNote ? (
-          <div className="notes-no-selection">
-            <FiFileText className="notes-no-icon" />
-            <p>Select or create a note</p>
-            <button className="notes-new-btn-lg" onClick={handleNew}><FiPlus /> New Note</button>
+            </div>
+            <p className="notes-card-preview">
+              {stripHtml(note.content).slice(0, 120)}
+            </p>
+            <div className="notes-card-footer">
+              <span className="notes-card-time">{timeAgo(note.updatedAt)}</span>
+              <span className="notes-card-wordcount">
+                {stripHtml(note.content).split(/\s+/).filter(Boolean).length} words
+              </span>
+            </div>
           </div>
-        ) : (
-          <>
-            <button className="notes-back-btn" onClick={() => setMobileView("list")}>← All Notes</button>
+        ))}
+      </div>
 
+      {/* ─── Modal (Create / Edit) ─────────────────────────── */}
+      {modalOpen && (
+        <div className="notes-modal-overlay" onClick={closeModal}>
+          <div className="notes-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="notes-modal-header">
+              <h2>{editingNote?._id ? "Edit Note" : "New Note"}</h2>
+              <button className="notes-modal-close" onClick={closeModal}>
+                <FiX />
+              </button>
+            </div>
+
+            {/* Toolbar */}
             <div className="notes-toolbar">
               {TOOLBAR.map((group, gi) => (
                 <div key={gi} className="notes-toolbar-group">
@@ -294,17 +349,38 @@ export default function Notes() {
               ))}
             </div>
 
-            <div className="notes-editor-wrapper">
+            {/* Editor */}
+            <div className="notes-modal-editor-wrapper">
               <EditorContent editor={editor} className="notes-editor" />
             </div>
 
-            <div className="notes-editor-footer">
-              <span><FiAlignLeft /> {activeNote ? stripHtml(activeNote.content).split(/\s+/).filter(Boolean).length : 0} words</span>
-              <span>Last edited {activeNote ? timeAgo(activeNote.updatedAt) : "just now"}</span>
+            {/* Modal footer */}
+            <div className="notes-modal-footer">
+              <div className="notes-modal-meta">
+                <span>
+                  {editingNote ? stripHtml(editingNote.content).split(/\s+/).filter(Boolean).length : 0} words
+                </span>
+                <label className="notes-pin-toggle">
+                  <input
+                    type="checkbox"
+                    checked={editingNote?.isPinned || false}
+                    onChange={(e) =>
+                      setEditingNote((prev) => ({ ...prev, isPinned: e.target.checked }))
+                    }
+                  />
+                  Pin note
+                </label>
+              </div>
+              <div className="notes-modal-actions">
+                <button className="notes-btn-secondary" onClick={closeModal}>Cancel</button>
+                <button className="notes-btn-primary" onClick={saveNote}>
+                  {editingNote?._id ? "Update" : "Create"}
+                </button>
+              </div>
             </div>
-          </>
-        )}
-      </main>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
