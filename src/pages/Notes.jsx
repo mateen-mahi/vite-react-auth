@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect } from "react";
 import {
   FiPlus, FiTrash2, FiSearch, FiFileText,
   FiBold, FiItalic, FiUnderline, FiLink,
@@ -16,7 +16,7 @@ import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Link from "@tiptap/extension-link";
 import Placeholder from "@tiptap/extension-placeholder";
-import Underline from "@tiptap/extension-underline"; // ✅ NEW
+import Underline from "@tiptap/extension-underline";
 import { useAuth } from "../context/AuthContext";
 import api from "../services/api";
 import "../styles/notes.css";
@@ -36,7 +36,6 @@ const timeAgo = (dateStr) => {
 const stripHtml = (html) =>
   html.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
 
-// ─── Toolbar button groups (commands map to TipTap methods) ──
 const TOOLBAR = [
   [
     { cmd: "undo",            icon: MdUndo,                title: "Undo" },
@@ -73,9 +72,7 @@ export default function Notes() {
   // ── Fetch notes ───────────────────────────────────────────
   useEffect(() => {
     const fetchNotes = async () => {
-      // Guard: only fetch if user is available
       if (!user?._id) return;
-
       try {
         setLoading(true);
         const res = await api.get(`/notes/user/${user._id}`);
@@ -84,40 +81,31 @@ export default function Notes() {
           setActiveId(res.data.data[0]._id);
         }
       } catch (err) {
+        console.error("Fetch notes error:", err.response?.data || err.message);
         setError("Failed to load notes.");
-        console.error(err);
       } finally {
         setLoading(false);
       }
     };
     fetchNotes();
-  }, [user?._id]); // Re‑fetch when user changes
+  }, [user?._id]);
 
   const activeNote = notes.find((n) => n._id === activeId);
 
   // ── TipTap Editor ─────────────────────────────────────────
   const editor = useEditor({
     extensions: [
-      StarterKit.configure({
-        heading: { levels: [1, 2, 3] },
-      }),
-      Link.configure({
-        openOnClick: false,
-        linkOnPaste: true,
-      }),
-      Placeholder.configure({
-        placeholder: "Start writing your note…",
-      }),
-      Underline, // ✅ Now underline works
+      StarterKit.configure({ heading: { levels: [1, 2, 3] } }),
+      Link.configure({ openOnClick: false, linkOnPaste: true }),
+      Placeholder.configure({ placeholder: "Start writing your note…" }),
+      Underline,
     ],
     content: activeNote?.content || "<p></p>",
     onUpdate: ({ editor }) => {
-      // Debounced save
       const html = editor.getHTML();
       const plain = stripHtml(html);
       const firstLine = plain.split(/\n/)[0]?.slice(0, 60) || "Untitled note";
 
-      // Optimistic update
       if (activeNote) {
         const updated = { ...activeNote, content: html, title: firstLine, updatedAt: new Date().toISOString() };
         setNotes((prev) => prev.map((n) => (n._id === updated._id ? updated : n)));
@@ -126,20 +114,21 @@ export default function Notes() {
       clearTimeout(saveTimeout.current);
       saveTimeout.current = setTimeout(() => {
         if (activeId) {
-          api.put(`/notes/${activeId}`, { title: firstLine, content: html }).catch(console.error);
+          api.put(`/notes/${activeId}`, { title: firstLine, content: html }).catch((err) => {
+            console.error("Auto-save error:", err.response?.data || err.message);
+          });
         }
       }, 500);
     },
   });
 
-  // Update editor content when switching notes
   useEffect(() => {
     if (editor && activeNote) {
       editor.commands.setContent(activeNote.content || "<p></p>");
     }
   }, [activeNote, editor]);
 
-  // ── Toolbar command handler ──────────────────────────────
+  // ── Toolbar commands ──────────────────────────────────────
   const execCmd = (cmd, val = null) => {
     if (!editor) return;
     switch (cmd) {
@@ -164,7 +153,7 @@ export default function Notes() {
     editor.commands.focus();
   };
 
-  // ── CRUD operations ──────────────────────────────────────
+  // ── CRUD ──────────────────────────────────────────────────
   const handleNew = async () => {
     try {
       const newNote = { title: "Untitled note", content: "<p></p>", isPinned: false };
@@ -173,9 +162,11 @@ export default function Notes() {
       setNotes((prev) => [created, ...prev]);
       setActiveId(created._id);
       setMobileView("editor");
+      setError(null);
     } catch (err) {
-      setError("Failed to create note.");
-      console.error(err);
+      console.error("Create note error:", err.response?.data || err.message);
+      const serverMessage = err.response?.data?.message || "Failed to create note.";
+      setError(serverMessage);
     }
   };
 
@@ -190,9 +181,9 @@ export default function Notes() {
     try {
       await api.delete(`/notes/${id}`);
     } catch (err) {
+      console.error("Delete error:", err.response?.data || err.message);
       setNotes(original);
       setError("Failed to delete note.");
-      console.error(err);
     }
   };
 
@@ -211,9 +202,9 @@ export default function Notes() {
     try {
       await api.patch(`/notes/${id}/pin`);
     } catch (err) {
+      console.error("Toggle pin error:", err.response?.data || err.message);
       setNotes(original);
       setError("Failed to toggle pin.");
-      console.error(err);
     }
   };
 
@@ -224,7 +215,7 @@ export default function Notes() {
 
   return (
     <div className="notes-page">
-      {/* ══ SIDEBAR ══ */}
+      {/* Sidebar */}
       <aside className={`notes-sidebar ${mobileView === "editor" ? "mobile-hide" : ""}`}>
         <div className="notes-sidebar-header">
           <div className="notes-sidebar-title-row">
@@ -273,7 +264,7 @@ export default function Notes() {
         <div className="notes-sidebar-footer">{notes.length} note{notes.length !== 1 ? "s" : ""}</div>
       </aside>
 
-      {/* ══ EDITOR ══ */}
+      {/* Editor */}
       <main className={`notes-editor-panel ${mobileView === "list" ? "mobile-hide" : ""}`}>
         {!loading && !activeNote ? (
           <div className="notes-no-selection">
