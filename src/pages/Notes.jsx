@@ -83,7 +83,7 @@ export default function Notes() {
       try {
         setLoading(true);
         const res = await api.get(`/notes/user/${user._id}`);
-        setNotes(res.data.data || []);
+        setNotes(res.data || []);
       } catch (err) {
         console.error("Fetch notes error:", err.response?.data || err.message);
         setError("Failed to load notes.");
