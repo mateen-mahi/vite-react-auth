@@ -14,6 +14,7 @@ import LectureWatching from "./pages/LectureWatching";
 import UserManagement  from "./pages/admin/UserManagement";
 import Admin           from "./pages/Admin";
 import PaymentGateway  from "./pages/PaymentGateway";
+import LectureAndQuizContainer from './pages/LectureAndQuizContainer';
 import Unauthorized    from "./pages/Unauthorized";
 import Error404Page    from "./pages/Error404page";
 import GrandQuiz from "./pages/QuizPage";
@@ -48,19 +49,21 @@ function App() {
 <Route element={<ProtectedRoute />}>
   <Route element={<Layout />}>
     <Route path="/dashboard" element={<Dashboard />} />
-    <Route path="/lectures" element={<LectureWatching />} />
-    <Route path="/grand-quiz" element={<GrandQuiz />} />
+    <Route path="/activities/:courseId"/>
+    <Route path="/lectures/:courseId" element={<LectureWatching />} />
+    <Route path="/grand-quiz/:courseId" element={<GrandQuiz />} />
     <Route path="/socket-test" element={<SocketTestPage />} />
-
-
-    <Route element={<RoleRoute allowedRoles={["admin", "super-admin"]} />}>
-      <Route path="/user-management" element={<UserManagement />} />
-      <Route path="/admin" element={<Admin />} />
       <Route path="/profile" element={<Profile />} />
       <Route path="/notes" element={<Notes />} />
       <Route path="/courses" element={<Courses />} />
       <Route path="/certificate" element={<Certificate />} />
       <Route path="/complaints" element={<Complaints />} />
+    
+
+
+    <Route element={<RoleRoute allowedRoles={["admin", "super-admin"]} />}>
+      <Route path="/user-management" element={<UserManagement />} />
+      <Route path="/admin" element={<Admin />} />
     </Route>
 
     <Route element={<RoleRoute allowedRoles={["super-admin"]} />}>
