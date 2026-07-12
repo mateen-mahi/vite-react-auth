@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect } from "react";
 import {
   FiPlus, FiTrash2, FiSearch, FiFileText,
   FiBold, FiItalic, FiUnderline, FiLink,
@@ -37,7 +37,7 @@ const timeAgo = (dateStr) => {
 const stripHtml = (html) =>
   html.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
 
-// ─── Toolbar (same as before) ─────────────────────────────
+// ─── Toolbar ────────────────────────────────────────────────
 const TOOLBAR = [
   [
     { cmd: "undo",            icon: MdUndo,                title: "Undo" },
@@ -67,9 +67,9 @@ export default function Notes() {
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [viewMode, setViewMode] = useState("grid"); // "grid" | "list"
+  const [viewMode, setViewMode] = useState("grid");
   const [modalOpen, setModalOpen] = useState(false);
-  const [editingNote, setEditingNote] = useState(null); // null = new note
+  const [editingNote, setEditingNote] = useState(null);
   const saveTimeout = useRef(null);
 
   // ── Fetch notes ───────────────────────────────────────────
@@ -90,30 +90,43 @@ export default function Notes() {
     fetchNotes();
   }, [user?._id]);
 
-  // ── TipTap Editor (for modal) ────────────────────────────
+  // ── TipTap Editor ─────────────────────────────────────────
   const editor = useEditor({
     extensions: [
-      StarterKit.configure({ heading: { levels: [1, 2, 3] } }),
+      StarterKit.configure({
+        heading: { levels: [1, 2, 3] },
+      }),
       Link.configure({ openOnClick: false, linkOnPaste: true }),
-      Placeholder.configure({ placeholder: "Start writing your note…" }),
+      Placeholder.configure({
+        placeholder: "Start writing your note…",
+      }),
       Underline,
     ],
     content: editingNote?.content || "<p></p>",
     onUpdate: ({ editor }) => {
-      // Update the editingNote content in real time
       const html = editor.getHTML();
       const plain = stripHtml(html);
-      const firstLine = plain.split(/\n/)[0]?.slice(0, 60) || "Untitled note";
-      setEditingNote((prev) => ({
-        ...prev,
-        content: html,
-        title: firstLine,
-        updatedAt: new Date().toISOString(),
-      }));
+      // Only auto-generate title if title is empty or "Untitled note"
+      // and user hasn't manually changed it
+      if (!editingNote?.title || editingNote.title === "Untitled note") {
+        const firstLine = plain.split(/\n/)[0]?.slice(0, 60) || "Untitled note";
+        setEditingNote((prev) => ({
+          ...prev,
+          content: html,
+          title: firstLine,
+          updatedAt: new Date().toISOString(),
+        }));
+      } else {
+        setEditingNote((prev) => ({
+          ...prev,
+          content: html,
+          updatedAt: new Date().toISOString(),
+        }));
+      }
     },
   });
 
-  // Update editor content when editingNote changes
+  // Update editor content when switching notes
   useEffect(() => {
     if (editor && editingNote) {
       editor.commands.setContent(editingNote.content || "<p></p>");
@@ -151,7 +164,7 @@ export default function Notes() {
       title: "Untitled note",
       content: "<p></p>",
       isPinned: false,
-      _id: null, // new
+      _id: null,
     });
     setModalOpen(true);
   };
@@ -170,21 +183,31 @@ export default function Notes() {
     if (!editingNote) return;
     try {
       const { title, content, isPinned, _id } = editingNote;
+      
+      // Validate: title and content required
+      if (!title || title.trim() === "Untitled note") {
+        setError("Please give your note a title.");
+        return;
+      }
+      if (!content || content === "<p></p>" || stripHtml(content).trim() === "") {
+        setError("Please add some content to your note.");
+        return;
+      }
+
       if (_id) {
-        // Update existing
         const res = await api.put(`/notes/${_id}`, { title, content, isPinned });
         const updated = res.data.data;
         setNotes((prev) => prev.map((n) => (n._id === updated._id ? updated : n)));
       } else {
-        // Create new
         const res = await api.post("/notes", { title, content, isPinned });
         const created = res.data.data;
         setNotes((prev) => [created, ...prev]);
       }
       closeModal();
+      setError(null);
     } catch (err) {
       console.error("Save note error:", err.response?.data || err.message);
-      setError("Failed to save note.");
+      setError(err.response?.data?.message || "Failed to save note.");
     }
   };
 
@@ -287,7 +310,7 @@ export default function Notes() {
           >
             <div className="notes-card-header">
               <h3 className="notes-card-title">
-                {note.title}
+                {note.title || "Untitled"}
                 {note.isPinned && <span className="notes-pin-badge">📌</span>}
               </h3>
               <div className="notes-card-actions">
@@ -308,7 +331,7 @@ export default function Notes() {
               </div>
             </div>
             <p className="notes-card-preview">
-              {stripHtml(note.content).slice(0, 120)}
+              {stripHtml(note.content).slice(0, 120) || "Empty note"}
             </p>
             <div className="notes-card-footer">
               <span className="notes-card-time">{timeAgo(note.updatedAt)}</span>
@@ -329,6 +352,23 @@ export default function Notes() {
               <button className="notes-modal-close" onClick={closeModal}>
                 <FiX />
               </button>
+            </div>
+
+            {/* ── Title Input ── */}
+            <div className="notes-modal-title-input">
+              <input
+                type="text"
+                className="notes-title-input"
+                placeholder="Note title…"
+                value={editingNote?.title || ""}
+                onChange={(e) =>
+                  setEditingNote((prev) => ({
+                    ...prev,
+                    title: e.target.value || "Untitled note",
+                  }))
+                }
+                autoFocus
+              />
             </div>
 
             {/* Toolbar */}
@@ -358,7 +398,7 @@ export default function Notes() {
             <div className="notes-modal-footer">
               <div className="notes-modal-meta">
                 <span>
-                  {editingNote ? stripHtml(editingNote.content).split(/\s+/).filter(Boolean).length : 0} words
+                  📝 {editingNote ? stripHtml(editingNote.content).split(/\s+/).filter(Boolean).length : 0} words
                 </span>
                 <label className="notes-pin-toggle">
                   <input
@@ -368,7 +408,7 @@ export default function Notes() {
                       setEditingNote((prev) => ({ ...prev, isPinned: e.target.checked }))
                     }
                   />
-                  Pin note
+                  📌 Pin note
                 </label>
               </div>
               <div className="notes-modal-actions">

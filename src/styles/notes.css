@@ -5,7 +5,7 @@
 .notes-page-redesign {
   padding: 24px 32px;
   background: #f5f7fb;
-  min-height: calc(100vh - 64px); /* adjust based on your navbar height */
+  min-height: calc(100vh - 64px);
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
 }
 
@@ -296,13 +296,6 @@
   opacity: 1;
 }
 
-/* Always show actions on mobile */
-@media (max-width: 768px) {
-  .notes-card-actions {
-    opacity: 1;
-  }
-}
-
 .notes-pin-btn,
 .notes-delete-btn {
   background: none;
@@ -421,15 +414,38 @@
 }
 
 /* ─────────────────────────────────────────────────────────────
-   TOOLBAR INSIDE MODAL
+   TITLE INPUT IN MODAL (NEW)
    ───────────────────────────────────────────────────────────── */
 
-.notes-modal .notes-toolbar {
+.notes-modal-title-input {
+  padding: 12px 24px 8px;
   border-bottom: 1px solid #f1f5f9;
   flex-shrink: 0;
 }
 
-/* The toolbar itself is defined elsewhere, but we ensure it's styled */
+.notes-title-input {
+  width: 100%;
+  border: none;
+  font-size: 20px;
+  font-weight: 700;
+  color: #0f172a;
+  outline: none;
+  background: transparent;
+  padding: 4px 0;
+}
+
+.notes-title-input::placeholder {
+  color: #94a3b8;
+  font-weight: 400;
+}
+
+.notes-title-input:focus {
+  border-color: transparent;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   TOOLBAR
+   ───────────────────────────────────────────────────────────── */
 
 .notes-toolbar {
   display: flex;
@@ -491,7 +507,7 @@
 }
 
 /* ─────────────────────────────────────────────────────────────
-   MODAL FOOTER (IMPROVED)
+   MODAL FOOTER
    ───────────────────────────────────────────────────────────── */
 
 .notes-modal-footer {
@@ -674,7 +690,12 @@
    RESPONSIVE TWEAKS
    ───────────────────────────────────────────────────────────── */
 
+/* Always show actions on mobile */
 @media (max-width: 768px) {
+  .notes-card-actions {
+    opacity: 1;
+  }
+
   .notes-page-redesign {
     padding: 16px;
   }
@@ -721,9 +742,12 @@
     justify-content: flex-end;
   }
 
-  /* Show actions on mobile */
-  .notes-card-actions {
-    opacity: 1;
+  .notes-title-input {
+    font-size: 18px;
+  }
+
+  .notes-modal-title-input {
+    padding: 10px 16px 6px;
   }
 }
 
@@ -743,5 +767,19 @@
 
   .notes-modal-meta {
     flex-wrap: wrap;
+  }
+
+  .notes-modal-editor-wrapper {
+    padding: 14px 16px;
+  }
+
+  .notes-toolbar {
+    padding: 6px 10px;
+  }
+
+  .notes-tool-btn {
+    width: 28px;
+    height: 28px;
+    font-size: 14px;
   }
 }
