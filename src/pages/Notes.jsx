@@ -207,7 +207,7 @@ export default function Notes() {
         const updated = res.data.data;
         setNotes((prev) => prev.map((n) => (n._id === updated._id ? updated : n)));
       } else {
-        const res = await api.post("/notes", payload);
+        const res = await api.post("/notes", { ...payload, userId: user._id });
         const created = res.data.data;
         setNotes((prev) => [created, ...prev]);
       }
