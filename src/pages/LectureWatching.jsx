@@ -1,50 +1,13 @@
+// Lectures.jsx
 import { useEffect, useRef, useState } from "react";
+import { useParams } from "react-router-dom";  // 👈 added
 import { FiCheckCircle, FiCircle, FiClock, FiPlayCircle } from "react-icons/fi";
 import "../styles/lectures.css";
-
-// ─── Lecture Data ──────────────────────────────────────────
-const LECTURES = [
-  {
-    id: 1,
-    title: "Introduction to React",
-    description: "What is React, why it exists, and how it differs from plain JS.",
-    duration: "44:39",
-    videoId: "WF_X7gyV-t8", // replace with any YouTube video ID
-  },
-  {
-    id: 2,
-    title: "JSX & Components",
-    description: "Writing JSX, creating functional components, and passing props.",
-    duration: "18:20",
-    videoId: "k-CIW7odYKw",
-  },
-  {
-    id: 3,
-    title: "useState Hook",
-    description: "Managing local state inside components with the useState hook.",
-    duration: "15:10",
-    videoId: "SqcY0GlETPk",
-  },
-  {
-    id: 4,
-    title: "useEffect Hook",
-    description: "Side effects, dependency arrays, and cleanup functions explained.",
-    duration: "20:05",
-    videoId: "SqcY0GlETPk",
-  },
-  {
-    id: 5,
-    title: "React Router",
-    description: "Client-side routing with React Router v6 — NavLink, Outlet, params.",
-    duration: "22:30",
-    videoId: "SqcY0GlETPk",
-  },
-];
 
 const WATCH_THRESHOLD = 0.3; // 30%
 const STORAGE_KEY = "academy_watched_lectures";
 
-// ─── Load / Save helpers ───────────────────────────────────
+// ─── Load / Save helpers (unchanged) ──────────────────────
 const loadWatched = () => {
   try {
     return JSON.parse(localStorage.getItem(STORAGE_KEY)) || {};
@@ -57,7 +20,7 @@ const saveWatched = (data) => {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
 };
 
-// ─── YouTube IFrame API loader (loads once globally) ──────
+// ─── YouTube IFrame API loader (unchanged) ─────────────────
 let ytApiLoaded = false;
 const loadYTApi = () => {
   if (ytApiLoaded || window.YT) return;
@@ -67,28 +30,73 @@ const loadYTApi = () => {
   document.body.appendChild(tag);
 };
 
+// ─── Helper: convert minutes (number) to "mm:ss" ──────────
+const formatDuration = (minutes) => {
+  const mins = Math.floor(minutes);
+  const secs = Math.round((minutes - mins) * 60);
+  return `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
+};
+
 export default function Lectures() {
-  const [activeLecture, setActiveLecture] = useState(LECTURES[0]);
+  const { courseId } = useParams(); // 👈 from URL
+
+  const [lectures, setLectures] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  const [activeLecture, setActiveLecture] = useState(null);
   const [watched, setWatched] = useState(loadWatched);
-  const [progress, setProgress] = useState(0); // 0–100 for the progress bar
+  const [progress, setProgress] = useState(0);
 
-  const playerRef = useRef(null);       // YT.Player instance
-  const intervalRef = useRef(null);     // polling interval
-  const markedRef = useRef({});         // tracks what's been marked this session
+  const playerRef = useRef(null);
+  const intervalRef = useRef(null);
+  const markedRef = useRef({});
 
-  // ── Bootstrap YouTube API ────────────────────────────────
+  // ── Fetch lectures for this course ───────────────────────
+  useEffect(() => {
+    const fetchLectures = async () => {
+      try {
+        setLoading(true);
+        const res = await fetch(`/lectures/course/${courseId}`);
+        if (!res.ok) throw new Error("Failed to fetch lectures");
+        const data = await res.json();
+        // data.data is the array of lectures (from your API sample)
+        const lecturesData = data.data || [];
+        // Map to the shape expected by the component
+        const mapped = lecturesData.map((lec) => ({
+          id: lec.id,
+          title: lec.title,
+          description: lec.description,
+          duration: formatDuration(lec.duration), // convert to "mm:ss"
+          videoId: lec.videoId,
+        }));
+        setLectures(mapped);
+        // Set first lecture as active
+        if (mapped.length > 0) setActiveLecture(mapped[0]);
+        setError(null);
+      } catch (err) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (courseId) fetchLectures();
+  }, [courseId]);
+
+  // ── Bootstrap YouTube API (unchanged) ─────────────────────
   useEffect(() => {
     loadYTApi();
   }, []);
 
-  // ── Create / recreate player when active lecture changes ─
+  // ── Create player when activeLecture changes ──────────────
   useEffect(() => {
-    // Clear previous polling
+    if (!activeLecture) return;
+
     clearInterval(intervalRef.current);
     setProgress(0);
 
     const createPlayer = () => {
-      // Destroy old player if it exists
       if (playerRef.current) {
         playerRef.current.destroy();
         playerRef.current = null;
@@ -116,7 +124,6 @@ export default function Lectures() {
       });
     };
 
-    // If API already ready, create immediately; else wait for callback
     if (window.YT && window.YT.Player) {
       createPlayer();
     } else {
@@ -127,9 +134,9 @@ export default function Lectures() {
       clearInterval(intervalRef.current);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeLecture.id]);
+  }, [activeLecture?.id]);
 
-  // ── Poll playback position every second ─────────────────
+  // ── Polling (unchanged) ──────────────────────────────────
   const startPolling = () => {
     clearInterval(intervalRef.current);
     intervalRef.current = setInterval(() => {
@@ -143,7 +150,6 @@ export default function Lectures() {
       const ratio = current / total;
       setProgress(Math.min(ratio * 100, 100));
 
-      // Mark as watched once threshold crossed (only once per lecture)
       if (ratio >= WATCH_THRESHOLD && !markedRef.current[activeLecture.id]) {
         markedRef.current[activeLecture.id] = true;
         setWatched((prev) => {
@@ -157,12 +163,26 @@ export default function Lectures() {
 
   // ── Switch lecture ───────────────────────────────────────
   const handleSelect = (lecture) => {
-    if (lecture.id === activeLecture.id) return;
+    if (lecture.id === activeLecture?.id) return;
     setActiveLecture(lecture);
   };
 
-  const watchedCount = Object.keys(watched).length;
+  // ── Loading / Error states ──────────────────────────────
+  if (loading) {
+    return <div className="lectures-page"><p>Loading lectures…</p></div>;
+  }
 
+  if (error) {
+    return <div className="lectures-page"><p>Error: {error}</p></div>;
+  }
+
+  if (!lectures.length) {
+    return <div className="lectures-page"><p>No lectures found for this course.</p></div>;
+  }
+
+  const watchedCount = Object.keys(watched).filter(id => watched[id]).length;
+
+  // ── Render (same JSX, but data from state) ──────────────
   return (
     <div className="lectures-page">
 
@@ -174,7 +194,7 @@ export default function Lectures() {
         </div>
         <div className="lp-progress-badge">
           <span className="lp-badge-count">{watchedCount}</span>
-          <span className="lp-badge-label">/ {LECTURES.length} completed</span>
+          <span className="lp-badge-label">/ {lectures.length} completed</span>
         </div>
       </div>
 
@@ -213,7 +233,7 @@ export default function Lectures() {
       <div className="lp-list">
         <h3 className="lp-list-heading">All Lectures</h3>
 
-        {LECTURES.map((lec, index) => {
+        {lectures.map((lec, index) => {
           const isActive = lec.id === activeLecture.id;
           const isWatched = !!watched[lec.id];
 
@@ -223,16 +243,11 @@ export default function Lectures() {
               className={`lp-card ${isActive ? "active" : ""} ${isWatched ? "done" : ""}`}
               onClick={() => handleSelect(lec)}
             >
-              {/* Number */}
               <div className="lp-card-num">{index + 1}</div>
-
-              {/* Text */}
               <div className="lp-card-body">
                 <p className="lp-card-title">{lec.title}</p>
                 <p className="lp-card-desc">{lec.description}</p>
               </div>
-
-              {/* Right side */}
               <div className="lp-card-right">
                 <span className="lp-card-duration">
                   <FiClock /> {lec.duration}
