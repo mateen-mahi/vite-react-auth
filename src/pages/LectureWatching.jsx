@@ -80,6 +80,13 @@ export default function Lectures() {
   // ── YouTube API ──────────────────────────────────────────
   useEffect(() => {
     loadYTApi();
+    // If YT API is already loaded, ensure onYouTubeIframeAPIReady is set
+    if (window.YT && window.YT.Player && !playerRef.current) {
+      // Trigger player creation if activeLecture exists
+      if (activeLecture) {
+        // The other useEffect will handle this
+      }
+    }
   }, []);
 
   // ── Player (FIXED: autoplay + playVideo) ──────────────
@@ -197,7 +204,21 @@ export default function Lectures() {
 
       <div className="lp-player-wrapper">
         <div className="lp-player-box">
-          <div id="yt-player" />
+          <div id="yt-player">
+            {/* Fallback iframe while YT API loads or if it fails */}
+            {activeLecture?.videoId && (
+              <iframe
+                width="100%"
+                height="100%"
+                src={`https://www.youtube.com/embed/${activeLecture.videoId}?rel=0&modestbranding=1&autoplay=1&mute=1`}
+                title={activeLecture.title}
+                frameBorder="0"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+                style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%" }}
+              />
+            )}
+          </div>
         </div>
         <div className="lp-bar-track">
           <div
