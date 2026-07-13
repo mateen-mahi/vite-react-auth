@@ -1,7 +1,6 @@
-// QuizPage.jsx (GrandQuiz)
 import { useState, useEffect, useRef } from "react";
 import { useParams } from "react-router-dom";
-import api from "../services/api"; // adjust to your API client
+import api from "../services/api";
 import {
   FiClock,
   FiAward,
@@ -13,6 +12,8 @@ import {
   FiAlertCircle,
 } from "react-icons/fi";
 import "../styles/QuizPage.css";
+
+// ─── Dynamic Quiz Data ────────────────────────────────────
 
 // ─── Helpers ───────────────────────────────────────────────
 const formatTime = (seconds) => {
@@ -28,64 +29,72 @@ const getScoreLabel = (percent) => {
   return { label: "Needs Improvement", color: "score-poor" };
 };
 
+// ─── Screens ───────────────────────────────────────────────
 const SCREEN = { INTRO: "intro", QUIZ: "quiz", RESULT: "result" };
 
 export default function GrandQuiz() {
   const { courseId } = useParams();
-
-  // ── State ────────────────────────────────────────────────
-  const [quizData, setQuizData] = useState(null);       // fetched quiz object
+  const [quiz, setQuiz] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [fetchError, setFetchError] = useState(null);
 
   const [screen, setScreen] = useState(SCREEN.INTRO);
   const [current, setCurrent] = useState(0);
-  const [answers, setAnswers] = useState({});
-  const [selected, setSelected] = useState(null);
+  const [answers, setAnswers] = useState({}); // { questionId: chosenIndex }
+  const [selected, setSelected] = useState(null); // current question selection
   const [timeLeft, setTimeLeft] = useState(0);
   const [submitted, setSubmitted] = useState(false);
   const timerRef = useRef(null);
 
-  // ── Fetch quiz ──────────────────────────────────────────
+  // ── Fetch quiz from backend ──────────────────────────────
   useEffect(() => {
     const fetchQuiz = async () => {
+      if (!courseId) {
+        setFetchError("No course ID provided.");
+        setLoading(false);
+        return;
+      }
       try {
         setLoading(true);
         const res = await api.get(`/quizzes/course/${courseId}`);
-        const data = res.data;
-        // API returns { success: true, data: [ quizObject ] }
-        const quiz = data.data?.[0];
-        if (!quiz) {
-          setError("No quiz found for this course");
-          return;
+        const quizData = res.data?.data;
+        if (Array.isArray(quizData) && quizData.length > 0) {
+          // Use the first quiz for this course
+          const q = quizData[0];
+          // Map backend format to frontend format
+          const mappedQuiz = {
+            _id: q._id,
+            title: q.title || "Untitled Quiz",
+            subject: q.subject || "General",
+            totalTime: (q.totalTime || 10) * 60, // minutes to seconds
+            questions: (q.questions || []).map((question, idx) => ({
+              id: idx + 1,
+              question: question.question,
+              options: question.options || [],
+              correct: question.correct ?? 0,
+            })),
+          };
+          setQuiz(mappedQuiz);
+          setTimeLeft(mappedQuiz.totalTime);
+        } else {
+          setFetchError("No quizzes found for this course.");
         }
-        // Map questions: add an 'id' field (index) and ensure 'correct' exists
-        const mappedQuestions = quiz.questions.map((q, idx) => ({
-          id: idx + 1, // or use a unique id if provided
-          question: q.question,
-          options: q.options,
-          correct: q.correct ?? 0, // fallback to 0 if missing (adjust as needed)
-        }));
-        setQuizData({
-          ...quiz,
-          questions: mappedQuestions,
-          totalTime: quiz.totalTime * 60, // convert minutes to seconds
-        });
-        setTimeLeft(quiz.totalTime * 60);
-        setError(null);
       } catch (err) {
-        setError(err.message);
+        console.error("Fetch quiz error:", err.response?.data || err.message);
+        setFetchError("Failed to load quiz. Please try again.");
       } finally {
         setLoading(false);
       }
     };
-
-    if (courseId) fetchQuiz();
+    fetchQuiz();
   }, [courseId]);
+
+  const total = (quiz?.questions || []).length;
+  const question = (quiz?.questions || [])[current];
 
   // ── Timer ────────────────────────────────────────────────
   useEffect(() => {
-    if (screen !== SCREEN.QUIZ || !quizData) return;
+    if (screen !== SCREEN.QUIZ) return;
 
     timerRef.current = setInterval(() => {
       setTimeLeft((prev) => {
@@ -99,26 +108,22 @@ export default function GrandQuiz() {
     }, 1000);
 
     return () => clearInterval(timerRef.current);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [screen, quizData]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [screen]);
 
-  // ── Restore answer on navigation ────────────────────────
+  // ── Restore saved answer when navigating ─────────────────
   useEffect(() => {
-    if (!quizData) return;
-    const q = quizData.questions[current];
-    setSelected(answers[q.id] ?? null);
-  }, [current, answers, quizData]);
+    setSelected(answers[question.id] ?? null);
+  }, [current, answers, question.id]);
 
-  // ── Handlers ─────────────────────────────────────────────
   const handleSelect = (idx) => {
     if (submitted) return;
     setSelected(idx);
-    const q = quizData.questions[current];
-    setAnswers((prev) => ({ ...prev, [q.id]: idx }));
+    setAnswers((prev) => ({ ...prev, [question.id]: idx }));
   };
 
   const handleNext = () => {
-    if (current < quizData.questions.length - 1) setCurrent((c) => c + 1);
+    if (current < total - 1) setCurrent((c) => c + 1);
   };
 
   const handlePrev = () => {
@@ -136,32 +141,62 @@ export default function GrandQuiz() {
     setCurrent(0);
     setAnswers({});
     setSelected(null);
-    setTimeLeft(quizData.totalTime);
+    setTimeLeft(quiz?.totalTime || 0);
     setSubmitted(false);
   };
 
-  // ── Loading / Error ──────────────────────────────────────
-  if (loading) {
-    return <div className="gq-page"><p>Loading quiz…</p></div>;
-  }
-  if (error) {
-    return <div className="gq-page"><p>Error: {error}</p></div>;
-  }
-  if (!quizData) {
-    return <div className="gq-page"><p>No quiz available for this course.</p></div>;
-  }
-
-  // ── Derived values ──────────────────────────────────────
-  const total = quizData.questions.length;
-  const question = quizData.questions[current];
-  const score = quizData.questions.reduce((acc, q) => {
+  // ── Score calc ───────────────────────────────────────────
+  const score = (quiz?.questions || []).reduce((acc, q) => {
     return answers[q.id] === q.correct ? acc + 1 : acc;
   }, 0);
+
   const percent = Math.round((score / total) * 100);
   const scoreInfo = getScoreLabel(percent);
   const answered = Object.keys(answers).length;
   const progress = ((current + 1) / total) * 100;
   const isLowTime = timeLeft <= 60;
+
+  // ════════════════════════════════════════════════════════
+  // LOADING / ERROR
+  // ════════════════════════════════════════════════════════
+  if (loading) {
+    return (
+      <div className="gq-page">
+        <div className="gq-intro-card">
+          <div className="gq-intro-icon">
+            <FiAward />
+          </div>
+          <p className="gq-intro-subtitle">Loading quiz…</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (fetchError) {
+    return (
+      <div className="gq-page">
+        <div className="gq-intro-card">
+          <div className="gq-intro-icon" style={{ color: "#ef4444" }}>
+            <FiAlertCircle />
+          </div>
+          <p className="gq-intro-subtitle" style={{ color: "#ef4444" }}>{fetchError}</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!quiz || total === 0) {
+    return (
+      <div className="gq-page">
+        <div className="gq-intro-card">
+          <div className="gq-intro-icon">
+            <FiAward />
+          </div>
+          <p className="gq-intro-subtitle">No quiz available for this course.</p>
+        </div>
+      </div>
+    );
+  }
 
   // ════════════════════════════════════════════════════════
   // INTRO SCREEN
@@ -173,8 +208,8 @@ export default function GrandQuiz() {
           <div className="gq-intro-icon">
             <FiAward />
           </div>
-          <p className="gq-intro-subject">{quizData.subject}</p>
-          <h1 className="gq-intro-title">{quizData.title}</h1>
+          <p className="gq-intro-subject">{quiz?.subject || ""}</p>
+          <h1 className="gq-intro-title">{quiz?.title || "Quiz"}</h1>
           <p className="gq-intro-subtitle">Grand Quiz</p>
 
           <div className="gq-intro-stats">
@@ -184,7 +219,7 @@ export default function GrandQuiz() {
             </div>
             <div className="gq-stat-divider" />
             <div className="gq-stat">
-              <span className="gq-stat-value">{quizData.totalTime / 60}</span>
+              <span className="gq-stat-value">{Math.floor((quiz?.totalTime || 0) / 60)}</span>
               <span className="gq-stat-label">Minutes</span>
             </div>
             <div className="gq-stat-divider" />
@@ -238,7 +273,7 @@ export default function GrandQuiz() {
           {/* Answer Review */}
           <div className="gq-review">
             <h3 className="gq-review-heading">Review Answers</h3>
-            {quizData.questions.map((q, i) => {
+            {(quiz?.questions || []).map((q, i) => {
               const chosen = answers[q.id];
               const isCorrect = chosen === q.correct;
               const isSkipped = chosen === undefined;
@@ -287,6 +322,7 @@ export default function GrandQuiz() {
   return (
     <div className="gq-page">
       <div className="gq-quiz-card">
+
         {/* ── Top Bar ── */}
         <div className="gq-topbar">
           <div className="gq-topbar-left">
@@ -333,7 +369,7 @@ export default function GrandQuiz() {
 
         {/* ── Question Dots ── */}
         <div className="gq-dots">
-          {quizData.questions.map((q, i) => (
+          {(quiz?.questions || []).map((q, i) => (
             <button
               key={q.id}
               className={`gq-dot ${i === current ? "active" : ""} ${answers[q.id] !== undefined ? "done" : ""}`}
