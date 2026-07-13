@@ -62,7 +62,7 @@ export default function Lectures() {
           title: lec.title,
           description: lec.description,
           duration: formatDuration(lec.duration),
-          videoId: "inWWhr5tnEA",
+          videoId: lec.videoId,
         }));
         setLectures(mapped);
         if (mapped.length > 0) setActiveLecture(mapped[0]);
