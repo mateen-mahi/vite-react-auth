@@ -49,7 +49,7 @@ export default function Lectures() {
   const intervalRef = useRef(null);
   const markedRef = useRef({});
 
-  // ── Fetch lectures (fixed) ──────────────────────────────
+  // ── Fetch lectures ──────────────────────────────────────
   useEffect(() => {
     const fetchLectures = async () => {
       try {
@@ -82,7 +82,7 @@ export default function Lectures() {
     loadYTApi();
   }, []);
 
-  // ── Player ──────────────────────────────────────────────
+  // ── Player (FIXED: autoplay + playVideo) ──────────────
   useEffect(() => {
     if (!activeLecture) return;
 
@@ -101,9 +101,16 @@ export default function Lectures() {
           rel: 0,
           modestbranding: 1,
           origin: window.location.origin,
+          autoplay: 1,          // Request autoplay
+          controls: 1,
+          mute: 1,              // Muted autoplay is more likely to work
         },
         events: {
-          onReady: () => startPolling(),
+          onReady: () => {
+            startPolling();
+            // Explicitly try to play (browser may still block, but we try)
+            playerRef.current?.playVideo();
+          },
           onStateChange: (e) => {
             if (e.data === window.YT.PlayerState.PLAYING) startPolling();
             if (
