@@ -3,13 +3,13 @@ import {
   FiGrid, FiUsers, FiBookOpen, FiPlayCircle, FiHelpCircle, FiMessageSquare, FiActivity,
 } from "react-icons/fi";
 import { useAuth } from "../../context/AuthContext";
-import KpiCards from "../../components/admin/KpiCards";
-import UserTable from "../../components/admin/UserTable";
-import CourseTable from "../../components/admin/CourseTable";
-import LectureTable from "../../components/admin/LectureTable";
-import QuizTable from "../../components/admin/QuizTable";
-import ComplaintQueue from "../../components/admin/ComplaintQueue";
-import LiveActivityPanel from "../../components/admin/LiveActivityPanel";
+import KpiCards from "../../components/Admin/KpiCards";
+import UserTable from "../../components/Admin/UserTable";
+import CourseTable from "../../components/Admin/CourseTable";
+import LectureTable from "../../components/Admin/LectureTable";
+import QuizTable from "../../components/Admin/QuizTable";
+import ComplaintQueue from "../../components/Admin/ComplaintQueue";
+import LiveActivityPanel from "../../components/Admin/LiveActivityPanel";
 import {
   SignupTrendChart, RoleDistributionChart, CategoryDistributionChart, ComplaintStatusChart,
 } from "../../components/Admin/AdminCharts";
@@ -26,11 +26,10 @@ const TABS = [
 ];
 
 export default function Dashboard() {
+  // Ensure your AuthContext explicitly provisions this property variable
   const { isConnected } = useAuth();
   const [activeTab, setActiveTab] = useState("overview");
 
-  // Loosely reflects real connection state — see LiveActivityPanel for the
-  // full note on what's real vs dummy in the online-count number.
   const onlineCount = isConnected ? 38 : 37;
 
   return (
@@ -44,6 +43,7 @@ export default function Dashboard() {
         </div>
       </div>
 
+      {/* Tabs Navigation Control */}
       <div className="admin-tabs">
         {TABS.map(({ id, label, icon: Icon }) => (
           <button
@@ -56,24 +56,44 @@ export default function Dashboard() {
         ))}
       </div>
 
+      {/* 
+        FIX: Render tab layers inside hidden wrappers. 
+        This keeps component states (like text inputs, sorting states, and table page indices) alive.
+      */}
       <div className="admin-dash-content">
-        {activeTab === "overview" && (
-          <>
-            <KpiCards onlineCount={onlineCount} />
-            <div className="admin-charts-grid">
-              <SignupTrendChart />
-              <RoleDistributionChart />
-              <CategoryDistributionChart />
-              <ComplaintStatusChart />
-            </div>
-          </>
-        )}
-        {activeTab === "users"      && <UserTable />}
-        {activeTab === "courses"    && <CourseTable />}
-        {activeTab === "lectures"   && <LectureTable />}
-        {activeTab === "quizzes"    && <QuizTable />}
-        {activeTab === "complaints" && <ComplaintQueue />}
-        {activeTab === "activity"   && <LiveActivityPanel />}
+        <div style={{ display: activeTab === "overview" ? "block" : "none" }}>
+          <KpiCards onlineCount={onlineCount} />
+          <div className="admin-charts-grid">
+            <SignupTrendChart />
+            <RoleDistributionChart />
+            <CategoryDistributionChart />
+            <ComplaintStatusChart />
+          </div>
+        </div>
+
+        <div style={{ display: activeTab === "users" ? "block" : "none" }}>
+          <UserTable />
+        </div>
+
+        <div style={{ display: activeTab === "courses" ? "block" : "none" }}>
+          <CourseTable />
+        </div>
+
+        <div style={{ display: activeTab === "lectures" ? "block" : "none" }}>
+          <LectureTable />
+        </div>
+
+        <div style={{ display: activeTab === "quizzes" ? "block" : "none" }}>
+          <QuizTable />
+        </div>
+
+        <div style={{ display: activeTab === "complaints" ? "block" : "none" }}>
+          <ComplaintQueue />
+        </div>
+
+        <div style={{ display: activeTab === "activity" ? "block" : "none" }}>
+          <LiveActivityPanel />
+        </div>
       </div>
     </div>
   );
