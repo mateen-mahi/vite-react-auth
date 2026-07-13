@@ -63,7 +63,7 @@ export default function Lectures() {
           description: lec.description,
           duration: formatDuration(lec.duration),
           videoId: lec.videoId,
-        }));
+        }));"inWWhr5tnEA"
         setLectures(mapped);
         if (mapped.length > 0) setActiveLecture(mapped[0]);
         setError(null);
@@ -108,9 +108,9 @@ export default function Lectures() {
           rel: 0,
           modestbranding: 1,
           origin: window.location.origin,
-          autoplay: 1,          // Request autoplay
+          autoplay: 0,          
           controls: 1,
-          mute: 1,              // Muted autoplay is more likely to work
+          mute: 0,              
         },
         events: {
           onReady: () => {
