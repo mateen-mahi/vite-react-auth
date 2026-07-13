@@ -1,4 +1,7 @@
+// QuizPage.jsx (GrandQuiz)
 import { useState, useEffect, useRef } from "react";
+import { useParams } from "react-router-dom";
+import api from "../services/api"; // adjust to your API client
 import {
   FiClock,
   FiAward,
@@ -10,95 +13,6 @@ import {
   FiAlertCircle,
 } from "react-icons/fi";
 import "../styles/QuizPage.css";
-
-// ─── Dummy Data (replace with API call later) ──────────────
-const QUIZ = {
-  title: "React Fundamentals",
-  subject: "Frontend Development",
-  totalTime: 10 * 60, // 10 minutes in seconds
-  questions: [
-    {
-      id: 1,
-      question: "What does JSX stand for?",
-      options: [
-        "JavaScript XML",
-        "Java Syntax Extension",
-        "JavaScript Extra",
-        "JSON XML",
-      ],
-      correct: 0,
-    },
-    {
-      id: 2,
-      question: "Which hook is used to manage local state in a functional component?",
-      options: ["useEffect", "useRef", "useState", "useContext"],
-      correct: 2,
-    },
-    {
-      id: 3,
-      question: "What is the correct way to pass data from a parent to a child component?",
-      options: ["Using state", "Using props", "Using context only", "Using refs"],
-      correct: 1,
-    },
-    {
-      id: 4,
-      question: "Which method is called when a React component is first rendered to the DOM?",
-      options: ["componentDidUpdate", "componentWillUnmount", "componentDidMount", "render"],
-      correct: 2,
-    },
-    {
-      id: 5,
-      question: "What does the useEffect hook with an empty dependency array [] do?",
-      options: [
-        "Runs on every render",
-        "Runs only when state changes",
-        "Runs only once after the first render",
-        "Never runs",
-      ],
-      correct: 2,
-    },
-    {
-      id: 6,
-      question: "In React Router v6, which component renders the matched child route?",
-      options: ["<Switch>", "<Route>", "<Outlet>", "<Link>"],
-      correct: 2,
-    },
-    {
-      id: 7,
-      question: "What is the virtual DOM?",
-      options: [
-        "A direct copy of the real DOM",
-        "A lightweight in-memory representation of the real DOM",
-        "A database for storing UI state",
-        "A browser extension",
-      ],
-      correct: 1,
-    },
-    {
-      id: 8,
-      question: "Which of the following is NOT a React hook?",
-      options: ["useState", "useEffect", "useHistory", "useRef"],
-      correct: 2,
-    },
-    {
-      id: 9,
-      question: "How do you prevent a component from re-rendering unnecessarily?",
-      options: ["React.memo", "React.clone", "React.pure", "React.freeze"],
-      correct: 0,
-    },
-    {
-      id: 10,
-      question: "What is the purpose of the key prop in a list?",
-      options: [
-        "To style list items",
-        "To help React identify which items have changed",
-        "To sort the list",
-        "To filter duplicate items",
-      ],
-      correct: 1,
-    },
-  ],
-};
 
 // ─── Helpers ───────────────────────────────────────────────
 const formatTime = (seconds) => {
@@ -114,24 +28,64 @@ const getScoreLabel = (percent) => {
   return { label: "Needs Improvement", color: "score-poor" };
 };
 
-// ─── Screens ───────────────────────────────────────────────
 const SCREEN = { INTRO: "intro", QUIZ: "quiz", RESULT: "result" };
 
 export default function GrandQuiz() {
+  const { courseId } = useParams();
+
+  // ── State ────────────────────────────────────────────────
+  const [quizData, setQuizData] = useState(null);       // fetched quiz object
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
   const [screen, setScreen] = useState(SCREEN.INTRO);
   const [current, setCurrent] = useState(0);
-  const [answers, setAnswers] = useState({}); // { questionId: chosenIndex }
-  const [selected, setSelected] = useState(null); // current question selection
-  const [timeLeft, setTimeLeft] = useState(QUIZ.totalTime);
+  const [answers, setAnswers] = useState({});
+  const [selected, setSelected] = useState(null);
+  const [timeLeft, setTimeLeft] = useState(0);
   const [submitted, setSubmitted] = useState(false);
   const timerRef = useRef(null);
 
-  const total = QUIZ.questions.length;
-  const question = QUIZ.questions[current];
+  // ── Fetch quiz ──────────────────────────────────────────
+  useEffect(() => {
+    const fetchQuiz = async () => {
+      try {
+        setLoading(true);
+        const res = await api.get(`/quizzes/course/${courseId}`);
+        const data = res.data;
+        // API returns { success: true, data: [ quizObject ] }
+        const quiz = data.data?.[0];
+        if (!quiz) {
+          setError("No quiz found for this course");
+          return;
+        }
+        // Map questions: add an 'id' field (index) and ensure 'correct' exists
+        const mappedQuestions = quiz.questions.map((q, idx) => ({
+          id: idx + 1, // or use a unique id if provided
+          question: q.question,
+          options: q.options,
+          correct: q.correct ?? 0, // fallback to 0 if missing (adjust as needed)
+        }));
+        setQuizData({
+          ...quiz,
+          questions: mappedQuestions,
+          totalTime: quiz.totalTime * 60, // convert minutes to seconds
+        });
+        setTimeLeft(quiz.totalTime * 60);
+        setError(null);
+      } catch (err) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (courseId) fetchQuiz();
+  }, [courseId]);
 
   // ── Timer ────────────────────────────────────────────────
   useEffect(() => {
-    if (screen !== SCREEN.QUIZ) return;
+    if (screen !== SCREEN.QUIZ || !quizData) return;
 
     timerRef.current = setInterval(() => {
       setTimeLeft((prev) => {
@@ -145,22 +99,26 @@ export default function GrandQuiz() {
     }, 1000);
 
     return () => clearInterval(timerRef.current);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [screen]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [screen, quizData]);
 
-  // ── Restore saved answer when navigating ─────────────────
+  // ── Restore answer on navigation ────────────────────────
   useEffect(() => {
-    setSelected(answers[question.id] ?? null);
-  }, [current, answers, question.id]);
+    if (!quizData) return;
+    const q = quizData.questions[current];
+    setSelected(answers[q.id] ?? null);
+  }, [current, answers, quizData]);
 
+  // ── Handlers ─────────────────────────────────────────────
   const handleSelect = (idx) => {
     if (submitted) return;
     setSelected(idx);
-    setAnswers((prev) => ({ ...prev, [question.id]: idx }));
+    const q = quizData.questions[current];
+    setAnswers((prev) => ({ ...prev, [q.id]: idx }));
   };
 
   const handleNext = () => {
-    if (current < total - 1) setCurrent((c) => c + 1);
+    if (current < quizData.questions.length - 1) setCurrent((c) => c + 1);
   };
 
   const handlePrev = () => {
@@ -178,15 +136,27 @@ export default function GrandQuiz() {
     setCurrent(0);
     setAnswers({});
     setSelected(null);
-    setTimeLeft(QUIZ.totalTime);
+    setTimeLeft(quizData.totalTime);
     setSubmitted(false);
   };
 
-  // ── Score calc ───────────────────────────────────────────
-  const score = QUIZ.questions.reduce((acc, q) => {
+  // ── Loading / Error ──────────────────────────────────────
+  if (loading) {
+    return <div className="gq-page"><p>Loading quiz…</p></div>;
+  }
+  if (error) {
+    return <div className="gq-page"><p>Error: {error}</p></div>;
+  }
+  if (!quizData) {
+    return <div className="gq-page"><p>No quiz available for this course.</p></div>;
+  }
+
+  // ── Derived values ──────────────────────────────────────
+  const total = quizData.questions.length;
+  const question = quizData.questions[current];
+  const score = quizData.questions.reduce((acc, q) => {
     return answers[q.id] === q.correct ? acc + 1 : acc;
   }, 0);
-
   const percent = Math.round((score / total) * 100);
   const scoreInfo = getScoreLabel(percent);
   const answered = Object.keys(answers).length;
@@ -203,8 +173,8 @@ export default function GrandQuiz() {
           <div className="gq-intro-icon">
             <FiAward />
           </div>
-          <p className="gq-intro-subject">{QUIZ.subject}</p>
-          <h1 className="gq-intro-title">{QUIZ.title}</h1>
+          <p className="gq-intro-subject">{quizData.subject}</p>
+          <h1 className="gq-intro-title">{quizData.title}</h1>
           <p className="gq-intro-subtitle">Grand Quiz</p>
 
           <div className="gq-intro-stats">
@@ -214,7 +184,7 @@ export default function GrandQuiz() {
             </div>
             <div className="gq-stat-divider" />
             <div className="gq-stat">
-              <span className="gq-stat-value">{QUIZ.totalTime / 60}</span>
+              <span className="gq-stat-value">{quizData.totalTime / 60}</span>
               <span className="gq-stat-label">Minutes</span>
             </div>
             <div className="gq-stat-divider" />
@@ -268,7 +238,7 @@ export default function GrandQuiz() {
           {/* Answer Review */}
           <div className="gq-review">
             <h3 className="gq-review-heading">Review Answers</h3>
-            {QUIZ.questions.map((q, i) => {
+            {quizData.questions.map((q, i) => {
               const chosen = answers[q.id];
               const isCorrect = chosen === q.correct;
               const isSkipped = chosen === undefined;
@@ -317,7 +287,6 @@ export default function GrandQuiz() {
   return (
     <div className="gq-page">
       <div className="gq-quiz-card">
-
         {/* ── Top Bar ── */}
         <div className="gq-topbar">
           <div className="gq-topbar-left">
@@ -364,7 +333,7 @@ export default function GrandQuiz() {
 
         {/* ── Question Dots ── */}
         <div className="gq-dots">
-          {QUIZ.questions.map((q, i) => (
+          {quizData.questions.map((q, i) => (
             <button
               key={q.id}
               className={`gq-dot ${i === current ? "active" : ""} ${answers[q.id] !== undefined ? "done" : ""}`}
