@@ -95,6 +95,7 @@ export default function GrandQuiz() {
   // ── Timer ────────────────────────────────────────────────
   useEffect(() => {
     if (screen !== SCREEN.QUIZ) return;
+    if (!question) return;
 
     timerRef.current = setInterval(() => {
       setTimeLeft((prev) => {
@@ -113,13 +114,14 @@ export default function GrandQuiz() {
 
   // ── Restore saved answer when navigating ─────────────────
   useEffect(() => {
-    setSelected(answers[question.id] ?? null);
-  }, [current, answers, question.id]);
+    setSelected(answers[question?.id] ?? null);
+  }, [current, answers, question?.id]);
 
   const handleSelect = (idx) => {
     if (submitted) return;
+    if (!question) return;
     setSelected(idx);
-    setAnswers((prev) => ({ ...prev, [question.id]: idx }));
+    setAnswers((prev) => ({ ...prev, [question?.id]: idx }));
   };
 
   const handleNext = () => {
@@ -147,7 +149,7 @@ export default function GrandQuiz() {
 
   // ── Score calc ───────────────────────────────────────────
   const score = (quiz?.questions || []).reduce((acc, q) => {
-    return answers[q.id] === q.correct ? acc + 1 : acc;
+    return answers[q?.id] === q?.correct ? acc + 1 : acc;
   }, 0);
 
   const percent = Math.round((score / total) * 100);
@@ -274,12 +276,12 @@ export default function GrandQuiz() {
           <div className="gq-review">
             <h3 className="gq-review-heading">Review Answers</h3>
             {(quiz?.questions || []).map((q, i) => {
-              const chosen = answers[q.id];
-              const isCorrect = chosen === q.correct;
+              const chosen = answers[q?.id];
+              const isCorrect = chosen === q?.correct;
               const isSkipped = chosen === undefined;
               return (
                 <div
-                  key={q.id}
+                  key={q?.id || i}
                   className={`gq-review-item ${isCorrect ? "correct" : isSkipped ? "skipped" : "wrong"}`}
                 >
                   <div className="gq-review-top">
@@ -295,12 +297,12 @@ export default function GrandQuiz() {
                   </div>
                   {!isCorrect && (
                     <p className="gq-review-correct">
-                      ✓ {q.options[q.correct]}
+                      ✓ {q.options[q?.correct]}
                     </p>
                   )}
                   {!isCorrect && !isSkipped && (
                     <p className="gq-review-chosen">
-                      ✗ {q.options[chosen]}
+                      ✗ {q?.options?.[chosen]}
                     </p>
                   )}
                 </div>
@@ -346,10 +348,14 @@ export default function GrandQuiz() {
 
         {/* ── Question ── */}
         <div className="gq-question-area">
-          <p className="gq-question-text">{question.question}</p>
+          {!question ? (
+            <p className="gq-question-text">Loading question…</p>
+          ) : (
+            <>
+          <p className="gq-question-text">{question?.question}</p>
 
           <div className="gq-options">
-            {question.options.map((opt, idx) => (
+            {question?.options?.map((opt, idx) => (
               <button
                 key={idx}
                 className={`gq-option ${selected === idx ? "selected" : ""}`}
@@ -365,17 +371,21 @@ export default function GrandQuiz() {
               </button>
             ))}
           </div>
+            </>
+          )}
         </div>
 
         {/* ── Question Dots ── */}
         <div className="gq-dots">
           {(quiz?.questions || []).map((q, i) => (
+            q ? (
             <button
-              key={q.id}
-              className={`gq-dot ${i === current ? "active" : ""} ${answers[q.id] !== undefined ? "done" : ""}`}
+              key={q?.id || i}
+              className={`gq-dot ${i === current ? "active" : ""} ${answers[q?.id] !== undefined ? "done" : ""}`}
               onClick={() => setCurrent(i)}
               title={`Question ${i + 1}`}
             />
+            ) : null
           ))}
         </div>
 
