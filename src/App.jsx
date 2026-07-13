@@ -9,7 +9,7 @@ import OtpVerification from "./pages/OtpVerification";
 import ForgotPassword  from "./pages/Forgot-password";
 import ResetPassword   from "./pages/Reset-password";
 import VerifyUserMail  from "./pages/VerifyUserMail";
-import Dashboard       from "./pages/Dashboard";
+import Dashboard       from "./pages/superAdmin/Dashboard";
 import LectureWatching from "./pages/LectureWatching";
 import UserManagement  from "./pages/admin/UserManagement";
 import Admin           from "./pages/Admin";
