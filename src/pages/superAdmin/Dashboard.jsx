@@ -1,4 +1,3 @@
-// src/pages/admin/Dashboard.jsx
 import { useState } from "react";
 import {
   FiGrid, FiUsers, FiBookOpen, FiPlayCircle, FiHelpCircle, FiMessageSquare, FiActivity,
@@ -13,7 +12,7 @@ import ComplaintQueue from "../../components/admin/ComplaintQueue";
 import LiveActivityPanel from "../../components/admin/LiveActivityPanel";
 import {
   SignupTrendChart, RoleDistributionChart, CategoryDistributionChart, ComplaintStatusChart,
-} from "../../components/admin/AdminCharts";
+} from "../../components/Admin/AdminCharts";
 import "../../styles/admin-dashboard.css";
 
 const TABS = [
