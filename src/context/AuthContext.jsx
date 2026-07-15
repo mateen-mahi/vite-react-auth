@@ -12,14 +12,15 @@ export const AuthProvider = ({ children }) => {
     role: null,
   });
 
-  const { 
-    isConnected, 
-    socketId, 
+  const {
+    isConnected,
+    socketId,
     connectionError,
+    onlineUserIds, // NEW — Set of currently-online userIds, live for the whole app
     connectSocket,
     disconnectSocket,
     emitEvent,
-    onEvent 
+    onEvent,
   } = useSocket();
 
   const checkAuth = useCallback(async () => {
@@ -43,10 +44,8 @@ export const AuthProvider = ({ children }) => {
     checkAuth();
   }, [checkAuth]);
 
-  // Socket connection management
   useEffect(() => {
     if (!auth.loading && auth.user) {
-      // Connect socket with auth data
       connectSocket({ userId: auth.user._id });
       console.log("🔌 Socket connecting for user:", auth.user._id);
     } else if (!auth.loading && !auth.user) {
@@ -55,24 +54,19 @@ export const AuthProvider = ({ children }) => {
     }
   }, [auth.user, auth.loading, connectSocket, disconnectSocket]);
 
-  // Log connection status
   useEffect(() => {
-    if (isConnected) {
-      console.log(`✅ Socket connected with ID: ${socketId}`);
-    }
-    if (connectionError) {
-      console.error(`❌ Socket error: ${connectionError}`);
-    }
+    if (isConnected) console.log(`✅ Socket connected with ID: ${socketId}`);
+    if (connectionError) console.error(`❌ Socket error: ${connectionError}`);
   }, [isConnected, socketId, connectionError]);
 
   const value = {
     ...auth,
     refreshAuth: checkAuth,
-    // Socket related values
     socket,
     isConnected,
     socketId,
     connectionError,
+    onlineUserIds,
     emitEvent,
     onEvent,
   };

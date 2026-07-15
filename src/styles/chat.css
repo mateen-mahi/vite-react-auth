@@ -658,6 +658,23 @@
   text-transform: capitalize;
 }
 
+
+
+.chat-avatar-photo {
+  object-fit: cover;
+  display: block;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* ─── Presence dot wrapper + dot itself ──────────────────────────────── */
+
+.chat-avatar-presence-wrap {
+  position: relative;
+  display: inline-flex;
+  flex-shrink: 0;
+}
+
 /* ─── Spin animation (reused from existing CSS) ──────────────────────────── */
 
 @keyframes spin {
