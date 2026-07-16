@@ -1,3 +1,4 @@
+// src/custom-hooks/useSocket.js
 import { useState, useEffect, useCallback } from "react";
 import socket from "../socket/socket.js";
 
@@ -6,6 +7,10 @@ export const useSocket = () => {
   const [socketId,    setSocketId]    = useState(socket.id || null);
   const [connectionError, setConnectionError] = useState(null);
 
+  // Set of userIds currently online. Tracked HERE (not in Chat.jsx) because
+  // this hook's listeners register once when the app boots — before that,
+  // a "online-users" snapshot fired at connect time would be missed by any
+  // page-level component that mounts later.
   const [onlineUserIds, setOnlineUserIds] = useState(new Set());
 
   useEffect(() => {

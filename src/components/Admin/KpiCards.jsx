@@ -16,8 +16,7 @@ export default function KpiCards() {
   const [loading, setLoading] = useState(true);
   const { onlineAdmins, subscribe } = useAdminSocket();
 
-  // Initial real fetch — this is the ONLY REST call; everything after this
-  // point is live increments applied in place, no refetching.
+
   useEffect(() => {
     const fetchStats = async () => {
       try {
