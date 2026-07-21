@@ -1,0 +1,959 @@
+[33mcommit f9360c081be9302b68cf3ff8832931bc268dea73[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmaster[m[33m, [m[1;31morigin/master[m[33m, [m[1;31morigin/HEAD[m[33m)[m
+Author: mateen-mahi <mateenmahihot@gmail.com>
+Date:   Sun Jul 19 08:08:40 2026 +0500
+
+    signout change
+
+[33mcommit 4f084053193641fcf77a338fe17baf56ac24bc8a[m
+Author: mateen-mahi <mateenmahihot@gmail.com>
+Date:   Sun Jul 19 08:07:04 2026 +0500
+
+    signout change
+
+[33mcommit d5066d1da4f81d98a7757b5d7ecaf91773d8de5e[m
+Author: mateen-mahi <mateenmahihot@gmail.com>
+Date:   Sun Jul 19 08:03:49 2026 +0500
+
+    signout change
+
+[33mcommit 6166542a2481b70ad2cebbc7841a1545ad8da0f3[m
+Author: mateen-mahi <mateenmahihot@gmail.com>
+Date:   Fri Jul 17 03:41:11 2026 +0500
+
+    Chat app
+
+[33mcommit 32c093ea6b8e8fcad10cb2b47d299215fcc92bf7[m
+Author: mateen-mahi <mateenmahihot@gmail.com>
+Date:   Fri Jul 17 03:25:54 2026 +0500
+
+    Chat app
+
+[33mcommit 41efbf9798c200bf68fc16f04bab7a55981c1df0[m
+Author: mateen-mahi <mateenmahihot@gmail.com>
+Date:   Fri Jul 17 02:10:05 2026 +0500
+
+    Dashboard changing
+
+[33mcommit 09de931517a120911e328993c605598c6e85edd2[m
+Author: mateen-mahi <mateenmahihot@gmail.com>
+Date:   Wed Jul 15 20:49:31 2026 +0500
+
+    chat online feature added
+
+[33mcommit 2b72c03b04d25916d4b1f0cb0d4ff4b3fc61bf14[m
+Author: mateen-mahi <mateenmahihot@gmail.com>
+Date:   Wed Jul 15 20:40:55 2026 +0500
+
+    chat online feature added
+
+[33mcommit 5f68cf59e2962c1c15fbcd77110d905703be8a65[m
+Author: mateen-mahi <mateenmahihot@gmail.com>
+Date:   Tue Jul 14 02:55:43 2026 +0500
+
+    Admin Page
+
+[33mcommit 226225129b4b484e1c4620e2c44a1f974e12e4c0[m
+Author: mateen-mahi <mateenmahihot@gmail.com>
+Date:   Tue Jul 14 02:31:16 2026 +0500
+
+    Admin Page
+
+[33mcommit 88949f041ab87f464b89834782fd2b16868b158e[m
+Author: mateen-mahi <mateenmahihot@gmail.com>
+Date:   Tue Jul 14 02:22:11 2026 +0500
+
+    Admin Page
+
+[33mcommit 46fa1d79790466e80fec73632029f3d25c4dad44[m
+Author: mateen-mahi <mateenmahihot@gmail.com>
+Date:   Mon Jul 13 20:55:38 2026 +0500
+
+    chat page
+
+[33mcommit a7c0be4e34dabdbda5a741d58b8e25daa966b4ad[m
+Author: mateen-mahi <mateenmahihot@gmail.com>
+Date:   Mon Jul 13 20:10:21 2026 +0500
+
+    quizz dynamic added
+
+[33mcommit 94bea9b9d3b8ed89002b4d57319477c045cda6d6[m
+Author: mateen-mahi <mateenmahihot@gmail.com>
+Date:   Mon Jul 13 10:28:11 2026 +0500
+
+    quizz dynamic added
+
+[33mcommit e4c2b6f3f470bd59fea787b2eab13da0720ff556[m
+Author: mateen-mahi <mateenmahihot@gmail.com>
+Date:   Mon Jul 13 05:47:02 2026 +0500
+
+    quizz dynamic added
+
+[33mcommit 8c4fc7a43d724dc6341e683487f4616f4604039a[m
+Author: mateen-mahi <mateenmahihot@gmail.com>
+Date:   Mon Jul 13 05:44:24 2026 +0500
+
+    quizz dynamic added
+
+[33mcommit ca746ea06a2a282b6647baa75ddc57f38973677e[m
+Author: mateen-mahi <mateenmahihot@gmail.com>
+Date:   Mon Jul 13 05:33:26 2026 +0500
+
+    lecture id change
+
+[33mcommit 9d4c753b15d078d367cbc00f6220e894a5679788[m
+Author: mateen-mahi <mateenmahihot@gmail.com>
+Date:   Mon Jul 13 05:28:32 2026 +0500
+
+    lecture id change
+
+[33mcommit 6d5a2bc1d77d391513cac52cff24d1f2e6999cba[m
+Author: mateen-mahi <mateenmahihot@gmail.com>
+Date:   Mon Jul 13 05:27:09 2026 +0500
+
+    lecture id change
+
+[33mcommit c2a14268566e247b0a33ff48df3a2cf772134f6a[m
+Author: mateen-mahi <mateenmahihot@gmail.com>
+Date:   Mon Jul 13 05:24:16 2026 +0500
+
+    lecture id change
+
+[33mcommit 4e72ab42ef8b7e4dbb0e7df893d0d272f8a90c56[m
+Author: mateen-mahi <mateenmahihot@gmail.com>
+Date:   Mon Jul 13 05:17:42 2026 +0500
+
+    lecture id change
+
+[33mcommit f70853e0a5d86f2a8d8a0146e5153564595d96a7[m
+Author: mateen-mahi <mateenmahihot@gmail.com>
+Date:   Mon Jul 13 05:12:39 2026 +0500
+
+    lecture
+
+[33mcommit a84e12e22ce605ab6d26c809844e88cf93c99724[m
+Author: mateen-mahi <mateenmahihot@gmail.com>
+Date:   Mon Jul 13 04:44:05 2026 +0500
+
+    lecture
+
+[33mcommit d13ddb34653057366539908c26e906a282312c8f[m
+Author: mateen-mahi <mateenmahihot@gmail.com>
+Date:   Mon Jul 13 04:42:27 2026 +0500
+
+    lecture
+
+[33mcommit 5016ae9070edfb7c86ca89c1b5e03fde94c544f4[m
+Author: mateen-mahi <mateenmahihot@gmail.com>
+Date:   Mon Jul 13 04:37:49 2026 +0500
+
+    app.js
+
+[33mcommit 0e7d4015e0463c1a318ce62c879478faa63cbcbe[m
+Author: mateen-mahi <mateenmahihot@gmail.com>
+Date:   Mon Jul 13 04:22:59 2026 +0500
+
+    app.jsx
+
+[33mcommit 669cf7f1df2beb69f3b2820fc52a062374d9c545[m
+Author: mateen-mahi <mateenmahihot@gmail.com>
+Date:   Mon Jul 13 04:15:58 2026 +0500
+
+    app.jsx
+
+[33mcommit 92498612a61baff448d8d4bd265da480a295846b[m
+Author: mateen-mahi <mateenmahihot@gmail.com>
+Date:   Mon Jul 13 04:12:44 2026 +0500
+
+    app.jsx
+
+[33mcommit bfa550eabe37a1acecc8fb196b4b5bf9fefb6deb[m
+Author: mateen-mahi <mateenmahihot@gmail.com>
+Date:   Mon Jul 13 03:57:57 2026 +0500
+
+    Side bar
+
+[33mcommit c09073463cd9d7d6514e6871451a3d36cd0b0ee1[m
+Author: mateen-mahi <mateenmahihot@gmail.com>
+Date:   Mon Jul 13 03:11:47 2026 +0500
+
+    Notes added
+
+[33mcommit 57e3e81d6b14ccf55f9822170a3bfb6a2d5599b3[m
+Author: mateen-mahi <mateenmahihot@gmail.com>
+Date:   Mon Jul 13 03:06:54 2026 +0500
+
+    Notes added
+
+[33mcommit f5f837fbfdee670234f3f3a75a1fb20cb7320f7f[m
+Author: mateen-mahi <mateenmahihot@gmail.com>
+Date:   Mon Jul 13 03:05:24 2026 +0500
+
+    Notes added
+
+[33mcommit 3669141a024d63b5ccebf587aca2d3353c062780[m
+Author: mateen-mahi <mateenmahihot@gmail.com>
+Date:   Mon Jul 13 03:03:59 2026 +0500
+
+    Notes added
+
+[33mcommit 80e50f86142b9399b977497cefc1af27fbeed7d1[m
+Author: mateen-mahi <mateenmahihot@gmail.com>
+Date:   Mon Jul 13 02:58:24 2026 +0500
+
+    Notes added
+
+[33mcommit d23d0a9b335bf081d0c6b5e52cdb7c60ec9f05cc[m
+Author: mateen-mahi <mateenmahihot@gmail.com>
+Date:   Mon Jul 13 02:41:19 2026 +0500
+
+    Notes added
+
+[33mcommit 6e5ecc87a8ad479a6df3e2bc53168db76cf9035a[m
+Author: mateen-mahi <mateenmahihot@gmail.com>
+Date:   Mon Jul 13 02:30:49 2026 +0500
+
+    Notes added
+
+[33mcommit 8513ce788498237208d257187c03634f788a209f[m
+Author: mateen-mahi <mateenmahihot@gmail.com>
+Date:   Mon Jul 13 02:28:38 2026 +0500
+
+    Notes added
+
+[33mcommit 82597d2f6950a6ecfe58e171a7aa404a5dd83236[m
+Author: mateen-mahi <mateenmahihot@gmail.com>
+Date:   Mon Jul 13 02:13:13 2026 +0500
+
+    Notes added
+
+[33mcommit 3b45934bf1f1012e7ea95b0b86d95a2e5020ee1d[m
+Author: mateen-mahi <mateenmahihot@gmail.com>
+Date:   Mon Jul 13 01:41:35 2026 +0500
+
+    Notes added
+
+[33mcommit 0a277f6468e3182194c2e7cbcdedf096d5ed4c38[m
+Author: mateen-mahi <mateenmahihot@gmail.com>
+Date:   Mon Jul 13 01:32:50 2026 +0500
+
+    Notes added
+
+[33mcommit 308d3e810f1c26340e93931c770da22f2075b1a6[m
+Author: mateen-mahi <mateenmahihot@gmail.com>
+Date:   Mon Jul 13 01:21:08 2026 +0500
+
+    Notes added
+
+[33mcommit fa373e29bdde82ebe8de24088d46d3a533acbe08[m
+Author: mateen-mahi <mateenmahihot@gmail.com>
+Date:   Mon Jul 13 01:14:29 2026 +0500
+
+    Notes added
+
+[33mcommit 219513cccd4a86e123f88209c24e220ecdf92110[m
+Author: mateen-mahi <mateenmahihot@gmail.com>
+Date:   Mon Jul 13 01:11:20 2026 +0500
+
+    Notes added
+
+[33mcommit 3db5c7ee892d4f9d41d5729998cf30080de6f1e5[m
+Author: mateen-mahi <mateenmahihot@gmail.com>
+Date:   Mon Jul 13 01:07:44 2026 +0500
+
+    Notes added
+
+[33mcommit d245c597f87faaec8f838f1eef49ae9f83a41e22[m
+Author: mateen-mahi <mateenmahihot@gmail.com>
+Date:   Mon Jul 13 01:03:56 2026 +0500
+
+    Notes added
+
+[33mcommit 276072041d9217fc3f45f4d9697fdda7da131be6[m
+Author: mateen-mahi <mateenmahihot@gmail.com>
+Date:   Mon Jul 13 00:49:30 2026 +0500
+
+    Notes added
+
+[33mcommit 72f6330e561d2bf3c3c68406001aac64b441f5ac[m
+Author: mateen-mahi <mateenmahihot@gmail.com>
+Date:   Mon Jul 13 00:24:44 2026 +0500
+
+    Notes added
+
+[33mcommit 352335e1650d61f0109deb754bf52e1b9ce6cab4[m
+Author: mateen-mahi <mateenmahihot@gmail.com>
+Date:   Sun Jul 12 23:35:58 2026 +0500
+
+    Notes added
+
+[33mcommit fa7d92a0a582762c4c4bc2ad5b2fcf82072f2956[m
+Author: mateen-mahi <mateenmahihot@gmail.com>
+Date:   Sun Jul 12 23:28:02 2026 +0500
+
+    Notes added
+
+[33mcommit dc894edcc0ef1535740b7f0d1a947125404fba00[m
+Author: mateen-mahi <mateenmahihot@gmail.com>
+Date:   Sun Jul 12 14:23:02 2026 +0500
+
+    Socket Setup
+
+[33mcommit 738546bbcdbac09c6fdfb0036e0e2fcf39464c51[m
+Author: mateen-mahi <mateenmahihot@gmail.com>
+Date:   Sat Jul 11 03:19:41 2026 +0500
+
+    Socket Setup
+
+[33mcommit fdd968865d8aa3de8fcf13b3d9be7aab7fd00975[m
+Author: mateen-mahi <mateenmahihot@gmail.com>
+Date:   Sat Jul 11 00:13:50 2026 +0500
+
+    Socket Setup
+
+[33mcommit 27ace76d53a52397eacb26c352e57c6c8a70188d[m
+Author: mateen-mahi <mateenmahihot@gmail.com>
+Date:   Sat Jul 11 00:10:27 2026 +0500
+
+    Socket Setup
+
+[33mcommit 61a943348621b22776eead289486459369b695d5[m
+Author: mateen-mahi <mateenmahihot@gmail.com>
+Date:   Sat Jul 11 00:03:34 2026 +0500
+
+    Socket Setup
+
+[33mcommit aeb66703c13f4a51a5a115ae49830a18a0523c22[m
+Author: mateen-mahi <mateenmahihot@gmail.com>
+Date:   Fri Jul 10 23:58:43 2026 +0500
+
+    Socket Setup
+
+[33mcommit 2056141a023eef0cc2265869de8b1ebd3e129c04[m
+Author: mateen-mahi <mateenmahihot@gmail.com>
+Date:   Fri Jul 10 23:35:30 2026 +0500
+
+    Socket Setup
+
+[33mcommit a1de71d3d85d49e766ab767023b4042ae234df71[m
+Author: mateen-mahi <mateenmahihot@gmail.com>
+Date:   Fri Jul 10 02:33:31 2026 +0500
+
+    course page update
+
+[33mcommit 40ba9cb32e2fbb533b8bd3d1cda1f62cac59c228[m
+Author: mateen-mahi <mateenmahihot@gmail.com>
+Date:   Fri Jul 10 02:01:32 2026 +0500
+
+    course page changing
+
+[33mcommit eea64f70b3435b8f3dbbc254615ee535c69bf47e[m
+Author: mateen-mahi <mateenmahihot@gmail.com>
+Date:   Fri Jul 10 01:44:15 2026 +0500
+
+    course page changing
+
+[33mcommit 4a339678facbf838f47cd51512221614648ffae3[m
+Author: mateen-mahi <mateenmahihot@gmail.com>
+Date:   Fri Jul 10 01:35:06 2026 +0500
+
+    course page changing
+
+[33mcommit ebcf6e311db12aaf50f4365a5eb54e3fd16f3028[m
+Author: mateen-mahi <mateenmahihot@gmail.com>
+Date:   Fri Jul 10 01:30:02 2026 +0500
+
+    course page changing
+
+[33mcommit e7c026b91a70d7c3c6b462cf4e03795b551dfc79[m
+Author: mateen-mahi <mateenmahihot@gmail.com>
+Date:   Fri Jul 10 01:15:58 2026 +0500
+
+    course page changing
+
+[33mcommit 3c8cda94b8e478d7c32174fb7a5a7dcaf692571e[m
+Author: mateen-mahi <mateenmahihot@gmail.com>
+Date:   Fri Jul 10 01:11:48 2026 +0500
+
+    course page changing
+
+[33mcommit 3ba3d27ebddd59d73c19c3567679b703d3b8c15e[m
+Author: mateen-mahi <mateenmahihot@gmail.com>
+Date:   Fri Jul 10 01:01:02 2026 +0500
+
+    course page changing
+
+[33mcommit 05507136af7195431d0d9d2cc7b97ea7c231f6ce[m
+Author: mateen-mahi <mateenmahihot@gmail.com>
+Date:   Fri Jul 10 00:27:49 2026 +0500
+
+    course page changing
+
+[33mcommit 3d5a37f949aebd3b894357ef67332de97cf0d050[m
+Author: mateen-mahi <mateenmahihot@gmail.com>
+Date:   Thu Jul 9 23:59:42 2026 +0500
+
+    course page changing
+
+[33mcommit 17012e29fb6417ce27006238cef0b9ab257bf434[m
+Author: mateen-mahi <mateenmahihot@gmail.com>
+Date:   Thu Jul 9 23:45:13 2026 +0500
+
+    course page changing
+
+[33mcommit 84aa3b6346133e4ab312934973753a146c1a1ef7[m
+Author: mateen-mahi <mateenmahihot@gmail.com>
+Date:   Thu Jul 9 21:18:30 2026 +0500
+
+    course page changing
+
+[33mcommit e8ea31d3a998d39ec09a0b70a5d4fe5c5826b3b2[m
+Author: mateen-mahi <mateenmahihot@gmail.com>
+Date:   Thu Jul 9 19:55:08 2026 +0500
+
+    course page changing
+
+[33mcommit 476b5f67181171fa0fd0db7e763e910e45802d75[m
+Author: mateen-mahi <mateenmahihot@gmail.com>
+Date:   Wed Jul 8 02:01:24 2026 +0500
+
+    Compaint page Changing added
+
+[33mcommit b23d9d425a22359dc8af3548f703a369100c7bf2[m
+Author: mateen-mahi <mateenmahihot@gmail.com>
+Date:   Wed Jul 8 01:52:05 2026 +0500
+
+    Compaint page Changing added
+
+[33mcommit 34953e851e9382e18de71164e3d3f7d591c817fe[m
+Author: mateen-mahi <mateenmahihot@gmail.com>
+Date:   Tue Jul 7 02:38:41 2026 +0500
+
+    Navbar realtime
+
+[33mcommit b0fad527ca12d628f1120124e3507656170b9334[m
+Author: mateen-mahi <mateenmahihot@gmail.com>
+Date:   Tue Jul 7 02:37:50 2026 +0500
+
+    Navbar realtime
+
+[33mcommit 0ee929ae992e8188472245ec81d754c7f82e78e6[m
+Author: mateen-mahi <mateenmahihot@gmail.com>
+Date:   Mon Jul 6 23:20:07 2026 +0500
+
+    Endpoint change
+
+[33mcommit faf511233e3872a6986ad48f5e9a948d24e63ca2[m
+Author: mateen-mahi <mateenmahihot@gmail.com>
+Date:   Mon Jul 6 23:17:45 2026 +0500
+
+    Endpoint change
+
+[33mcommit f05a631a59c3fe218c4d864c8b6ab1788dd30dd4[m
+Author: mateen-mahi <mateenmahihot@gmail.com>
+Date:   Mon Jul 6 02:58:20 2026 +0500
+
+    profile page update
+
+[33mcommit c0b6d1dabdab509dee5e1b86cab726d8686c02b6[m
+Author: mateen-mahi <mateenmahihot@gmail.com>
+Date:   Mon Jul 6 02:36:29 2026 +0500
+
+    profile page update
+
+[33mcommit 1955c6a76feb4f8cd1cb05313bd7b738183f4f30[m
+Author: mateen-mahi <mateenmahihot@gmail.com>
+Date:   Mon Jul 6 02:24:35 2026 +0500
+
+    profile page update
+
+[33mcommit ec1f1a657985a8d4203f63c0e907c6abc6a2b552[m
+Author: mateen-mahi <mateenmahihot@gmail.com>
+Date:   Sun Jul 5 19:38:14 2026 +0500
+
+    profile page update
+
+[33mcommit 517dabac0b8d55e22e80dbbabedcfb0182cbc540[m
+Author: mateen-mahi <mateenmahihot@gmail.com>
+Date:   Sun Jul 5 17:56:59 2026 +0500
+
+    profile page update
+
+[33mcommit 005e27cf0b74507e0ff796cd3889c194838e46bb[m
+Author: mateen-mahi <mateenmahihot@gmail.com>
+Date:   Sun Jul 5 17:50:58 2026 +0500
+
+    profile page update
+
+[33mcommit 7248b3f8ed7ca352f553bf0ca36ac4bd28e2204d[m
+Author: mateen-mahi <mateenmahihot@gmail.com>
+Date:   Sun Jul 5 17:41:09 2026 +0500
+
+    profile page update
+
+[33mcommit de3c8e6e22403634b2087c90c6cc8d6edeeb5be6[m
+Author: mateen-mahi <mateenmahihot@gmail.com>
+Date:   Sun Jul 5 17:32:04 2026 +0500
+
+    profile page update
+
+[33mcommit 2e7d2f15ee3e79b2c168013f686fe510661c5f18[m
+Author: mateen-mahi <mateenmahihot@gmail.com>
+Date:   Sun Jul 5 17:30:50 2026 +0500
+
+    profile page update
+
+[33mcommit 19c12ba9fcf4b5bf47b560be90f70a10f2dd8f23[m
+Author: mateen-mahi <mateenmahihot@gmail.com>
+Date:   Sun Jul 5 17:13:03 2026 +0500
+
+    profile page update
+
+[33mcommit 43f2f58cd90bf6f83b17f81d281a9ec0a6083729[m
+Author: mateen-mahi <mateenmahihot@gmail.com>
+Date:   Fri Jul 3 04:17:25 2026 +0500
+
+    Profile page changing
+
+[33mcommit 1458cd0e80f20143652ec5a987e2ee1f18b19339[m
+Author: mateen-mahi <mateenmahihot@gmail.com>
+Date:   Fri Jul 3 04:02:50 2026 +0500
+
+    Profile page changing
+
+[33mcommit 2ce580bcfe4bcf0758fe6433d9f61d91a8f000b9[m
+Author: mateen-mahi <mateenmahihot@gmail.com>
+Date:   Thu Jul 2 02:15:53 2026 +0500
+
+    New  page added
+
+[33mcommit ca5c6932b38ec1a7e283ee7413b39c1696ab93b6[m
+Author: mateen-mahi <mateenmahihot@gmail.com>
+Date:   Thu Jul 2 02:10:14 2026 +0500
+
+    New  page added
+
+[33mcommit 592835e2a145147b98725fff7aebe136acc8501c[m
+Author: mateen-mahi <mateenmahihot@gmail.com>
+Date:   Thu Jul 2 01:59:59 2026 +0500
+
+    New  page added
+
+[33mcommit afa0aec22e5f8bec977b4ecd481d22b90d3a3b94[m
+Author: mateen-mahi <mateenmahihot@gmail.com>
+Date:   Thu Jul 2 01:54:28 2026 +0500
+
+    New  page added
+
+[33mcommit aaaff5667f80736c8814f2841abb0272b30c5b4f[m
+Author: mateen-mahi <mateenmahihot@gmail.com>
+Date:   Wed Jul 1 02:34:37 2026 +0500
+
+    Dashboard  page added
+
+[33mcommit d19e84679acdcf09856360910d08f3d0b5fdf4fe[m
+Author: mateen-mahi <mateenmahihot@gmail.com>
+Date:   Wed Jul 1 02:33:44 2026 +0500
+
+    Dashboard  page added
+
+[33mcommit 87462935b609948dadc35b1bb8749b3e6ae3ace8[m
+Author: mateen-mahi <mateenmahihot@gmail.com>
+Date:   Tue Jun 30 02:31:57 2026 +0500
+
+    Payment  page added
+
+[33mcommit 905d459fa0aecc4326446211b4dceb9c95abe391[m
+Author: mateen-mahi <mateenmahihot@gmail.com>
+Date:   Tue Jun 30 02:18:03 2026 +0500
+
+    Dashboard  page added 2
+
+[33mcommit f91a176a2fc3966b1f2a6d38596d7fb1cbafba39[m
+Author: mateen-mahi <mateenmahihot@gmail.com>
+Date:   Tue Jun 30 02:14:29 2026 +0500
+
+    Dashboard  page added 1
+
+[33mcommit 7240b763a411520e4d3fa804c0987f95b0436d8b[m
+Author: mateen-mahi <mateenmahihot@gmail.com>
+Date:   Tue Jun 30 02:12:23 2026 +0500
+
+    Dashboard  page added
+
+[33mcommit 1eac58b73a2c2785b8038d2e1e6bbbf711d6a7f7[m
+Author: mateen-mahi <mateenmahihot@gmail.com>
+Date:   Tue Jun 30 01:25:41 2026 +0500
+
+    courses  page added
+
+[33mcommit 17739ed30a7da22fb919dc7579b15c9fcba8f720[m
+Author: mateen-mahi <mateenmahihot@gmail.com>
+Date:   Tue Jun 30 01:08:51 2026 +0500
+
+    Notes page added
+
+[33mcommit 9ca35b859160cee6d55b99bd88deb9b83845748b[m
+Author: mateen-mahi <mateenmahihot@gmail.com>
+Date:   Tue Jun 30 00:17:23 2026 +0500
+
+    Quiz page added 2
+
+[33mcommit a1446a9627a0b35daf225cfa03d19b84491fe1f0[m
+Author: mateen-mahi <mateenmahihot@gmail.com>
+Date:   Tue Jun 30 00:06:02 2026 +0500
+
+    profile page added 2
+
+[33mcommit 68587278aa5a6196c89f81c9ab1217cd968afa70[m
+Author: mateen-mahi <mateenmahihot@gmail.com>
+Date:   Mon Jun 29 23:34:53 2026 +0500
+
+    profile page added
+
+[33mcommit c191ffc8f59241ad1db3e3141cd8a2da397fdc84[m
+Author: mateen-mahi <mateenmahihot@gmail.com>
+Date:   Mon Jun 29 02:25:40 2026 +0500
+
+    Quiz page added 1
+
+[33mcommit c3bd40b4e7811d3008a805d00f18086b1e376acd[m
+Author: mateen-mahi <mateenmahihot@gmail.com>
+Date:   Mon Jun 29 02:24:19 2026 +0500
+
+    Quiz page added
+
+[33mcommit a5f52cd05ba34313631f9d14cf24f0ce9ea0f61a[m
+Author: mateen-mahi <mateenmahihot@gmail.com>
+Date:   Mon Jun 29 01:15:56 2026 +0500
+
+    lecture watching page added
+
+[33mcommit 91c5f52c8e1e0916c0612a2f8fec32af1b144c63[m
+Author: mateen-mahi <mateenmahihot@gmail.com>
+Date:   Sun Jun 28 19:30:41 2026 +0500
+
+    lecture watching page added
+
+[33mcommit 0fde2ed27bcd96ecfe719876cf619a454726d82c[m
+Author: mateen-mahi <mateenmahihot@gmail.com>
+Date:   Sun Jun 28 18:56:13 2026 +0500
+
+    Sidebar fix 2
+
+[33mcommit b93c67ead648662948ae75dc5fbbb1b56cb6191b[m
+Author: mateen-mahi <mateenmahihot@gmail.com>
+Date:   Sun Jun 28 18:46:24 2026 +0500
+
+    Sidebar fix 2
+
+[33mcommit 1d4f075b7c6a4105eb2d2c8b36fa405267aee489[m
+Author: mateen-mahi <mateenmahihot@gmail.com>
+Date:   Sun Jun 28 18:38:14 2026 +0500
+
+    Sidebar fix 1
+
+[33mcommit 4be00e820b61ad426146d49bf6a820072e1238e7[m
+Author: mateen-mahi <mateenmahihot@gmail.com>
+Date:   Sun Jun 28 17:42:03 2026 +0500
+
+    Navbar Final Fix
+
+[33mcommit 15693e425517782cc49454ea9af3874f87ee144b[m
+Author: mateen-mahi <mateenmahihot@gmail.com>
+Date:   Sun Jun 28 17:13:22 2026 +0500
+
+    Clean Navbar css added
+
+[33mcommit fbe3e84a4c8aa2987d10f5ad3296a0b3c55092a8[m
+Author: mateen-mahi <mateenmahihot@gmail.com>
+Date:   Sun Jun 28 17:03:47 2026 +0500
+
+    Clean Navbar css added
+
+[33mcommit 8bddab843c225cd4b5413f2c026f006d98a6dffe[m
+Author: mateen-mahi <mateenmahihot@gmail.com>
+Date:   Sun Jun 28 16:29:02 2026 +0500
+
+    Clean Navbar added
+
+[33mcommit f3d311ba538ece8b14e5b34bd377a555c50306b2[m
+Author: mateen-mahi <mateenmahihot@gmail.com>
+Date:   Sat Jun 27 23:54:33 2026 +0500
+
+    Clean sidebar added
+
+[33mcommit 8989a13db6a4df96847a6549dd67c534929b7fcf[m
+Author: mateen-mahi <mateenmahihot@gmail.com>
+Date:   Sat Jun 27 20:55:52 2026 +0500
+
+    Clean sidebar added
+
+[33mcommit db593357a8e9d896919ab73212b13e0e99a54421[m
+Author: mateen-mahi <mateenmahihot@gmail.com>
+Date:   Sat Jun 27 20:54:13 2026 +0500
+
+    Clean sidebar added
+
+[33mcommit 66baa9804c8d384e8343f4693a96abab7fe51916[m
+Author: mateen-mahi <mateenmahihot@gmail.com>
+Date:   Sat Jun 27 20:52:15 2026 +0500
+
+    Clean sidebar added
+
+[33mcommit e9b184c44d4d3d4686520996de719edb26860157[m
+Author: mateen-mahi <mateenmahihot@gmail.com>
+Date:   Sat Jun 27 20:45:45 2026 +0500
+
+    Clean sidebar added
+
+[33mcommit a0af397c50a30df692b99c28a0f5dba9e450ec63[m
+Author: mateen-mahi <mateenmahihot@gmail.com>
+Date:   Sat Jun 27 20:44:57 2026 +0500
+
+    Clean sidebar added
+
+[33mcommit 19012562fe173609cad150be2e9e448c6f308eac[m
+Author: mateen-mahi <mateenmahihot@gmail.com>
+Date:   Sat Jun 27 20:43:42 2026 +0500
+
+    Clean sidebar added
+
+[33mcommit 625a81f1e015cfd7d2a09faf9a0283b2f9462bae[m
+Author: mateen-mahi <mateenmahihot@gmail.com>
+Date:   Sat Jun 27 20:42:51 2026 +0500
+
+    Clean sidebar added
+
+[33mcommit f1efcaefa42a350ba5def7f6d42ce063425de4f4[m
+Author: mateen-mahi <mateenmahihot@gmail.com>
+Date:   Sat Jun 27 20:42:04 2026 +0500
+
+    Clean sidebar added
+
+[33mcommit 5f09f5d6c3041ab7311e533e8e2efbba8e52cc3c[m
+Author: mateen-mahi <mateenmahihot@gmail.com>
+Date:   Sat Jun 27 20:41:23 2026 +0500
+
+    Clean sidebar added
+
+[33mcommit 6ec1b27a5d27cc88e212528b413c76ca8963fdbc[m
+Author: mateen-mahi <mateenmahihot@gmail.com>
+Date:   Sat Jun 27 20:40:34 2026 +0500
+
+    Clean sidebar added
+
+[33mcommit 0a83cd47ede2a3d6369aaf4203e4acb12c78e24b[m
+Author: mateen-mahi <mateenmahihot@gmail.com>
+Date:   Sat Jun 27 20:37:19 2026 +0500
+
+    Clean sidebar added
+
+[33mcommit 8484092ba1bd50d605a30cba0080c86e7a4e44d7[m
+Author: mateen-mahi <mateenmahihot@gmail.com>
+Date:   Sat Jun 27 20:28:58 2026 +0500
+
+    Clean sidebar added
+
+[33mcommit 50362d31ddf04f73d8109d903a8acbb9d318dda0[m
+Author: mateen-mahi <mateenmahihot@gmail.com>
+Date:   Sat Jun 27 03:48:10 2026 +0500
+
+    Clean sidebar added
+
+[33mcommit 8c4a05f0b158d82bac220e8a9c1557b32eca1a6b[m
+Author: mateen-mahi <mateenmahihot@gmail.com>
+Date:   Sat Jun 27 02:37:52 2026 +0500
+
+    Clean navbar added
+
+[33mcommit 618c440b0a3951bcf4848451be1b5fefb8e2ed0b[m
+Author: mateen-mahi <mateenmahihot@gmail.com>
+Date:   Sat Jun 27 02:22:07 2026 +0500
+
+    Clean navbar added
+
+[33mcommit 8c3d5c108c1e406ff4783b5d96ba0cfdf4732220[m
+Author: mateen-mahi <mateenmahihot@gmail.com>
+Date:   Sat Jun 27 02:09:05 2026 +0500
+
+    Clean navbar added
+
+[33mcommit a9f591739bdfcf2247a27a0c8fb5a164ae367244[m
+Author: mateen-mahi <mateenmahihot@gmail.com>
+Date:   Sat Jun 27 02:02:01 2026 +0500
+
+    Clean Layout added
+
+[33mcommit 016a76160beab15684805fea1ed56e1eb44821f2[m
+Author: mateen-mahi <mateenmahihot@gmail.com>
+Date:   Sat Jun 27 01:41:25 2026 +0500
+
+    Clean Layout added
+
+[33mcommit e8a8d4db57e4fef9b9b30a557ec4b19b1f465739[m
+Author: mateen-mahi <mateenmahihot@gmail.com>
+Date:   Sat Jun 27 01:36:47 2026 +0500
+
+    Clean Layout added
+
+[33mcommit a37051bde77057bb7a300cda67e9cd7507e8b18e[m
+Author: mateen-mahi <mateenmahihot@gmail.com>
+Date:   Sat Jun 27 01:28:49 2026 +0500
+
+    Clean Layout added
+
+[33mcommit 40231f5d1997f2903eca9b96e6dc70960e9d3904[m
+Author: mateen-mahi <mateenmahihot@gmail.com>
+Date:   Sat Jun 27 01:18:23 2026 +0500
+
+    Clean Layout added
+
+[33mcommit cc4105f337d37ce8e84fc2df72c2d1e3bfd707c6[m
+Author: mateen-mahi <mateenmahihot@gmail.com>
+Date:   Fri Jun 26 18:12:24 2026 +0500
+
+    Clean Layout added
+
+[33mcommit 689aa5188c18137bbf7faf79a76a98ffc23a9f5a[m
+Author: mateen-mahi <mateenmahihot@gmail.com>
+Date:   Fri Jun 26 17:14:55 2026 +0500
+
+    Clean Layout added
+
+[33mcommit 4b28850759ec2795d588c569cb72f7deafd0bdc1[m
+Author: mateen-mahi <mateenmahihot@gmail.com>
+Date:   Fri Jun 26 16:59:18 2026 +0500
+
+    Clean Layout added
+
+[33mcommit 68f337d2d9770b7fee2b6f9f8850abb4b3496ba8[m
+Author: mateen-mahi <mateenmahihot@gmail.com>
+Date:   Tue Jun 23 02:21:24 2026 +0500
+
+    Lecture page added
+
+[33mcommit bc1ea62f8875a714c434e1391c4c08294bfa6a5a[m
+Author: mateen-mahi <mateenmahihot@gmail.com>
+Date:   Mon Jun 22 02:28:46 2026 +0500
+
+    navbar added
+
+[33mcommit a9f126159b82e1fc962540ae48c01a0822b108e9[m
+Author: mateen-mahi <mateenmahihot@gmail.com>
+Date:   Mon Jun 22 02:20:17 2026 +0500
+
+    navbar added
+
+[33mcommit 5f9816842e76ca835e19aa46a374862dc18931a5[m
+Author: mateen-mahi <mateenmahihot@gmail.com>
+Date:   Mon Jun 22 02:01:59 2026 +0500
+
+    navbar added
+
+[33mcommit 4dfc55fea38e2acf0a31d14e79d3f72dce8081b9[m
+Author: mateen-mahi <mateenmahihot@gmail.com>
+Date:   Mon Jun 22 01:58:10 2026 +0500
+
+    navbar added
+
+[33mcommit 547bf4e2bab7e71adaf8c5de693085ca724f92c3[m
+Author: mateen-mahi <mateenmahihot@gmail.com>
+Date:   Sun Jun 21 20:19:55 2026 +0500
+
+    route setup
+
+[33mcommit 989191705d4b7f4ac1af8208c38c7f89e056db81[m
+Author: mateen-mahi <mateenmahihot@gmail.com>
+Date:   Fri Jun 19 04:29:41 2026 +0500
+
+    new Page added OTP again
+
+[33mcommit 370c36cbda830fc2c964af6b8225ab14e730e185[m
+Author: mateen-mahi <mateenmahihot@gmail.com>
+Date:   Fri Jun 19 03:44:28 2026 +0500
+
+    new Page added OTP again
+
+[33mcommit 9612da545ec2802691f72c4fbc6dda11d06d9210[m
+Author: mateen-mahi <mateenmahihot@gmail.com>
+Date:   Fri Jun 19 03:35:59 2026 +0500
+
+    new Page added OTP again
+
+[33mcommit 41a116265f79f8abdf7123246b0cde0aa87414b3[m
+Author: mateen-mahi <mateenmahihot@gmail.com>
+Date:   Fri Jun 19 02:49:21 2026 +0500
+
+    new Page added OTP again
+
+[33mcommit d22ea78d486ed783f8b2ec9e352fb6f30e682dfe[m
+Author: mateen-mahi <mateenmahihot@gmail.com>
+Date:   Fri Jun 19 02:34:41 2026 +0500
+
+    new Page added OTP again
+
+[33mcommit 157d5f639a90d56c244a4ab6e8a7c1609ed77917[m
+Author: mateen-mahi <mateenmahihot@gmail.com>
+Date:   Thu Jun 18 14:12:13 2026 +0500
+
+    signup redirect update
+
+[33mcommit 85c1778c11d1944ad68be1310098ad94d14d939d[m
+Author: mateen-mahi <mateenmahihot@gmail.com>
+Date:   Thu Jun 18 14:08:02 2026 +0500
+
+    signup redirect update
+
+[33mcommit 945edd6b65931dd50280f59f0db3fc739bc6fcaf[m
+Author: mateen-mahi <mateenmahihot@gmail.com>
+Date:   Thu Jun 18 13:42:09 2026 +0500
+
+    signup redirect update
+
+[33mcommit 0c04dec0f840b3f5ac8dcc5cd9c53df59d48c66d[m
+Author: mateen-mahi <mateenmahihot@gmail.com>
+Date:   Thu Jun 18 02:09:16 2026 +0500
+
+    routes update
+
+[33mcommit de4f12a42a0f85fbfb8dd43c11a9978ec61fc874[m
+Author: mateen-mahi <mateenmahihot@gmail.com>
+Date:   Thu Jun 18 01:56:09 2026 +0500
+
+    routes update
+
+[33mcommit 3ef0d0c3d435a80e761b5cb3dc3c9b3e60532722[m
+Author: mateen-mahi <mateenmahihot@gmail.com>
+Date:   Thu Jun 18 00:18:43 2026 +0500
+
+    Protected routes and new dummy pages adding
+
+[33mcommit 7339e29b74346e055c2870e8a7f77ea79217d3bc[m
+Author: mateen-mahi <mateenmahihot@gmail.com>
+Date:   Thu Jun 18 00:00:57 2026 +0500
+
+    Protected routes and new dummy pages adding
+
+[33mcommit 35d557a63ce4bd8dc45c350c7c759dd99c57fe4c[m
+Author: mateen-mahi <mateenmahihot@gmail.com>
+Date:   Tue Jun 16 02:09:35 2026 +0500
+
+    fix: netlify reload 404 error
+
+[33mcommit 6aa541a3f4f28615e8caa50aa241f1b85ffbea95[m
+Author: mateen-mahi <mateenmahihot@gmail.com>
+Date:   Wed Jun 3 23:52:49 2026 +0500
+
+    fix: netlify reload 404 error
+
+[33mcommit 6f0feaabe79ea94a0fb796e54c494f3314bc9d70[m
+Author: mateen-mahi <mateenmahihot@gmail.com>
+Date:   Wed Jun 3 23:18:43 2026 +0500
+
+    Reset password fix
+
+[33mcommit 7f6e60e64a28e206a2281ce52fe2f2f03375c144[m
+Author: mateen-mahi <mateenmahihot@gmail.com>
+Date:   Tue Jun 2 20:48:26 2026 +0500
+
+    front-end  separate
