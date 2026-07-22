@@ -1,6 +1,6 @@
 // src/components/admin/UserTable.jsx
 import { useState, useEffect, useMemo } from "react";
-import { FiSearch, FiCheckCircle, FiSlash, FiShield, FiRefreshCw, FiAlertCircle } from "react-icons/fi";
+import { FiSearch, FiCheckCircle, FiSlash, FiShield, FiTrash2, FiRefreshCw, FiAlertCircle } from "react-icons/fi";
 import api from "../../services/api";
 import { useAdminSocket } from "../../custom-hooks/useAdminSocket";
 import Pagination from "./Pagination";
@@ -16,6 +16,7 @@ export default function UserTable() {
   const [roleFilter, setRoleFilter] = useState("All");
   const [verifiedFilter, setVerifiedFilter] = useState("All");
   const [page, setPage] = useState(1);
+  const [busyId, setBusyId] = useState(null); // disables row buttons while a request for that row is in flight
   const { subscribe } = useAdminSocket();
 
   useEffect(() => {
@@ -67,11 +68,57 @@ export default function UserTable() {
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const pageItems   = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
-  // TODO: wire these to real PATCH endpoints once they exist
-  // (verify → PATCH /users/:id, ban → PATCH /users/:id, promote → editUser role field)
-  const toggleVerify = (id) => setUsers((prev) => prev.map((u) => (u._id === id ? { ...u, isVerified: !u.isVerified } : u)));
-  const toggleBan    = (id) => setUsers((prev) => prev.map((u) => (u._id === id ? { ...u, status: u.status === "banned" ? "active" : "banned" } : u)));
-  const promote      = (id) => setUsers((prev) => prev.map((u) => (u._id === id ? { ...u, role: u.role === "end-user" ? "admin" : u.role } : u)));
+  // ---- real update calls, all via PUT /users/edit-user/:id ----
+  // Pattern: optimistic update → real request → revert on failure.
+  const patchUser = async (id, patch, revertPatch) => {
+    setBusyId(id);
+    setUsers((prev) => prev.map((u) => (u._id === id ? { ...u, ...patch } : u)));
+    try {
+      await api.put(`/users/edit-user/${id}`, patch);
+    } catch (err) {
+      console.error("Failed to update user:", err);
+      setUsers((prev) => prev.map((u) => (u._id === id ? { ...u, ...revertPatch } : u)));
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const toggleVerify = (id) => {
+    const user = users.find((u) => u._id === id);
+    if (!user) return;
+    patchUser(id, { isVerified: !user.isVerified }, { isVerified: user.isVerified });
+  };
+
+  // NOTE: this assumes your User schema has a `status` field ("active" / "banned").
+  // If it doesn't yet, this PUT will silently drop the field server-side (Mongoose
+  // ignores unknown keys by default) and the button won't actually do anything —
+  // add `status` to the schema first if banning isn't wired up yet.
+  const toggleBan = (id) => {
+    const user = users.find((u) => u._id === id);
+    if (!user) return;
+    const nextStatus = user.status === "banned" ? "active" : "banned";
+    patchUser(id, { status: nextStatus }, { status: user.status });
+  };
+
+  const promote = (id) => {
+    const user = users.find((u) => u._id === id);
+    if (!user || user.role !== "end-user") return; // matches original behavior: only promotes end-users
+    patchUser(id, { role: "admin" }, { role: user.role });
+  };
+
+  const deleteUser = async (id, username) => {
+    if (!window.confirm(`Delete user "${username}"? This cannot be undone.`)) return;
+    setBusyId(id);
+    try {
+      await api.delete(`/users/delete-user/${id}`);
+      setUsers((prev) => prev.filter((u) => u._id !== id));
+    } catch (err) {
+      console.error("Failed to delete user:", err);
+      alert("Failed to delete user. Please try again.");
+    } finally {
+      setBusyId(null);
+    }
+  };
 
   return (
     <div className="admin-panel">
@@ -132,9 +179,35 @@ export default function UserTable() {
                     <td className="admin-cell-secondary">{new Date(u.createdAt).toLocaleDateString()}</td>
                     <td>
                       <div className="admin-row-actions">
-                        <button title="Toggle verify" onClick={() => toggleVerify(u._id)}><FiCheckCircle /></button>
-                        <button title="Ban / unban" onClick={() => toggleBan(u._id)}><FiSlash /></button>
-                        <button title="Promote" onClick={() => promote(u._id)}><FiShield /></button>
+                        <button
+                          title="Toggle verify"
+                          disabled={busyId === u._id}
+                          onClick={() => toggleVerify(u._id)}
+                        >
+                          <FiCheckCircle />
+                        </button>
+                        <button
+                          title="Ban / unban"
+                          disabled={busyId === u._id}
+                          onClick={() => toggleBan(u._id)}
+                        >
+                          <FiSlash />
+                        </button>
+                        <button
+                          title="Promote to admin"
+                          disabled={busyId === u._id || u.role !== "end-user"}
+                          onClick={() => promote(u._id)}
+                        >
+                          <FiShield />
+                        </button>
+                        <button
+                          title="Delete user"
+                          className="admin-row-action-danger"
+                          disabled={busyId === u._id}
+                          onClick={() => deleteUser(u._id, u.username)}
+                        >
+                          <FiTrash2 />
+                        </button>
                       </div>
                     </td>
                   </tr>

@@ -1,0 +1,12 @@
+@import "../../../styles/common.css";
+
+.lecture-title {
+  font-weight: 600;
+  color: var(--text-heading);
+  font-size: 13.5px;
+}
+.lecture-video {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-family: monospace;
+}

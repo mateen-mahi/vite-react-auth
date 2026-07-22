@@ -1,7 +1,7 @@
 // src/pages/admin/Dashboard.jsx
 import { useState } from "react";
 import {
-  FiGrid, FiUsers, FiBookOpen, FiPlayCircle, FiHelpCircle, FiMessageSquare, FiActivity,
+  FiGrid, FiUsers, FiBookOpen, FiPlayCircle, FiHelpCircle, FiMessageSquare, FiActivity, FiAlertTriangle,
 } from "react-icons/fi";
 import KpiCards from "../../components/Admin/KpiCards";
 import UserTable from "../../components/Admin/UserTable";
@@ -10,6 +10,7 @@ import LectureTable from "../../components/Admin/LectureTable";
 import QuizTable from "../../components/Admin/QuizTable";
 import ComplaintQueue from "../../components/Admin/ComplaintQueue";
 import LiveActivityPanel from "../../components/Admin/LiveActivityPanel";
+import DangerZonePanel from "../../components/Admin/DangerZonePanel";
 import {
   SignupTrendChart, RoleDistributionChart, CategoryDistributionChart, ComplaintStatusChart,
 } from "../../components/Admin/AdminCharts";
@@ -23,6 +24,7 @@ const TABS = [
   { id: "quizzes",    label: "Quizzes",       icon: FiHelpCircle },
   { id: "complaints", label: "Complaints",    icon: FiMessageSquare },
   { id: "activity",   label: "Live Activity", icon: FiActivity },
+  { id: "danger",     label: "Danger Zone",   icon: FiAlertTriangle },
 ];
 
 export default function Dashboard() {
@@ -44,7 +46,7 @@ export default function Dashboard() {
         {TABS.map(({ id, label, icon: Icon }) => (
           <button
             key={id}
-            className={`admin-tab ${activeTab === id ? "active" : ""}`}
+            className={`admin-tab ${activeTab === id ? "active" : ""} ${id === "danger" ? "admin-tab-danger" : ""}`}
             onClick={() => setActiveTab(id)}
           >
             <Icon /> <span>{label}</span>
@@ -70,6 +72,7 @@ export default function Dashboard() {
         {activeTab === "quizzes"    && <QuizTable />}
         {activeTab === "complaints" && <ComplaintQueue />}
         {activeTab === "activity"   && <LiveActivityPanel />}
+        {activeTab === "danger"     && <DangerZonePanel />}
       </div>
     </div>
   );

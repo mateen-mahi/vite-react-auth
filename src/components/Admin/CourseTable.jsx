@@ -4,12 +4,18 @@ import { FiSearch, FiStar, FiTrash2, FiEdit2, FiAlertTriangle, FiRefreshCw, FiAl
 import api from "../../services/api";
 import { useAdminSocket } from "../../custom-hooks/useAdminSocket";
 import Pagination from "./Pagination";
+import EditModal from "./EditModal";
 
 const PAGE_SIZE = 8;
 
 const isDataFlagged = (c) => {
   const lessons = c.lessonsCount ?? c.lecturesCount ?? 0;
   return lessons < 10 || lessons > 15;
+};
+
+const emptyForm = {
+  title: "", description: "", category: "", price: "", duration: "",
+  level: "Beginner", color: "#2563eb", emoji: "📘",
 };
 
 export default function CourseTable() {
@@ -21,6 +27,11 @@ export default function CourseTable() {
   const [level, setLevel] = useState("All Levels");
   const [page, setPage] = useState(1);
   const { subscribe } = useAdminSocket();
+
+  const [busyId, setBusyId] = useState(null);
+  const [editingCourse, setEditingCourse] = useState(null); // full course object being edited
+  const [form, setForm] = useState(emptyForm);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     const fetchCourses = async () => {
@@ -80,6 +91,65 @@ export default function CourseTable() {
     } catch (err) {
       console.error("Failed to toggle featured:", err);
       setCourses((prev) => prev.map((c) => (c._id === id ? { ...c, featured: current } : c))); // revert
+    }
+  };
+
+  const deleteCourse = async (id, title) => {
+    if (!window.confirm(`Delete course "${title}"? This cannot be undone.`)) return;
+    setBusyId(id);
+    try {
+      await api.delete(`/courses/${id}`);
+      setCourses((prev) => prev.filter((c) => c._id !== id));
+    } catch (err) {
+      console.error("Failed to delete course:", err);
+      alert("Failed to delete course. Please try again.");
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const openEdit = (c) => {
+    setEditingCourse(c);
+    setForm({
+      title: c.title || "",
+      description: c.description || "",
+      category: c.category || "",
+      price: c.price ?? "",
+      duration: c.duration || "",
+      level: c.level || "Beginner",
+      color: c.color || "#2563eb",
+      emoji: c.emoji || "📘",
+    });
+  };
+
+  const closeEdit = () => {
+    setEditingCourse(null);
+    setForm(emptyForm);
+  };
+
+  const saveEdit = async () => {
+    if (!editingCourse) return;
+    setSaving(true);
+    const payload = {
+      title: form.title,
+      description: form.description,
+      category: form.category,
+      price: Number(form.price),
+      duration: form.duration,
+      level: form.level,
+      color: form.color,
+      emoji: form.emoji,
+    };
+    try {
+      const res = await api.put(`/courses/${editingCourse._id}`, payload);
+      const updated = res.data?.data || { ...editingCourse, ...payload };
+      setCourses((prev) => prev.map((c) => (c._id === editingCourse._id ? { ...c, ...updated } : c)));
+      closeEdit();
+    } catch (err) {
+      console.error("Failed to update course:", err);
+      alert("Failed to save changes. Please try again.");
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -150,8 +220,15 @@ export default function CourseTable() {
                     </td>
                     <td>
                       <div className="admin-row-actions">
-                        <button title="Edit"><FiEdit2 /></button>
-                        <button title="Delete"><FiTrash2 /></button>
+                        <button title="Edit" onClick={() => openEdit(c)}><FiEdit2 /></button>
+                        <button
+                          title="Delete"
+                          className="admin-row-action-danger"
+                          disabled={busyId === c._id}
+                          onClick={() => deleteCourse(c._id, c.title)}
+                        >
+                          <FiTrash2 />
+                        </button>
                       </div>
                     </td>
                   </tr>
@@ -161,6 +238,53 @@ export default function CourseTable() {
           </div>
           <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
         </>
+      )}
+
+      {editingCourse && (
+        <EditModal title={`Edit Course — ${editingCourse.title}`} onClose={closeEdit} onSave={saveEdit} saving={saving}>
+          <div className="admin-field">
+            <label>Title</label>
+            <input value={form.title} onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))} />
+          </div>
+          <div className="admin-field">
+            <label>Description</label>
+            <textarea rows={3} value={form.description} onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))} />
+          </div>
+          <div className="admin-field-row">
+            <div className="admin-field">
+              <label>Category</label>
+              <input value={form.category} onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))} />
+            </div>
+            <div className="admin-field">
+              <label>Price ($)</label>
+              <input type="number" min="0" value={form.price} onChange={(e) => setForm((f) => ({ ...f, price: e.target.value }))} />
+            </div>
+          </div>
+          <div className="admin-field-row">
+            <div className="admin-field">
+              <label>Duration</label>
+              <input value={form.duration} onChange={(e) => setForm((f) => ({ ...f, duration: e.target.value }))} />
+            </div>
+            <div className="admin-field">
+              <label>Level</label>
+              <select value={form.level} onChange={(e) => setForm((f) => ({ ...f, level: e.target.value }))}>
+                <option>Beginner</option>
+                <option>Intermediate</option>
+                <option>Advanced</option>
+              </select>
+            </div>
+          </div>
+          <div className="admin-field-row">
+            <div className="admin-field">
+              <label>Color</label>
+              <input type="color" value={form.color} onChange={(e) => setForm((f) => ({ ...f, color: e.target.value }))} />
+            </div>
+            <div className="admin-field">
+              <label>Emoji</label>
+              <input value={form.emoji} onChange={(e) => setForm((f) => ({ ...f, emoji: e.target.value }))} />
+            </div>
+          </div>
+        </EditModal>
       )}
     </div>
   );

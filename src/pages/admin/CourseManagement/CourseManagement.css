@@ -1,0 +1,18 @@
+@import "../../../styles/common.css";
+
+.course-cell {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.course-cell-title {
+  font-weight: 600;
+  color: var(--text-heading);
+  font-size: 13.5px;
+}
+
+.course-cell-cat {
+  font-size: 12px;
+  color: var(--text-muted);
+}

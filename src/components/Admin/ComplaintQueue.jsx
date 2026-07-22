@@ -1,6 +1,6 @@
 // src/components/admin/ComplaintQueue.jsx
 import { useState, useEffect, useMemo } from "react";
-import { FiSearch, FiClock, FiUsers, FiRefreshCw, FiAlertCircle } from "react-icons/fi";
+import { FiSearch, FiClock, FiUsers, FiTrash2, FiRefreshCw, FiAlertCircle } from "react-icons/fi";
 import api from "../../services/api";
 import { useAdminSocket } from "../../custom-hooks/useAdminSocket";
 import Pagination from "./Pagination";
@@ -19,6 +19,7 @@ export default function ComplaintQueue() {
   const [status, setStatus] = useState("All");
   const [page, setPage] = useState(1);
   const [updatingId, setUpdatingId] = useState(null);
+  const [deletingId, setDeletingId] = useState(null);
   const { subscribe } = useAdminSocket();
 
   useEffect(() => {
@@ -94,6 +95,20 @@ export default function ComplaintQueue() {
     }
   };
 
+  const deleteComplaint = async (id, subject) => {
+    if (!window.confirm(`Delete complaint "${subject}"? This cannot be undone.`)) return;
+    setDeletingId(id);
+    try {
+      await api.delete(`/complaints/delete-complaint/${id}`);
+      setComplaints((prev) => prev.filter((c) => c._id !== id));
+    } catch (err) {
+      console.error("Failed to delete complaint:", err);
+      alert("Failed to delete complaint. Please try again.");
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
   return (
     <div className="admin-panel">
       <div className="admin-panel-header">
@@ -120,7 +135,7 @@ export default function ComplaintQueue() {
           <div className="admin-table-wrap">
             <table className="admin-table">
               <thead>
-                <tr><th>Subject</th><th>User</th><th>Status</th><th>Age</th><th>Update</th></tr>
+                <tr><th>Subject</th><th>User</th><th>Status</th><th>Age</th><th>Update</th><th></th></tr>
               </thead>
               <tbody>
                 {pageItems.map((c) => {
@@ -153,6 +168,18 @@ export default function ComplaintQueue() {
                           <option value="in progress">In Progress</option>
                           <option value="resolved">Resolved</option>
                         </select>
+                      </td>
+                      <td>
+                        <div className="admin-row-actions">
+                          <button
+                            title="Delete complaint"
+                            className="admin-row-action-danger"
+                            disabled={deletingId === c._id}
+                            onClick={() => deleteComplaint(c._id, c.subject)}
+                          >
+                            <FiTrash2 />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   );
