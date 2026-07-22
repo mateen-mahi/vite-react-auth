@@ -23,7 +23,7 @@ import Notes from "./pages/Notes";
 import Courses from "./pages/Courses";
 import Certificate from "./pages/Certificate";
 import Complaints from "./pages/Complaints";
-import SocketTestPage from "./pages/SocketTesting";
+import SocketTestPage from "./pages/chat";
 
 
 function App() {
