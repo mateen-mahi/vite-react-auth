@@ -13,11 +13,15 @@
   color: #ef4444;
 }
 
+/* ---- summary card grid ---- */
 .sys-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 14px;
-  margin-bottom: 20px;
+  margin-bottom: 16px;
+}
+.sys-grid-2 {
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
 }
 
 .sys-card {
@@ -45,22 +49,10 @@
   font-size: 18px;
   flex-shrink: 0;
 }
-.sys-card-icon.good {
-  background: #f0fdf4;
-  color: #16a34a;
-}
-.sys-card-icon.warning {
-  background: #fffbeb;
-  color: #d97706;
-}
-.sys-card-icon.critical {
-  background: #fff5f5;
-  color: #ef4444;
-}
-.sys-card-icon.unknown {
-  background: #f8fafc;
-  color: #94a3b8;
-}
+.sys-card-icon.good { background: #f0fdf4; color: #16a34a; }
+.sys-card-icon.warning { background: #fffbeb; color: #d97706; }
+.sys-card-icon.critical { background: #fff5f5; color: #ef4444; }
+.sys-card-icon.unknown { background: #f8fafc; color: #94a3b8; }
 
 .sys-card-label {
   font-size: 11.5px;
@@ -85,24 +77,19 @@
   background: #f1f5f9;
   overflow: hidden;
 }
+.sys-bar-track-sm {
+  height: 6px;
+}
 
 .sys-bar-fill {
   height: 100%;
   border-radius: 99px;
   transition: width 0.5s ease;
 }
-.sys-bar-fill.good {
-  background: #16a34a;
-}
-.sys-bar-fill.warning {
-  background: #d97706;
-}
-.sys-bar-fill.critical {
-  background: #ef4444;
-}
-.sys-bar-fill.unknown {
-  background: #cbd5e1;
-}
+.sys-bar-fill.good { background: #16a34a; }
+.sys-bar-fill.warning { background: #d97706; }
+.sys-bar-fill.critical { background: #ef4444; }
+.sys-bar-fill.unknown { background: #cbd5e1; }
 
 .sys-card-detail {
   font-size: 12px;
@@ -110,10 +97,216 @@
   margin: 10px 0 0;
 }
 
+/* ---- load average chips ---- */
+.sys-loadavg-row {
+  display: flex;
+  gap: 10px;
+}
+.sys-loadavg-chip {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 10px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+}
+.sys-loadavg-label {
+  font-size: 11px;
+  color: #94a3b8;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+.sys-loadavg-value {
+  font-size: 16px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+/* ---- mini bars (cores, swap) ---- */
+.sys-mini-bar {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.sys-mini-bar-head {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11.5px;
+  color: #64748b;
+  font-weight: 600;
+}
+
+/* ---- collapsible section ---- */
+.sys-section {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  margin-bottom: 14px;
+  overflow: hidden;
+}
+.sys-section-head {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #0f172a;
+}
+.sys-section-head:hover {
+  background: #f8fafc;
+}
+.sys-section-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.sys-section-count {
+  font-weight: 500;
+  color: #94a3b8;
+}
+.sys-section-body {
+  padding: 4px 16px 16px;
+  border-top: 1px solid #f1f5f9;
+}
+
+/* ---- CPU cores grid ---- */
+.sys-core-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 12px;
+  padding-top: 12px;
+}
+
+/* ---- disk partitions ---- */
+.sys-partition-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-top: 10px;
+}
+.sys-partition-row {
+  display: grid;
+  grid-template-columns: 140px 1fr 130px;
+  align-items: center;
+  gap: 12px;
+}
+.sys-partition-info {
+  display: flex;
+  flex-direction: column;
+}
+.sys-partition-mount {
+  font-size: 13px;
+  font-weight: 700;
+  color: #0f172a;
+}
+.sys-partition-fs {
+  font-size: 11px;
+  color: #94a3b8;
+}
+.sys-partition-detail {
+  font-size: 12px;
+  color: #64748b;
+  text-align: right;
+  white-space: nowrap;
+}
+@media (max-width: 640px) {
+  .sys-partition-row {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+  .sys-partition-detail {
+    text-align: left;
+  }
+}
+
+/* ---- network ---- */
+.sys-net-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 12px;
+  padding-top: 10px;
+}
+.sys-net-card {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 12px;
+}
+.sys-net-name {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0 0 8px;
+}
+.sys-net-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+}
+.sys-net-rate {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12.5px;
+  font-weight: 600;
+}
+.sys-net-rate.down { color: #0891b2; }
+.sys-net-rate.up { color: #be185d; }
+
+/* ---- Node process ---- */
+.sys-process-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 12px;
+  padding-top: 10px;
+}
+.sys-process-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 10px 12px;
+}
+.sys-process-label {
+  font-size: 11px;
+  color: #94a3b8;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+.sys-process-value {
+  font-size: 14px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+/* ---- top processes table ---- */
+.sys-table-wrap {
+  padding-top: 10px;
+  overflow-x: auto;
+}
+.sys-process-table {
+  width: 100%;
+}
+
+/* ---- charts ---- */
+.sys-charts-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 16px;
+}
 .sys-chart-card {
   position: relative;
 }
-
 .sys-chart-empty {
   text-align: center;
   font-size: 12.5px;
@@ -122,7 +315,8 @@
 }
 
 @media (max-width: 640px) {
-  .sys-grid {
+  .sys-grid,
+  .sys-grid-2 {
     grid-template-columns: 1fr 1fr;
   }
 }
