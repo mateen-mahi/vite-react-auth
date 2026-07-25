@@ -15,6 +15,7 @@ import {
   FiLogIn, FiLogOut, FiCheck, FiWifi, FiWifiOff, FiInbox,
 } from "react-icons/fi";
 import { useAdminSocket } from "../../custom-hooks/useAdminSocket";
+import "../../styles/NotificationsPage.css"
 
 const READ_STORAGE_KEY = "admin_notifications_read_ids";
 

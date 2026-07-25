@@ -44,6 +44,7 @@ import {
 } from "recharts";
 import api from "../../services/api";
 import { useAdminSocket } from "../../custom-hooks/useAdminSocket";
+import "../../styles/SystemUsagePanel.css"
 
 const MAX_HISTORY_POINTS = 30;
 const TOOLTIP_STYLE = { borderRadius: 10, border: "1px solid #e2e8f0", fontSize: 13 };
