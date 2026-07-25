@@ -1,13 +1,4 @@
-// src/components/admin/NotificationsPage.jsx
-//
-// Zero new backend needed — this runs entirely off the `feed` your
-// useAdminSocket.js hook already collects from adminEvents.js. Every event
-// emitted there (user:registered, course:created/updated, enrollment:new,
-// complaint:new/statusChanged, login:new/failed) shows up here automatically.
-//
-// "Read" state is stored in localStorage (keyed by feed item id) so it
-// survives page reloads — this is a real project file, not a Claude
-// artifact, so localStorage is the right tool here.
+
 
 import { useEffect, useMemo, useState } from "react";
 import {

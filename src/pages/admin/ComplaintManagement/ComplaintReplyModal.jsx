@@ -58,7 +58,7 @@ const ComplaintReplyModal = ({ complaint, onClose, onSuccess }) => {
         <label className="field-label">Status</label>
         <select className="field-select" value={status} onChange={(e) => setStatus(e.target.value)}>
           <option value="pending">Pending</option>
-          <option value="in-progress">In Progress</option>
+          <option value="in progress">In Progress</option>
           <option value="resolved">Resolved</option>
         </select>
       </div>

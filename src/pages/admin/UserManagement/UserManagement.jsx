@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState, useCallback } from "react";
 import {
   FiPlus,
-  FiUpload,
   FiTrash2,
   FiEye,
   FiEdit2,
@@ -13,7 +12,6 @@ import DataTable from "../../../components/admin-shared/DataTable/DataTable";
 import SearchBar from "../../../components/admin-shared/SearchBar/SearchBar";
 import Pagination from "../../../components/admin-shared/Pagination/Pagination";
 import ConfirmDialog from "../../../components/admin-shared/ConfirmDialog/ConfirmDialog";
-import BulkJsonUploadModal from "../../../components/admin-shared/BulkJsonUpload/BulkJsonUploadModal";
 import ToastContainer from "../../../components/admin-shared/Toast/ToastContainer";
 import { showToast } from "../../../components/admin-shared/Toast/toast";
 import UserFormModal from "./UserFormModal";
@@ -24,9 +22,11 @@ import "./UserManagement.css";
 const PAGE_SIZE = 10;
 
 const ROLE_STATUS = {
+  "super-admin": "status-danger",
   admin: "status-danger",
   instructor: "status-info",
   student: "status-success",
+  user: "status-info",
 };
 
 const UserManagement = () => {
@@ -38,7 +38,6 @@ const UserManagement = () => {
   const [selectedIds, setSelectedIds] = useState(new Set());
 
   const [showAddModal, setShowAddModal] = useState(false);
-  const [showBulkModal, setShowBulkModal] = useState(false);
   const [editUser, setEditUser] = useState(null);
   const [viewUser, setViewUser] = useState(null);
   const [passwordUser, setPasswordUser] = useState(null);
@@ -144,32 +143,6 @@ const UserManagement = () => {
     }
   };
 
-  // ---- bulk add: submit each object individually per spec ----
-  const handleBulkSubmit = async (items) => {
-    let success = 0;
-    let failed = 0;
-    for (const item of items) {
-      try {
-        await api.post("/users/add-user", {
-          username: item.username,
-          email: item.email,
-          password: item.password,
-          gender: item.gender,
-          role: item.role,
-        });
-        success++;
-      } catch {
-        failed++;
-      }
-    }
-    showToast(
-      `${success} user(s) added${failed ? `, ${failed} failed` : ""}`,
-      failed ? "error" : "success"
-    );
-    setShowBulkModal(false);
-    fetchUsers();
-  };
-
   const initials = (name = "") =>
     name
       .split(" ")
@@ -229,9 +202,6 @@ const UserManagement = () => {
           </p>
         </div>
         <div className="admin-page-actions">
-          <button className="btn btn-ghost" onClick={() => setShowBulkModal(true)}>
-            <FiUpload /> Bulk Add
-          </button>
           <button className="btn btn-primary" onClick={() => setShowAddModal(true)}>
             <FiPlus /> Add User
           </button>
@@ -354,16 +324,6 @@ const UserManagement = () => {
         <PasswordModal
           user={passwordUser}
           onClose={() => setPasswordUser(null)}
-        />
-      )}
-
-      {showBulkModal && (
-        <BulkJsonUploadModal
-          title="Bulk add users"
-          requiredFields={["username", "email", "password", "gender", "role"]}
-          sampleJson={`[\n  {\n    "username": "jane_doe",\n    "email": "jane@example.com",\n    "password": "SecurePass123",\n    "gender": "female",\n    "role": "student"\n  }\n]`}
-          onSubmit={handleBulkSubmit}
-          onClose={() => setShowBulkModal(false)}
         />
       )}
 

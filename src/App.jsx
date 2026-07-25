@@ -11,7 +11,6 @@ import ResetPassword   from "./pages/Reset-password";
 import VerifyUserMail  from "./pages/VerifyUserMail";
 import Dashboard       from "./pages/superAdmin/Dashboard";
 import LectureWatching from "./pages/LectureWatching";
-import UserManagement  from "./pages/admin/UserManagement";
 import Admin           from "./pages/Admin";
 import PaymentGateway  from "./pages/PaymentGateway";
 import LectureAndQuizContainer from './pages/LectureAndQuizContainer';
@@ -24,6 +23,14 @@ import Courses from "./pages/Courses";
 import Certificate from "./pages/Certificate";
 import Complaints from "./pages/Complaints";
 import SocketTestPage from "./pages/chat";
+import UserManagement from "./pages/admin/UserManagement/UserManagement";
+import CourseManagement from "./pages/admin/CourseManagement/CourseManagement";
+import ComplaintManagement from "./pages/admin/ComplaintManagement/ComplaintManagement";
+import LectureManagement from "./pages/admin/LectureManagement/LectureManagement";
+import QuizManagement from "./pages/admin/QuizManagement/QuizManagement";
+import NotesManagement from "./pages/admin/NotesManagement/NotesManagement";
+import CertificateManagement from "./pages/admin/CertificateManagement/CertificateManagement";
+import DangerZone from "./pages/admin/DangerZone/DangerZone";
 
 
 function App() {
@@ -58,17 +65,32 @@ function App() {
       <Route path="/courses" element={<Courses />} />
       <Route path="/certificate" element={<Certificate />} />
       <Route path="/complaints" element={<Complaints />} />
+      <Route path="/payment-gateway" element={<PaymentGateway />} />
     
 
 
     <Route element={<RoleRoute allowedRoles={["admin", "super-admin"]} />}>
       <Route path="/user-management" element={<UserManagement />} />
+<Route path="/admin/courses" element={<CourseManagement />} />
+<Route path="/admin/complaints" element={<ComplaintManagement />} />
+<Route path="/admin/lectures" element={<LectureManagement />} />
+<Route path="/admin/quizzes" element={<QuizManagement />} />
+<Route path="/admin/notes" element={<NotesManagement />} />
+<Route path="/admin/certificates" element={<CertificateManagement />} />
+<Route path="/admin/danger-zone" element={<DangerZone />} />
       <Route path="/admin" element={<Admin />} />
     </Route>
 
-    <Route element={<RoleRoute allowedRoles={["super-admin"]} />}>
-      <Route path="/payment-gateway" element={<PaymentGateway />} />
-    </Route>
+    {/* <Route element={<RoleRoute allowedRoles={["super-admin"]} />}>
+    <Route path="/admin/users" element={<UserManagement />} />
+<Route path="/admin/courses" element={<CourseManagement />} />
+<Route path="/admin/complaints" element={<ComplaintManagement />} />
+<Route path="/admin/lectures" element={<LectureManagement />} />
+<Route path="/admin/quizzes" element={<QuizManagement />} />
+<Route path="/admin/notes" element={<NotesManagement />} />
+<Route path="/admin/certificates" element={<CertificateManagement />} />
+<Route path="/admin/danger-zone" element={<DangerZone />} />
+    </Route> */}
   </Route>
 </Route>
           <Route path="/unauthorized" element={<Unauthorized />} />

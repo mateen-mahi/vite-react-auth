@@ -14,7 +14,7 @@ const PAGE_SIZE = 10;
 
 const STATUS_CLASS = {
   pending: "status-warning",
-  "in-progress": "status-info",
+  "in progress": "status-info",
   resolved: "status-success",
 };
 

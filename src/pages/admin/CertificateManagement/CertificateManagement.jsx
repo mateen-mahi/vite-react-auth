@@ -1,13 +1,14 @@
-import { useEffect, useMemo, useState, useCallback } from "react";
-import { FiTrash2, FiEye, FiAward } from "react-icons/fi";
+import { useEffect, useState, useCallback } from "react";
+import { FiTrash2, FiEye, FiAward, FiPlus, FiSlash, FiSearch } from "react-icons/fi";
 import api from "../../../services/api";
 import DataTable from "../../../components/admin-shared/DataTable/DataTable";
-import SearchBar from "../../../components/admin-shared/SearchBar/SearchBar";
 import Pagination from "../../../components/admin-shared/Pagination/Pagination";
 import ConfirmDialog from "../../../components/admin-shared/ConfirmDialog/ConfirmDialog";
 import ToastContainer from "../../../components/admin-shared/Toast/ToastContainer";
 import { showToast } from "../../../components/admin-shared/Toast/toast";
 import CertificateDetailsModal from "./CertificateDetailsModal";
+import IssueCertificateModal from "./IssueCertificateModal";
+import VerifyCertificateModal from "./VerifyCertificateModal";
 import "./CertificateManagement.css";
 
 const PAGE_SIZE = 10;
@@ -17,54 +18,64 @@ const STATUS_CLASS = {
   revoked: "status-danger",
 };
 
+// Certificates use structured server-side filters (courseId, studentId,
+// status) + pagination — matches getAllCertificates exactly, so this page
+// doesn't do client-side filtering like the other pages.
 const CertificateManagement = () => {
   const [certificates, setCertificates] = useState([]);
+  const [courses, setCourses] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
+  const [pages, setPages] = useState(1);
+
+  const [courseFilter, setCourseFilter] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
+  const [studentIdFilter, setStudentIdFilter] = useState("");
 
   const [viewCertificate, setViewCertificate] = useState(null);
-  const [confirmTarget, setConfirmTarget] = useState(null);
+  const [confirmTarget, setConfirmTarget] = useState(null); // delete target
+  const [revokeTarget, setRevokeTarget] = useState(null);
+  const [showIssueModal, setShowIssueModal] = useState(false);
+  const [showVerifyModal, setShowVerifyModal] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
+
+  useEffect(() => {
+    api
+      .get("/courses")
+      .then((res) => setCourses(res.data.data || []))
+      .catch(() => {});
+  }, []);
 
   const fetchCertificates = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await api.get("/certificates");
-      setCertificates(res.data.data || res.data.certificates || []);
+      const params = { page, limit: PAGE_SIZE };
+      if (courseFilter) params.courseId = courseFilter;
+      if (statusFilter) params.status = statusFilter;
+      if (studentIdFilter.trim()) params.studentId = studentIdFilter.trim();
+
+      const res = await api.get("/certificates/", { params });
+      setCertificates(res.data.data || []);
+      setTotal(res.data.total || 0);
+      setPages(res.data.pages || 1);
     } catch (err) {
       showToast(err.response?.data?.message || "Failed to load certificates", "error");
     } finally {
       setLoading(false);
     }
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page, courseFilter, statusFilter, studentIdFilter]);
 
   useEffect(() => {
     fetchCertificates();
   }, [fetchCertificates]);
 
-  const filtered = useMemo(() => {
-    if (!search.trim()) return certificates;
-    const q = search.trim().toLowerCase();
-    return certificates.filter(
-      (c) =>
-        c.certificateNumber?.toLowerCase().includes(q) ||
-        c.studentId?.username?.toLowerCase().includes(q) ||
-        c.studentId?.email?.toLowerCase().includes(q) ||
-        c.courseId?.title?.toLowerCase().includes(q) ||
-        c.status?.toLowerCase().includes(q)
-    );
-  }, [certificates, search]);
-
-  const pages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
-  const pageSafe = Math.min(page, pages);
-  const paginated = filtered.slice((pageSafe - 1) * PAGE_SIZE, pageSafe * PAGE_SIZE);
-
   useEffect(() => {
     setPage(1);
-  }, [search]);
+  }, [courseFilter, statusFilter, studentIdFilter]);
 
-  const runConfirmedDelete = async () => {
+  const runDelete = async () => {
     setActionLoading(true);
     try {
       await api.delete(`/certificates/${confirmTarget._id}`);
@@ -73,6 +84,20 @@ const CertificateManagement = () => {
       fetchCertificates();
     } catch (err) {
       showToast(err.response?.data?.message || "Delete failed", "error");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const runRevoke = async () => {
+    setActionLoading(true);
+    try {
+      await api.patch(`/certificates/${revokeTarget._id}/revoke`);
+      showToast("Certificate revoked", "success");
+      setRevokeTarget(null);
+      fetchCertificates();
+    } catch (err) {
+      showToast(err.response?.data?.message || "Revoke failed", "error");
     } finally {
       setActionLoading(false);
     }
@@ -94,11 +119,7 @@ const CertificateManagement = () => {
         </div>
       ),
     },
-    {
-      key: "course",
-      label: "Course",
-      render: (row) => row.courseId?.title || "—",
-    },
+    { key: "course", label: "Course", render: (row) => row.courseId?.title || "—" },
     {
       key: "issuedAt",
       label: "Issued",
@@ -108,9 +129,7 @@ const CertificateManagement = () => {
       key: "status",
       label: "Status",
       render: (row) => (
-        <span className={`status-badge ${STATUS_CLASS[row.status] || "status-info"}`}>
-          {row.status}
-        </span>
+        <span className={`status-badge ${STATUS_CLASS[row.status] || "status-info"}`}>{row.status}</span>
       ),
     },
   ];
@@ -122,35 +141,60 @@ const CertificateManagement = () => {
       <div className="admin-page-header">
         <div>
           <h1 className="admin-page-title">Certificate Management</h1>
-          <p className="admin-page-subtitle">View and manage issued certificates.</p>
+          <p className="admin-page-subtitle">Issue, verify, revoke, and manage issued certificates.</p>
+        </div>
+        <div className="admin-page-actions">
+          <button className="btn btn-ghost" onClick={() => setShowVerifyModal(true)}>
+            <FiSearch /> Verify a Certificate
+          </button>
+          <button className="btn btn-primary" onClick={() => setShowIssueModal(true)}>
+            <FiPlus /> Issue Certificate
+          </button>
         </div>
       </div>
 
       <div className="admin-toolbar">
-        <SearchBar
-          value={search}
-          onChange={setSearch}
-          placeholder="Search by certificate ID, student, course, or status…"
+        <select className="field-select cert-filter-select" value={courseFilter} onChange={(e) => setCourseFilter(e.target.value)}>
+          <option value="">All Courses</option>
+          {courses.map((c) => (
+            <option key={c._id} value={c._id}>
+              {c.title}
+            </option>
+          ))}
+        </select>
+        <select className="field-select cert-filter-select" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
+          <option value="">All Statuses</option>
+          <option value="active">Active</option>
+          <option value="revoked">Revoked</option>
+        </select>
+        <input
+          className="field-input cert-filter-select"
+          placeholder="Filter by student ID…"
+          value={studentIdFilter}
+          onChange={(e) => setStudentIdFilter(e.target.value)}
         />
       </div>
 
       <div className="admin-card">
         <DataTable
           columns={columns}
-          data={paginated}
+          data={certificates}
           loading={loading}
           emptyProps={{
             icon: <FiAward />,
-            title: search ? "No matching certificates" : "No certificates yet",
-            subtitle: search
-              ? "Try a different search term."
-              : "Issued certificates will show up here.",
+            title: "No certificates found",
+            subtitle: "Try adjusting the filters, or issue a new certificate.",
           }}
           actions={(row) => (
             <div className="dt-row-actions">
               <button className="btn-icon" title="View details" onClick={() => setViewCertificate(row)}>
                 <FiEye />
               </button>
+              {row.status === "active" && (
+                <button className="btn-icon" title="Revoke certificate" onClick={() => setRevokeTarget(row)}>
+                  <FiSlash />
+                </button>
+              )}
               <button
                 className="btn-icon danger"
                 title="Delete certificate"
@@ -161,13 +205,35 @@ const CertificateManagement = () => {
             </div>
           )}
         />
-        <Pagination page={pageSafe} pages={pages} total={filtered.length} onPageChange={setPage} />
+        <Pagination page={page} pages={pages} total={total} onPageChange={setPage} />
       </div>
 
       {viewCertificate && (
-        <CertificateDetailsModal
-          certificate={viewCertificate}
-          onClose={() => setViewCertificate(null)}
+        <CertificateDetailsModal certificate={viewCertificate} onClose={() => setViewCertificate(null)} />
+      )}
+
+      {showIssueModal && (
+        <IssueCertificateModal
+          courses={courses}
+          onClose={() => setShowIssueModal(false)}
+          onSuccess={() => {
+            setShowIssueModal(false);
+            fetchCertificates();
+          }}
+        />
+      )}
+
+      {showVerifyModal && <VerifyCertificateModal onClose={() => setShowVerifyModal(false)} />}
+
+      {revokeTarget && (
+        <ConfirmDialog
+          title="Revoke this certificate?"
+          message={`"${revokeTarget.certificateNumber}" will be marked as revoked and will no longer verify as valid. This can't be undone from this panel.`}
+          confirmLabel="Revoke"
+          danger={false}
+          loading={actionLoading}
+          onConfirm={runRevoke}
+          onClose={() => setRevokeTarget(null)}
         />
       )}
 
@@ -176,7 +242,7 @@ const CertificateManagement = () => {
           title="Delete this certificate?"
           message={`This permanently deletes certificate "${confirmTarget.certificateNumber}" and its file. This cannot be undone.`}
           loading={actionLoading}
-          onConfirm={runConfirmedDelete}
+          onConfirm={runDelete}
           onClose={() => setConfirmTarget(null)}
         />
       )}

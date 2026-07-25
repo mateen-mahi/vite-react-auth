@@ -1,11 +1,10 @@
 import { useEffect, useMemo, useState, useCallback } from "react";
-import { FiPlus, FiUpload, FiTrash2, FiEdit2, FiHelpCircle } from "react-icons/fi";
+import { FiPlus, FiTrash2, FiEdit2, FiHelpCircle } from "react-icons/fi";
 import api from "../../../services/api";
 import DataTable from "../../../components/admin-shared/DataTable/DataTable";
 import SearchBar from "../../../components/admin-shared/SearchBar/SearchBar";
 import Pagination from "../../../components/admin-shared/Pagination/Pagination";
 import ConfirmDialog from "../../../components/admin-shared/ConfirmDialog/ConfirmDialog";
-import BulkJsonUploadModal from "../../../components/admin-shared/BulkJsonUpload/BulkJsonUploadModal";
 import ToastContainer from "../../../components/admin-shared/Toast/ToastContainer";
 import { showToast } from "../../../components/admin-shared/Toast/toast";
 import QuizFormModal from "./QuizFormModal";
@@ -22,7 +21,6 @@ const QuizManagement = () => {
 
   const [selectedIds, setSelectedIds] = useState(new Set());
   const [showAddModal, setShowAddModal] = useState(false);
-  const [showBulkModal, setShowBulkModal] = useState(false);
   const [editQuiz, setEditQuiz] = useState(null);
   const [confirmState, setConfirmState] = useState(null);
   const [actionLoading, setActionLoading] = useState(false);
@@ -31,8 +29,8 @@ const QuizManagement = () => {
     setLoading(true);
     try {
       const [quizzesRes, coursesRes] = await Promise.all([
-        api.get("/quizzes/"),
-        api.get("/courses/"),
+        api.get("/quizzes"),
+        api.get("/courses"),
       ]);
       setQuizzes(quizzesRes.data.data || quizzesRes.data.quizzes || []);
       setCourses(coursesRes.data.data || coursesRes.data.courses || []);
@@ -119,24 +117,6 @@ const QuizManagement = () => {
     }
   };
 
-  const handleBulkSubmit = async (items) => {
-    try {
-      const payload = items.map((q) => ({
-        title: q.title,
-        subject: q.subject,
-        totalTime: q.totalTime,
-        courseId: q.courseId,
-        questions: q.questions,
-      }));
-      const res = await api.post("/quizzes/", payload);
-      showToast(res.data.message || "Quizzes created successfully", "success");
-      setShowBulkModal(false);
-      fetchAll();
-    } catch (err) {
-      showToast(err.response?.data?.message || "Bulk upload failed", "error");
-    }
-  };
-
   const columns = [
     { key: "title", label: "Quiz" },
     { key: "subject", label: "Subject" },
@@ -145,16 +125,8 @@ const QuizManagement = () => {
       label: "Course",
       render: (row) => courseTitleById[row.courseId?._id || row.courseId] || "—",
     },
-    {
-      key: "totalTime",
-      label: "Time",
-      render: (row) => `${row.totalTime} min`,
-    },
-    {
-      key: "questions",
-      label: "Questions",
-      render: (row) => row.questions?.length || 0,
-    },
+    { key: "totalTime", label: "Time", render: (row) => `${row.totalTime} min` },
+    { key: "questions", label: "Questions", render: (row) => row.questions?.length || 0 },
   ];
 
   return (
@@ -164,12 +136,11 @@ const QuizManagement = () => {
       <div className="admin-page-header">
         <div>
           <h1 className="admin-page-title">Quiz Management</h1>
-          <p className="admin-page-subtitle">Create quizzes and manage their questions.</p>
+          <p className="admin-page-subtitle">
+            Create quizzes and manage their questions — add single or bulk via one form.
+          </p>
         </div>
         <div className="admin-page-actions">
-          <button className="btn btn-ghost" onClick={() => setShowBulkModal(true)}>
-            <FiUpload /> Bulk Add
-          </button>
           <button className="btn btn-primary" onClick={() => setShowAddModal(true)}>
             <FiPlus /> Add Quiz
           </button>
@@ -251,16 +222,6 @@ const QuizManagement = () => {
             setEditQuiz(null);
             fetchAll();
           }}
-        />
-      )}
-
-      {showBulkModal && (
-        <BulkJsonUploadModal
-          title="Bulk add quizzes"
-          requiredFields={["title", "subject", "totalTime", "courseId", "questions[]"]}
-          sampleJson={`[\n  {\n    "title": "JS Basics Quiz",\n    "subject": "JavaScript",\n    "totalTime": 15,\n    "courseId": "64f...courseId",\n    "questions": [\n      {\n        "question": "What keyword declares a constant?",\n        "options": ["var", "let", "const", "static"],\n        "correctAnswer": "const"\n      }\n    ]\n  }\n]`}
-          onSubmit={handleBulkSubmit}
-          onClose={() => setShowBulkModal(false)}
         />
       )}
 

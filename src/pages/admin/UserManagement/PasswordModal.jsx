@@ -10,8 +10,8 @@ const PasswordModal = ({ user, onClose }) => {
   const [submitting, setSubmitting] = useState(false);
 
   const handleSubmit = async () => {
-    if (!password.trim() || password.length < 6) {
-      setError("Password must be at least 6 characters.");
+    if (!password.trim() || password.length < 4) {
+      setError("Password must be at least 4 characters.");
       return;
     }
     if (password !== confirmPassword) {

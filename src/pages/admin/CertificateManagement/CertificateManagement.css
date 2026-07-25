@@ -15,3 +15,93 @@
   font-size: 12px;
   color: var(--text-muted);
 }
+
+.cert-filter-select {
+  min-width: 160px;
+  max-width: 220px;
+}
+
+.cert-verify-result {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px;
+  border-radius: var(--r-md);
+  margin-top: 16px;
+}
+.cert-verify-result.valid {
+  background: var(--success-bg);
+  border: 1px solid var(--success-border);
+}
+.cert-verify-result.invalid {
+  background: var(--danger-bg);
+  border: 1px solid var(--danger-border);
+}
+.cert-verify-result svg {
+  font-size: 22px;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+.cert-verify-result.valid svg {
+  color: var(--success);
+}
+.cert-verify-result.invalid svg {
+  color: var(--danger);
+}
+.cert-verify-title {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--text-heading);
+  margin: 0 0 2px;
+}
+.cert-verify-sub {
+  font-size: 12.5px;
+  color: var(--text-muted);
+  margin: 0;
+}
+
+.cert-picked-user {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 12px;
+  background: var(--pri-tint);
+  border: 1px solid var(--pri-border);
+  border-radius: var(--r-sm);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--pri);
+}
+.cert-picked-email {
+  font-weight: 500;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.cert-user-suggestions {
+  margin-top: 6px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  overflow: hidden;
+}
+.cert-user-suggestion-row {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+  padding: 9px 12px;
+  background: var(--surface);
+  border: none;
+  border-bottom: 1px solid var(--divider);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-heading);
+  cursor: pointer;
+  text-align: left;
+}
+.cert-user-suggestion-row:last-child {
+  border-bottom: none;
+}
+.cert-user-suggestion-row:hover {
+  background: var(--bg-subtle);
+}

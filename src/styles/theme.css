@@ -1,0 +1,69 @@
+/* ==========================================================
+   Academy — Shared Design Tokens
+   Import once (or rely on it already being imported globally).
+   All admin-shared components and pages reference these vars.
+   ========================================================== */
+:root {
+  /* Brand */
+  --pri: #2563eb;
+  --pri-grad: linear-gradient(135deg, #2563eb, #3b82f6);
+  --pri-grad-light: linear-gradient(135deg, #2563eb, #60a5fa);
+  --pri-deep: #1d4ed8;
+  --pri-tint: #eff6ff;
+  --pri-border: #bfdbfe;
+
+  --accent-2: #7c3aed;
+  --accent-2-grad: linear-gradient(135deg, #7c3aed, #a78bfa);
+
+  /* Status */
+  --success: #16a34a;
+  --success-bg: #f0fdf4;
+  --success-border: #bbf7d0;
+
+  --warning: #d97706;
+  --warning-bg: #fffbeb;
+  --warning-border: #fde68a;
+
+  --danger: #ef4444;
+  --danger-bg: #fff5f5;
+  --danger-border: #fecaca;
+
+  --info: #2563eb;
+  --info-bg: #eff6ff;
+  --info-border: #bfdbfe;
+
+  /* Neutrals */
+  --text-heading: #0f172a;
+  --text-body-med: #334155;
+  --text-body: #374151;
+  --text-muted: #64748b;
+  --text-placeholder: #94a3b8;
+  --icon-faint: #cbd5e1;
+  --border: #e2e8f0;
+  --divider: #f1f5f9;
+  --bg-subtle: #f8fafc;
+  --surface: #ffffff;
+
+  /* Radius */
+  --r-sm: 10px;
+  --r-md: 14px;
+  --r-lg: 16px;
+  --r-xl: 20px;
+  --r-pill: 99px;
+
+  /* Shadows */
+  --shadow-card: 0 2px 8px rgba(0, 0, 0, 0.04);
+  --shadow-standard: 0 4px 24px rgba(0, 0, 0, 0.07);
+  --shadow-elevated: 0 12px 32px rgba(0, 0, 0, 0.12);
+  --shadow-modal: 0 20px 50px rgba(0, 0, 0, 0.25);
+  --shadow-glow: 0 4px 14px rgba(37, 99, 235, 0.28);
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.cp-spin {
+  animation: spin 0.8s linear infinite;
+}

@@ -4,15 +4,32 @@ import api from "../../../services/api";
 import Modal from "../../../components/admin-shared/Modal/Modal";
 import { showToast } from "../../../components/admin-shared/Toast/toast";
 
-const emptyQuestion = () => ({
-  question: "",
-  options: ["", ""],
-  correctAnswer: "",
-});
+// IMPORTANT: your real Quiz schema stores `correctAnswer` as a zero-based
+// NUMBER INDEX into `options`, not the answer text. Every question here
+// tracks `correctAnswerIndex` internally and the payload sends that index
+// directly as `correctAnswer`.
+const emptyQuestion = () => ({ question: "", options: ["", ""], correctAnswerIndex: null });
+
+const SAMPLE_JSON = `[
+  {
+    "title": "JS Basics Quiz",
+    "subject": "JavaScript",
+    "totalTime": 15,
+    "courseId": "64f...courseId",
+    "questions": [
+      {
+        "question": "What keyword declares a constant?",
+        "options": ["var", "let", "const", "static"],
+        "correctAnswer": 2
+      }
+    ]
+  }
+]`;
 
 const QuizFormModal = ({ mode, quiz, courses, onClose, onSuccess }) => {
   const isEdit = mode === "edit";
 
+  const [entryMode, setEntryMode] = useState("single");
   const [title, setTitle] = useState(quiz?.title || "");
   const [subject, setSubject] = useState(quiz?.subject || "");
   const [totalTime, setTotalTime] = useState(quiz?.totalTime ?? "");
@@ -22,22 +39,20 @@ const QuizFormModal = ({ mode, quiz, courses, onClose, onSuccess }) => {
       ? quiz.questions.map((q) => ({
           question: q.question,
           options: q.options?.length ? [...q.options] : ["", ""],
-          correctAnswer: q.correctAnswer,
+          correctAnswerIndex: typeof q.correctAnswer === "number" ? q.correctAnswer : null,
         }))
       : [emptyQuestion()]
   );
+  const [bulkJson, setBulkJson] = useState("");
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
   // ---- question helpers ----
   const addQuestion = () => setQuestions((qs) => [...qs, emptyQuestion()]);
-  const removeQuestion = (idx) =>
-    setQuestions((qs) => qs.filter((_, i) => i !== idx));
+  const removeQuestion = (idx) => setQuestions((qs) => qs.filter((_, i) => i !== idx));
 
-  const updateQuestion = (idx, key, val) =>
-    setQuestions((qs) =>
-      qs.map((q, i) => (i === idx ? { ...q, [key]: val } : q))
-    );
+  const updateQuestionText = (idx, val) =>
+    setQuestions((qs) => qs.map((q, i) => (i === idx ? { ...q, question: val } : q)));
 
   const addOption = (qIdx) =>
     setQuestions((qs) =>
@@ -49,12 +64,10 @@ const QuizFormModal = ({ mode, quiz, courses, onClose, onSuccess }) => {
       qs.map((q, i) => {
         if (i !== qIdx) return q;
         const nextOptions = q.options.filter((_, j) => j !== oIdx);
-        const removedVal = q.options[oIdx];
-        return {
-          ...q,
-          options: nextOptions,
-          correctAnswer: q.correctAnswer === removedVal ? "" : q.correctAnswer,
-        };
+        let nextCorrect = q.correctAnswerIndex;
+        if (nextCorrect === oIdx) nextCorrect = null;
+        else if (nextCorrect !== null && nextCorrect > oIdx) nextCorrect -= 1;
+        return { ...q, options: nextOptions, correctAnswerIndex: nextCorrect };
       })
     );
 
@@ -63,17 +76,15 @@ const QuizFormModal = ({ mode, quiz, courses, onClose, onSuccess }) => {
       qs.map((q, i) => {
         if (i !== qIdx) return q;
         const nextOptions = q.options.map((o, j) => (j === oIdx ? val : o));
-        return {
-          ...q,
-          options: nextOptions,
-          // keep correctAnswer in sync if it pointed at the edited option
-          correctAnswer: q.correctAnswer === q.options[oIdx] ? val : q.correctAnswer,
-        };
+        return { ...q, options: nextOptions };
       })
     );
 
-  // ---- validation ----
-  const validate = () => {
+  const setCorrectAnswer = (qIdx, oIdx) =>
+    setQuestions((qs) => qs.map((q, i) => (i === qIdx ? { ...q, correctAnswerIndex: oIdx } : q)));
+
+  // ---- validation (single-entry mode) ----
+  const validateSingle = () => {
     if (!title.trim()) return "Title is required.";
     if (!subject.trim()) return "Subject is required.";
     if (totalTime === "" || Number(totalTime) <= 0) return "Valid total time is required.";
@@ -83,43 +94,83 @@ const QuizFormModal = ({ mode, quiz, courses, onClose, onSuccess }) => {
     for (let i = 0; i < questions.length; i++) {
       const q = questions[i];
       if (!q.question.trim()) return `Question ${i + 1}: question text is required.`;
-      const nonEmptyOptions = q.options.filter((o) => o.trim());
-      if (nonEmptyOptions.length < 2) return `Question ${i + 1}: at least 2 options are required.`;
-      if (!q.correctAnswer || !nonEmptyOptions.includes(q.correctAnswer)) {
+      const nonEmptyCount = q.options.filter((o) => o.trim()).length;
+      if (nonEmptyCount < 2) return `Question ${i + 1}: at least 2 options are required.`;
+      if (
+        q.correctAnswerIndex === null ||
+        q.correctAnswerIndex === undefined ||
+        !q.options[q.correctAnswerIndex]?.trim()
+      ) {
         return `Question ${i + 1}: select a correct answer from its options.`;
       }
     }
     return "";
   };
 
+  const buildSinglePayload = () => ({
+    title,
+    subject,
+    totalTime: Number(totalTime),
+    courseId,
+    questions: questions.map((q) => ({
+      question: q.question,
+      options: q.options.filter((o) => o.trim()),
+      correctAnswer: q.correctAnswerIndex,
+    })),
+  });
+
   const handleSubmit = async () => {
-    const validationError = validate();
-    if (validationError) {
-      setError(validationError);
-      return;
-    }
-    setError("");
     setSubmitting(true);
     try {
-      const payload = {
-        title,
-        subject,
-        totalTime: Number(totalTime),
-        courseId,
-        questions: questions.map((q) => ({
-          question: q.question,
-          options: q.options.filter((o) => o.trim()),
-          correctAnswer: q.correctAnswer,
-        })),
-      };
-
       if (isEdit) {
-        await api.put(`/quizzes/${quiz._id}`, payload);
+        const validationError = validateSingle();
+        if (validationError) {
+          setError(validationError);
+          setSubmitting(false);
+          return;
+        }
+        setError("");
+        await api.put(`/quizzes/${quiz._id}`, buildSinglePayload());
         showToast("Quiz updated successfully", "success");
-      } else {
-        await api.post("/quizzes/", payload);
-        showToast("Quiz created successfully", "success");
+        onSuccess();
+        return;
       }
+
+      if (entryMode === "bulk") {
+        if (!bulkJson.trim()) {
+          setError("Paste a JSON array first.");
+          setSubmitting(false);
+          return;
+        }
+        let parsed;
+        try {
+          parsed = JSON.parse(bulkJson);
+        } catch {
+          setError("Invalid JSON — check for missing commas, quotes, or brackets.");
+          setSubmitting(false);
+          return;
+        }
+        if (!Array.isArray(parsed) || parsed.length === 0) {
+          setError("JSON must be a non-empty array of quiz objects.");
+          setSubmitting(false);
+          return;
+        }
+        setError("");
+        const res = await api.post("/quizzes", parsed);
+        showToast(res.data.message || `${parsed.length} quiz(zes) created successfully`, "success");
+        onSuccess();
+        return;
+      }
+
+      const validationError = validateSingle();
+      if (validationError) {
+        setError(validationError);
+        setSubmitting(false);
+        return;
+      }
+      setError("");
+      const res = await api.post("/quizzes", buildSinglePayload());
+      showToast(res.data.message || "Quiz created successfully", "success");
       onSuccess();
     } catch (err) {
       showToast(err.response?.data?.message || "Something went wrong", "error");
@@ -130,7 +181,7 @@ const QuizFormModal = ({ mode, quiz, courses, onClose, onSuccess }) => {
 
   return (
     <Modal
-      title={isEdit ? "Edit Quiz" : "Add New Quiz"}
+      title={isEdit ? "Edit Quiz" : "Add Quiz"}
       onClose={onClose}
       width={680}
       footer={
@@ -144,121 +195,158 @@ const QuizFormModal = ({ mode, quiz, courses, onClose, onSuccess }) => {
         </>
       }
     >
-      <div className="field-row">
-        <div className="field-group">
-          <label className="field-label">
-            Title<span className="required">*</span>
-          </label>
-          <input className="field-input" value={title} onChange={(e) => setTitle(e.target.value)} />
+      {!isEdit && (
+        <div className="entry-mode-tabs">
+          <button
+            type="button"
+            className={`entry-mode-tab ${entryMode === "single" ? "active" : ""}`}
+            onClick={() => setEntryMode("single")}
+          >
+            Single Quiz
+          </button>
+          <button
+            type="button"
+            className={`entry-mode-tab ${entryMode === "bulk" ? "active" : ""}`}
+            onClick={() => setEntryMode("bulk")}
+          >
+            Bulk (Paste JSON)
+          </button>
         </div>
-        <div className="field-group">
-          <label className="field-label">
-            Subject<span className="required">*</span>
-          </label>
-          <input className="field-input" value={subject} onChange={(e) => setSubject(e.target.value)} />
-        </div>
-      </div>
+      )}
 
-      <div className="field-row">
-        <div className="field-group">
-          <label className="field-label">
-            Total Time (minutes)<span className="required">*</span>
-          </label>
-          <input
-            className="field-input"
-            type="number"
-            min="1"
-            value={totalTime}
-            onChange={(e) => setTotalTime(e.target.value)}
-          />
-        </div>
-        <div className="field-group">
-          <label className="field-label">
-            Course<span className="required">*</span>
-          </label>
-          <select className="field-select" value={courseId} onChange={(e) => setCourseId(e.target.value)}>
-            <option value="">Select a course…</option>
-            {courses.map((c) => (
-              <option key={c._id} value={c._id}>
-                {c.title}
-              </option>
-            ))}
-          </select>
-        </div>
-      </div>
-
-      <div className="quiz-questions-header">
-        <span className="field-label">Questions</span>
-        <button type="button" className="btn btn-secondary btn-sm" onClick={addQuestion}>
-          <FiPlus /> Add Question
-        </button>
-      </div>
-
-      {questions.map((q, qIdx) => (
-        <div className="quiz-question-card" key={qIdx}>
-          <div className="quiz-question-card-header">
-            <span className="quiz-question-number">Question {qIdx + 1}</span>
-            {questions.length > 1 && (
-              <button
-                type="button"
-                className="btn-icon danger btn-sm-icon"
-                onClick={() => removeQuestion(qIdx)}
-                title="Remove question"
-              >
-                <FiTrash2 />
-              </button>
-            )}
+      {(isEdit || entryMode === "single") && (
+        <>
+          <div className="field-row">
+            <div className="field-group">
+              <label className="field-label">
+                Title<span className="required">*</span>
+              </label>
+              <input className="field-input" value={title} onChange={(e) => setTitle(e.target.value)} />
+            </div>
+            <div className="field-group">
+              <label className="field-label">
+                Subject<span className="required">*</span>
+              </label>
+              <input className="field-input" value={subject} onChange={(e) => setSubject(e.target.value)} />
+            </div>
           </div>
 
-          <div className="field-group">
-            <input
-              className="field-input"
-              placeholder="Question text"
-              value={q.question}
-              onChange={(e) => updateQuestion(qIdx, "question", e.target.value)}
-            />
+          <div className="field-row">
+            <div className="field-group">
+              <label className="field-label">
+                Total Time (minutes)<span className="required">*</span>
+              </label>
+              <input
+                className="field-input"
+                type="number"
+                min="1"
+                value={totalTime}
+                onChange={(e) => setTotalTime(e.target.value)}
+              />
+            </div>
+            <div className="field-group">
+              <label className="field-label">
+                Course<span className="required">*</span>
+              </label>
+              <select className="field-select" value={courseId} onChange={(e) => setCourseId(e.target.value)}>
+                <option value="">Select a course…</option>
+                {courses.map((c) => (
+                  <option key={c._id} value={c._id}>
+                    {c.title}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
 
-          <div className="quiz-options-list">
-            {q.options.map((opt, oIdx) => (
-              <div className="quiz-option-row" key={oIdx}>
-                <input
-                  type="radio"
-                  name={`correct-${qIdx}`}
-                  checked={q.correctAnswer === opt && opt.trim() !== ""}
-                  onChange={() => updateQuestion(qIdx, "correctAnswer", opt)}
-                  disabled={!opt.trim()}
-                  title="Mark as correct answer"
-                />
-                <input
-                  className="field-input"
-                  placeholder={`Option ${oIdx + 1}`}
-                  value={opt}
-                  onChange={(e) => updateOption(qIdx, oIdx, e.target.value)}
-                />
-                {q.options.length > 2 && (
+          <div className="quiz-questions-header">
+            <span className="field-label">Questions</span>
+            <button type="button" className="btn btn-secondary btn-sm" onClick={addQuestion}>
+              <FiPlus /> Add Question
+            </button>
+          </div>
+
+          {questions.map((q, qIdx) => (
+            <div className="quiz-question-card" key={qIdx}>
+              <div className="quiz-question-card-header">
+                <span className="quiz-question-number">Question {qIdx + 1}</span>
+                {questions.length > 1 && (
                   <button
                     type="button"
                     className="btn-icon danger btn-sm-icon"
-                    onClick={() => removeOption(qIdx, oIdx)}
-                    title="Remove option"
+                    onClick={() => removeQuestion(qIdx)}
+                    title="Remove question"
                   >
                     <FiTrash2 />
                   </button>
                 )}
               </div>
-            ))}
-            <button
-              type="button"
-              className="btn btn-ghost btn-sm"
-              onClick={() => addOption(qIdx)}
-            >
-              <FiPlus /> Add Option
-            </button>
-          </div>
-          <span className="field-hint">Select the radio button next to the correct option.</span>
+
+              <div className="field-group">
+                <input
+                  className="field-input"
+                  placeholder="Question text"
+                  value={q.question}
+                  onChange={(e) => updateQuestionText(qIdx, e.target.value)}
+                />
+              </div>
+
+              <div className="quiz-options-list">
+                {q.options.map((opt, oIdx) => (
+                  <div className="quiz-option-row" key={oIdx}>
+                    <input
+                      type="radio"
+                      name={`correct-${qIdx}`}
+                      checked={q.correctAnswerIndex === oIdx}
+                      onChange={() => setCorrectAnswer(qIdx, oIdx)}
+                      disabled={!opt.trim()}
+                      title="Mark as correct answer"
+                    />
+                    <input
+                      className="field-input"
+                      placeholder={`Option ${oIdx + 1}`}
+                      value={opt}
+                      onChange={(e) => updateOption(qIdx, oIdx, e.target.value)}
+                    />
+                    {q.options.length > 2 && (
+                      <button
+                        type="button"
+                        className="btn-icon danger btn-sm-icon"
+                        onClick={() => removeOption(qIdx, oIdx)}
+                        title="Remove option"
+                      >
+                        <FiTrash2 />
+                      </button>
+                    )}
+                  </div>
+                ))}
+                <button type="button" className="btn btn-ghost btn-sm" onClick={() => addOption(qIdx)}>
+                  <FiPlus /> Add Option
+                </button>
+              </div>
+              <span className="field-hint">
+                Select the radio button next to the correct option — stored as its index (0, 1, 2…), matching your schema.
+              </span>
+            </div>
+          ))}
+        </>
+      )}
+
+      {!isEdit && entryMode === "bulk" && (
+        <div className="field-group">
+          <label className="field-label">Paste a JSON array of quizzes</label>
+          <textarea
+            className="field-textarea bulk-textarea"
+            placeholder={SAMPLE_JSON}
+            value={bulkJson}
+            onChange={(e) => setBulkJson(e.target.value)}
+            spellCheck={false}
+          />
+          <span className="field-hint">
+            Remember: <strong>correctAnswer</strong> must be the numeric index into that question's <strong>options</strong> array, not the answer text.
+          </span>
         </div>
-      ))}
+      )}
 
       {error && <span className="field-error">{error}</span>}
     </Modal>
