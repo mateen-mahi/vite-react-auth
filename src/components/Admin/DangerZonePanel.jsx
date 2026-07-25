@@ -1,14 +1,19 @@
 // src/components/admin/DangerZonePanel.jsx
 import { useState, useEffect, useCallback } from "react";
-import { FiUsers, FiPlayCircle, FiHelpCircle, FiAlertTriangle, FiTrash2, FiRefreshCw } from "react-icons/fi";
+import { FiUsers, FiPlayCircle, FiHelpCircle, FiMessageSquare, FiAlertTriangle, FiTrash2, FiRefreshCw } from "react-icons/fi";
 import api from "../../services/api";
 
 export default function DangerZonePanel() {
-  const [counts, setCounts] = useState({ users: null, lectures: null, quizzes: null });
+  const [counts, setCounts] = useState({ users: null, lectures: null, quizzes: null, complaints: null });
   const [countsLoading, setCountsLoading] = useState(true);
   const [courses, setCourses] = useState([]);
-  const [selectedCourseId, setSelectedCourseId] = useState("");
+  const [quizzes, setQuizzes] = useState([]);
+
+  const [selectedCourseId, setSelectedCourseId] = useState(""); // lectures-by-course
   const [courseLectureCount, setCourseLectureCount] = useState(null);
+
+  const [selectedQuizCourseId, setSelectedQuizCourseId] = useState(""); // quizzes-by-course
+  const [courseQuizCount, setCourseQuizCount] = useState(null);
 
   const [confirmTarget, setConfirmTarget] = useState(null); // { key, label, phrase, run }
   const [typedConfirm, setTypedConfirm] = useState("");
@@ -18,18 +23,21 @@ export default function DangerZonePanel() {
   const fetchCounts = useCallback(async () => {
     setCountsLoading(true);
     try {
-      const [usersRes, lecturesRes, quizzesRes, coursesRes] = await Promise.all([
+      const [usersRes, lecturesRes, quizzesRes, coursesRes, complaintsRes] = await Promise.all([
         api.get("/users/all-users"),
         api.get("/lectures"),
         api.get("/quizzes"),
         api.get("/courses"),
+        api.get("/complaints/all-complaints"),
       ]);
       setCounts({
         users: (usersRes.data.users || []).length,
         lectures: (lecturesRes.data.data || []).length,
         quizzes: (quizzesRes.data.data || []).length,
+        complaints: (complaintsRes.data.complaints || []).length,
       });
       setCourses(coursesRes.data.data || []);
+      setQuizzes(quizzesRes.data.data || []);
     } catch (err) {
       console.error("Failed to load counts for danger zone:", err);
     } finally {
@@ -41,8 +49,9 @@ export default function DangerZonePanel() {
     fetchCounts();
   }, [fetchCounts]);
 
-  // Whenever a course is picked, work out how many of its lectures currently
-  // exist so the confirmation dialog can show a real number, not a guess.
+  // Whenever a course is picked for the "lectures for a course" card, work
+  // out how many of its lectures currently exist so the confirmation dialog
+  // can show a real number, not a guess.
   useEffect(() => {
     if (!selectedCourseId) {
       setCourseLectureCount(null);
@@ -63,12 +72,23 @@ export default function DangerZonePanel() {
     return () => { cancelled = true; };
   }, [selectedCourseId]);
 
+  // Same idea for the "quizzes for a course" card — computed from the
+  // already-fetched quizzes list, no extra request needed.
+  useEffect(() => {
+    if (!selectedQuizCourseId) {
+      setCourseQuizCount(null);
+      return;
+    }
+    const count = quizzes.filter((q) => (q.courseId?._id || q.courseId) === selectedQuizCourseId).length;
+    setCourseQuizCount(count);
+  }, [selectedQuizCourseId, quizzes]);
+
   const closeConfirm = () => {
     setConfirmTarget(null);
     setTypedConfirm("");
   };
 
-  // ---- the four destructive actions ----
+  // ---- the destructive actions ----
 
   const deleteAllUsers = async () => {
     await api.delete("/users/clear-all-users");
@@ -88,13 +108,22 @@ export default function DangerZonePanel() {
     await Promise.all(all.map((q) => api.delete(`/quizzes/${q._id}`)));
   };
 
-  // Course-scoped: fetch every lecture, filter to this course client-side,
-  // delete only those.
+  // Course-scoped lectures: no dedicated endpoint — fetch every lecture,
+  // filter to this course client-side, delete only those.
   const deleteLecturesForCourse = async () => {
     const res = await api.get("/lectures");
     const all = res.data.data || [];
     const matching = all.filter((l) => (l.course?._id || l.course) === selectedCourseId);
     await Promise.all(matching.map((l) => api.delete(`/lectures/${l._id}`)));
+  };
+
+  // Course-scoped quizzes: real dedicated endpoint — one call, no fetch+loop.
+  const deleteQuizzesForCourse = async () => {
+    await api.delete(`/quizzes/course/${selectedQuizCourseId}`);
+  };
+
+  const deleteAllComplaints = async () => {
+    await api.delete("/complaints/clear-all-complaints");
   };
 
   const runAction = async () => {
@@ -107,6 +136,7 @@ export default function DangerZonePanel() {
       closeConfirm();
       fetchCounts();
       if (confirmTarget.key === "course-lectures") setSelectedCourseId("");
+      if (confirmTarget.key === "course-quizzes") setSelectedQuizCourseId("");
     } catch (err) {
       console.error(`Failed: ${confirmTarget.label}`, err);
       setResultMsg({ type: "error", text: `Failed to complete "${confirmTarget.label}". Please try again.` });
@@ -116,6 +146,7 @@ export default function DangerZonePanel() {
   };
 
   const selectedCourse = courses.find((c) => c._id === selectedCourseId);
+  const selectedQuizCourse = courses.find((c) => c._id === selectedQuizCourseId);
 
   return (
     <div className="admin-panel">
@@ -215,6 +246,31 @@ export default function DangerZonePanel() {
 
         <div className="admin-danger-card">
           <div className="admin-danger-card-top">
+            <div className="admin-danger-card-icon"><FiMessageSquare /></div>
+            <div>
+              <h3>All Complaints</h3>
+              <p>Every user complaint, including replies and status history.</p>
+            </div>
+          </div>
+          <div className="admin-danger-card-footer">
+            <span>{countsLoading ? "…" : `${counts.complaints ?? "?"} record(s)`}</span>
+            <button
+              className="admin-btn admin-btn-danger admin-btn-sm"
+              disabled={countsLoading || counts.complaints === 0}
+              onClick={() => setConfirmTarget({
+                key: "complaints",
+                label: "Delete all complaints",
+                phrase: "DELETE ALL COMPLAINTS",
+                run: deleteAllComplaints,
+              })}
+            >
+              <FiTrash2 /> Delete All
+            </button>
+          </div>
+        </div>
+
+        <div className="admin-danger-card">
+          <div className="admin-danger-card-top">
             <div className="admin-danger-card-icon"><FiPlayCircle /></div>
             <div>
               <h3>Lectures for a Course</h3>
@@ -242,6 +298,42 @@ export default function DangerZonePanel() {
                 label: `Delete all lectures in "${selectedCourse?.title}"`,
                 phrase: "DELETE LECTURES",
                 run: deleteLecturesForCourse,
+              })}
+            >
+              <FiTrash2 /> Delete for Course
+            </button>
+          </div>
+        </div>
+
+        <div className="admin-danger-card">
+          <div className="admin-danger-card-top">
+            <div className="admin-danger-card-icon"><FiHelpCircle /></div>
+            <div>
+              <h3>Quizzes for a Course</h3>
+              <p>Delete only the quizzes that belong to one specific course.</p>
+            </div>
+          </div>
+          <select
+            className="admin-select"
+            value={selectedQuizCourseId}
+            onChange={(e) => setSelectedQuizCourseId(e.target.value)}
+            style={{ margin: "10px 0" }}
+          >
+            <option value="">Select a course…</option>
+            {courses.map((c) => <option key={c._id} value={c._id}>{c.title}</option>)}
+          </select>
+          <div className="admin-danger-card-footer">
+            <span>
+              {!selectedQuizCourseId ? "No course selected" : courseQuizCount === null ? "…" : `${courseQuizCount} record(s)`}
+            </span>
+            <button
+              className="admin-btn admin-btn-danger admin-btn-sm"
+              disabled={!selectedQuizCourseId || courseQuizCount === 0}
+              onClick={() => setConfirmTarget({
+                key: "course-quizzes",
+                label: `Delete all quizzes in "${selectedQuizCourse?.title}"`,
+                phrase: "DELETE QUIZZES",
+                run: deleteQuizzesForCourse,
               })}
             >
               <FiTrash2 /> Delete for Course

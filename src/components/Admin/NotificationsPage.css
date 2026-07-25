@@ -1,0 +1,198 @@
+/* ==========================================================================
+   Notifications page — append to admin-dashboard.css or import directly
+   ========================================================================== */
+
+.notif-title-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.notif-bell-wrap {
+  position: relative;
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  background: #eff6ff;
+  color: #2563eb;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+.notif-badge {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  border-radius: 99px;
+  background: #ef4444;
+  color: #fff;
+  font-size: 10.5px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid #fff;
+  animation: notif-pop 0.25s ease;
+}
+
+@keyframes notif-pop {
+  from { transform: scale(0.6); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+/* ---- filter chips ---- */
+.notif-filter-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 18px;
+}
+
+.notif-filter-chip {
+  padding: 7px 14px;
+  border-radius: 99px;
+  border: 1px solid #e2e8f0;
+  background: #fff;
+  color: #64748b;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s, border-color 0.2s;
+}
+.notif-filter-chip:hover {
+  background: #f8fafc;
+}
+.notif-filter-chip.active {
+  background: linear-gradient(135deg, #2563eb, #3b82f6);
+  border-color: transparent;
+  color: #fff;
+}
+
+/* ---- notification list ---- */
+.notif-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.notif-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  width: 100%;
+  text-align: left;
+  padding: 13px 14px;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  background: #fff;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s, transform 0.1s;
+  position: relative;
+}
+.notif-item:hover {
+  background: #f8fafc;
+  transform: translateX(2px);
+}
+.notif-item.unread {
+  background: #fafbff;
+  border-color: #bfdbfe;
+}
+
+.notif-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  flex-shrink: 0;
+}
+.notif-icon.blue   { background: #eff6ff; color: #2563eb; }
+.notif-icon.purple { background: #f5f3ff; color: #7c3aed; }
+.notif-icon.green  { background: #f0fdf4; color: #16a34a; }
+.notif-icon.amber  { background: #fffbeb; color: #d97706; }
+.notif-icon.red    { background: #fff5f5; color: #ef4444; }
+
+.notif-item-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.notif-item-text {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #0f172a;
+  margin: 0 0 3px;
+  line-height: 1.4;
+  word-break: break-word;
+}
+
+.notif-item-time {
+  font-size: 11.5px;
+  color: #94a3b8;
+}
+
+.notif-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #2563eb;
+  flex-shrink: 0;
+  margin-top: 5px;
+}
+
+/* ---- empty state ---- */
+.notif-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 60px 24px;
+  color: #94a3b8;
+}
+.notif-empty svg {
+  font-size: 38px;
+  color: #cbd5e1;
+  margin-bottom: 14px;
+}
+.notif-empty-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: #334155;
+  margin: 0 0 4px;
+}
+.notif-empty-sub {
+  font-size: 13px;
+  color: #94a3b8;
+  margin: 0;
+  max-width: 320px;
+}
+
+/* ---- responsive ---- */
+@media (max-width: 640px) {
+  .admin-panel-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+  .sys-header-actions {
+    width: 100%;
+    justify-content: space-between;
+  }
+  .notif-filter-row {
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    padding-bottom: 4px;
+  }
+  .notif-filter-chip {
+    flex-shrink: 0;
+  }
+}

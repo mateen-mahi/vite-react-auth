@@ -1,0 +1,128 @@
+/* ==========================================================================
+   System Usage panel — append to your existing admin-dashboard.css
+   (or import this file directly alongside SystemUsagePanel.jsx)
+   ========================================================================== */
+
+.sys-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.sys-error {
+  color: #ef4444;
+}
+
+.sys-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 14px;
+  margin-bottom: 20px;
+}
+
+.sys-card {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.sys-card-top {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.sys-card-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  flex-shrink: 0;
+}
+.sys-card-icon.good {
+  background: #f0fdf4;
+  color: #16a34a;
+}
+.sys-card-icon.warning {
+  background: #fffbeb;
+  color: #d97706;
+}
+.sys-card-icon.critical {
+  background: #fff5f5;
+  color: #ef4444;
+}
+.sys-card-icon.unknown {
+  background: #f8fafc;
+  color: #94a3b8;
+}
+
+.sys-card-label {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  margin: 0 0 2px;
+}
+
+.sys-card-value {
+  font-size: 20px;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0;
+}
+
+.sys-bar-track {
+  width: 100%;
+  height: 7px;
+  border-radius: 99px;
+  background: #f1f5f9;
+  overflow: hidden;
+}
+
+.sys-bar-fill {
+  height: 100%;
+  border-radius: 99px;
+  transition: width 0.5s ease;
+}
+.sys-bar-fill.good {
+  background: #16a34a;
+}
+.sys-bar-fill.warning {
+  background: #d97706;
+}
+.sys-bar-fill.critical {
+  background: #ef4444;
+}
+.sys-bar-fill.unknown {
+  background: #cbd5e1;
+}
+
+.sys-card-detail {
+  font-size: 12px;
+  color: #64748b;
+  margin: 10px 0 0;
+}
+
+.sys-chart-card {
+  position: relative;
+}
+
+.sys-chart-empty {
+  text-align: center;
+  font-size: 12.5px;
+  color: #94a3b8;
+  margin-top: -8px;
+}
+
+@media (max-width: 640px) {
+  .sys-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}

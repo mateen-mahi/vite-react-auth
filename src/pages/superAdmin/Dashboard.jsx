@@ -1,7 +1,8 @@
 // src/pages/admin/Dashboard.jsx
 import { useState } from "react";
 import {
-  FiGrid, FiUsers, FiBookOpen, FiPlayCircle, FiHelpCircle, FiMessageSquare, FiActivity, FiAlertTriangle,
+  FiGrid, FiUsers, FiBookOpen, FiPlayCircle, FiHelpCircle, FiMessageSquare,
+  FiActivity, FiAlertTriangle, FiBell, FiCpu,
 } from "react-icons/fi";
 import KpiCards from "../../components/Admin/KpiCards";
 import UserTable from "../../components/Admin/UserTable";
@@ -11,20 +12,24 @@ import QuizTable from "../../components/Admin/QuizTable";
 import ComplaintQueue from "../../components/Admin/ComplaintQueue";
 import LiveActivityPanel from "../../components/Admin/LiveActivityPanel";
 import DangerZonePanel from "../../components/Admin/DangerZonePanel";
+import NotificationsPage from "../../components/Admin/NotificationsPage";
+import SystemUsagePanel from "../../components/Admin/SystemUsagePanel";
 import {
   SignupTrendChart, RoleDistributionChart, CategoryDistributionChart, ComplaintStatusChart,
 } from "../../components/Admin/AdminCharts";
 import "../../styles/admin-dashboard.css";
 
 const TABS = [
-  { id: "overview",   label: "Overview",      icon: FiGrid },
-  { id: "users",      label: "Users",         icon: FiUsers },
-  { id: "courses",    label: "Courses",       icon: FiBookOpen },
-  { id: "lectures",   label: "Lectures",      icon: FiPlayCircle },
-  { id: "quizzes",    label: "Quizzes",       icon: FiHelpCircle },
-  { id: "complaints", label: "Complaints",    icon: FiMessageSquare },
-  { id: "activity",   label: "Live Activity", icon: FiActivity },
-  { id: "danger",     label: "Danger Zone",   icon: FiAlertTriangle },
+  { id: "overview",      label: "Overview",       icon: FiGrid },
+  { id: "users",         label: "Users",          icon: FiUsers },
+  { id: "courses",       label: "Courses",        icon: FiBookOpen },
+  { id: "lectures",      label: "Lectures",       icon: FiPlayCircle },
+  { id: "quizzes",       label: "Quizzes",        icon: FiHelpCircle },
+  { id: "complaints",    label: "Complaints",     icon: FiMessageSquare },
+  { id: "activity",      label: "Live Activity",  icon: FiActivity },
+  { id: "notifications", label: "Notifications",  icon: FiBell },
+  { id: "system",        label: "System Usage",   icon: FiCpu },
+  { id: "danger",        label: "Danger Zone",    icon: FiAlertTriangle },
 ];
 
 export default function Dashboard() {
@@ -66,13 +71,15 @@ export default function Dashboard() {
             </div>
           </>
         )}
-        {activeTab === "users"      && <UserTable />}
-        {activeTab === "courses"    && <CourseTable />}
-        {activeTab === "lectures"   && <LectureTable />}
-        {activeTab === "quizzes"    && <QuizTable />}
-        {activeTab === "complaints" && <ComplaintQueue />}
-        {activeTab === "activity"   && <LiveActivityPanel />}
-        {activeTab === "danger"     && <DangerZonePanel />}
+        {activeTab === "users"         && <UserTable />}
+        {activeTab === "courses"       && <CourseTable />}
+        {activeTab === "lectures"      && <LectureTable />}
+        {activeTab === "quizzes"       && <QuizTable />}
+        {activeTab === "complaints"    && <ComplaintQueue />}
+        {activeTab === "activity"      && <LiveActivityPanel />}
+        {activeTab === "notifications" && <NotificationsPage />}
+        {activeTab === "system"        && <SystemUsagePanel />}
+        {activeTab === "danger"        && <DangerZonePanel />}
       </div>
     </div>
   );
