@@ -62,8 +62,8 @@ export default function Dashboard() {
       <div className="admin-dash-content">
         {activeTab === "overview" && (
           <>
-            <ManagementShortcuts />
             <KpiCards />
+            <ManagementShortcuts />
             <div className="admin-charts-grid">
               <SignupTrendChart />
               <RoleDistributionChart />
