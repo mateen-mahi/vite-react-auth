@@ -1,4 +1,3 @@
-// src/pages/admin/Dashboard.jsx
 import { useState } from "react";
 import {
   FiGrid, FiUsers, FiBookOpen, FiPlayCircle, FiHelpCircle, FiMessageSquare,
@@ -14,6 +13,7 @@ import LiveActivityPanel from "../../components/Admin/LiveActivityPanel";
 import DangerZonePanel from "../../components/Admin/DangerZonePanel";
 import NotificationsPage from "../../components/Admin/NotificationsPage";
 import SystemUsagePanel from "../../components/Admin/SystemUsagePanel";
+import ManagementShortcuts from "../../components/Admin/ManagementShortcuts";
 import {
   SignupTrendChart, RoleDistributionChart, CategoryDistributionChart, ComplaintStatusChart,
 } from "../../components/Admin/AdminCharts";
@@ -62,6 +62,7 @@ export default function Dashboard() {
       <div className="admin-dash-content">
         {activeTab === "overview" && (
           <>
+            <ManagementShortcuts />
             <KpiCards />
             <div className="admin-charts-grid">
               <SignupTrendChart />

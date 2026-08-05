@@ -70,7 +70,7 @@ function App() {
 
 
     <Route element={<RoleRoute allowedRoles={["admin", "super-admin"]} />}>
-      <Route path="/user-management" element={<UserManagement />} />
+      <Route path="/admin/user-management" element={<UserManagement />} />
 <Route path="/admin/courses" element={<CourseManagement />} />
 <Route path="/admin/complaints" element={<ComplaintManagement />} />
 <Route path="/admin/lectures" element={<LectureManagement />} />
