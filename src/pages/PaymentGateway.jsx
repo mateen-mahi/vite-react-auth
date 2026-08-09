@@ -1,30 +1,34 @@
 import { useState, useEffect, useCallback } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { Elements, PaymentElement, useStripe, useElements } from "@stripe/react-stripe-js";
 import stripePromise from "../services/stripeClient";
 import api from "../services/api";
 import {
   HiShieldCheck, HiLockClosed, HiCheckCircle, HiExclamationCircle,
-  HiArrowRight, HiStar, HiUsers, HiClock, HiPlay, HiDocumentText, HiDownload,
+  HiArrowRight, HiUsers, HiClock, HiPlay, HiDocumentText, HiDownload,
 } from "react-icons/hi";
 import { SiStripe } from "react-icons/si";
 import "../styles/stripePayment.css";
 
 const STRIPE_APPEARANCE = {
   theme: "stripe",
-  variables: { colorPrimary: "#7c3aed" }, // matches this page's existing accent color
+  variables: { colorPrimary: "#7c3aed" },
 };
 
 // ═══════════════════════════════════════════════════════════════════════════
-// PAGE — fetches course + price, then mounts Stripe Elements once the user
-// is ready to actually pay
+// PAGE
 // ═══════════════════════════════════════════════════════════════════════════
 
 export default function StripePaymentPage() {
-  const { courseId } = useParams();
+  const location = useLocation();
   const navigate = useNavigate();
 
-  const [course, setCourse] = useState(null);
+  // courseIds comes from router state set by Courses.jsx's handleCheckout.
+  // If someone lands here directly (refresh, bookmark, back button), state
+  // is lost — bounce them back to /courses rather than firing a broken request.
+  const courseIds = location.state?.courseIds;
+
+  const [courses, setCourses] = useState([]);
   const [pricing, setPricing] = useState(null);
   const [clientSecret, setClientSecret] = useState(null);
   const [orderId, setOrderId] = useState(null);
@@ -37,34 +41,39 @@ export default function StripePaymentPage() {
   const [loadingIntent, setLoadingIntent] = useState(false);
   const [pageError, setPageError] = useState(null);
 
-  // Real course details for the summary panel (rating, instructor, lecture count, etc.)
   useEffect(() => {
+    if (!courseIds || courseIds.length === 0) {
+      navigate("/courses", { replace: true });
+    }
+  }, [courseIds, navigate]);
+
+  // Course details for the summary panel — one call per course id.
+  useEffect(() => {
+    if (!courseIds || courseIds.length === 0) return;
     const fetchCourseDetails = async () => {
       try {
-        const res = await api.get(`/courses/${courseId}`);
-        setCourse(res.data.data);
+        const results = await Promise.all(courseIds.map((id) => api.get(`/courses/${id}`)));
+        setCourses(results.map((res) => res.data.data));
       } catch (err) {
         console.error("Failed to load course details:", err);
       }
     };
     fetchCourseDetails();
-  }, [courseId]);
+  }, [courseIds]);
 
-  // Pricing quote — refetched every time the applied promo code changes.
-  // This is the ONLY source of the displayed price; nothing here is
-  // computed client-side.
   const fetchQuote = useCallback(async (code) => {
+    if (!courseIds || courseIds.length === 0) return;
     setLoadingQuote(true);
     setPageError(null);
     try {
-      const res = await api.post("/payments/quote", { courseId, promoCode: code || undefined });
+      const res = await api.post("/payments/quote", { courseIds, promoCode: code || undefined });
       setPricing(res.data.pricing);
     } catch (err) {
-      setPageError(err.response?.data?.message || "Couldn't load pricing for this course.");
+      setPageError(err.response?.data?.message || "Couldn't load pricing for this order.");
     } finally {
       setLoadingQuote(false);
     }
-  }, [courseId]);
+  }, [courseIds]);
 
   useEffect(() => {
     fetchQuote(null);
@@ -75,9 +84,6 @@ export default function StripePaymentPage() {
     if (!code) return;
     setPromoError("");
     await fetchQuote(code);
-    // The backend silently ignores invalid codes (discountPercent comes
-    // back as 0) rather than erroring — so we detect "invalid" by checking
-    // the result instead of relying on a thrown error.
     setPromoApplied(code);
   };
 
@@ -88,18 +94,17 @@ export default function StripePaymentPage() {
     fetchQuote(null);
   };
 
-  // Only called once — creates the real PaymentIntent + Order row
   const startPayment = async () => {
     setLoadingIntent(true);
     setPageError(null);
     try {
       const res = await api.post("/payments/create-payment-intent", {
-        courseId,
+        courseIds,
         promoCode: promoApplied || undefined,
       });
       setClientSecret(res.data.clientSecret);
       setOrderId(res.data.orderId);
-      setPricing(res.data.pricing); // final, authoritative pricing for this exact charge
+      setPricing(res.data.pricing);
     } catch (err) {
       setPageError(err.response?.data?.message || "Couldn't start the payment. Please try again.");
     } finally {
@@ -107,7 +112,11 @@ export default function StripePaymentPage() {
     }
   };
 
-  if (loadingQuote || !course || !pricing) {
+  if (!courseIds || courseIds.length === 0) {
+    return null; // redirecting via the effect above
+  }
+
+  if (loadingQuote || courses.length === 0 || !pricing) {
     return (
       <div className="payment-page">
         <p>Loading order summary…</p>
@@ -122,7 +131,7 @@ export default function StripePaymentPage() {
     <div className="payment-page">
       <div className="payment-container">
         <OrderSummary
-          course={course}
+          courses={courses}
           pricing={pricing}
           promoInput={promoInput}
           setPromoInput={setPromoInput}
@@ -154,7 +163,7 @@ export default function StripePaymentPage() {
           </div>
         ) : (
           <Elements stripe={stripePromise} options={{ clientSecret, appearance: STRIPE_APPEARANCE }}>
-            <CheckoutForm course={course} pricing={pricing} orderId={orderId} navigate={navigate} />
+            <CheckoutForm courses={courses} pricing={pricing} orderId={orderId} navigate={navigate} />
           </Elements>
         )}
       </div>
@@ -163,10 +172,10 @@ export default function StripePaymentPage() {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// CHECKOUT FORM — lives inside <Elements>, so useStripe()/useElements() work
+// CHECKOUT FORM
 // ═══════════════════════════════════════════════════════════════════════════
 
-function CheckoutForm({ course, pricing, navigate }) {
+function CheckoutForm({ courses, pricing, navigate }) {
   const stripe = useStripe();
   const elements = useElements();
   const [submitting, setSubmitting] = useState(false);
@@ -175,16 +184,13 @@ function CheckoutForm({ course, pricing, navigate }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!stripe || !elements) return; // Stripe.js hasn't finished loading yet
+    if (!stripe || !elements) return;
 
     setSubmitting(true);
     setErrorMsg(null);
 
     const { error, paymentIntent } = await stripe.confirmPayment({
       elements,
-      // "if_required" keeps the user on this page for payment methods that
-      // don't need a redirect (cards, most wallets). Some methods (certain
-      // bank redirects) will still navigate away and return automatically.
       redirect: "if_required",
     });
 
@@ -201,7 +207,7 @@ function CheckoutForm({ course, pricing, navigate }) {
   };
 
   if (confirmedIntent) {
-    return <SuccessScreen course={course} paymentIntent={confirmedIntent} navigate={navigate} />;
+    return <SuccessScreen courses={courses} paymentIntent={confirmedIntent} navigate={navigate} />;
   }
 
   return (
@@ -212,10 +218,6 @@ function CheckoutForm({ course, pricing, navigate }) {
       </div>
 
       <form className="form-body" onSubmit={handleSubmit}>
-        {/* Stripe renders card fields — and Google Pay / Apple Pay buttons
-            automatically if enabled in your Stripe Dashboard — all inside
-            this one element. No manual card formatting or brand-detection
-            code needed; Stripe owns all of that. */}
         <PaymentElement />
 
         <button className="btn-pay" type="submit" disabled={!stripe || submitting}>
@@ -237,12 +239,12 @@ function CheckoutForm({ course, pricing, navigate }) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// SUCCESS SCREEN — every value here comes from the CONFIRMED PaymentIntent,
-// not from earlier client-side state, so it reflects exactly what was charged
+// SUCCESS SCREEN
 // ═══════════════════════════════════════════════════════════════════════════
 
-function SuccessScreen({ course, paymentIntent, navigate }) {
-  const amountPaid = (paymentIntent.amount / 100).toFixed(2); // Stripe amounts are in cents
+function SuccessScreen({ courses, paymentIntent, navigate }) {
+  const amountPaid = (paymentIntent.amount / 100).toFixed(2);
+  const firstCourseId = courses[0]?._id;
 
   return (
     <div className="payment-page">
@@ -251,7 +253,12 @@ function SuccessScreen({ course, paymentIntent, navigate }) {
           <div className="success-icon-wrap"><HiCheckCircle size={40} /></div>
           <h2>Payment successful!</h2>
           <p>
-            You're enrolled in <strong>{course.title}</strong>.<br />
+            You're enrolled in{" "}
+            <strong>
+              {courses.length === 1
+                ? courses[0].title
+                : `${courses.length} courses`}
+            </strong>.<br />
             A receipt has been sent to your email.
           </p>
           <div className="success-details">
@@ -270,7 +277,10 @@ function SuccessScreen({ course, paymentIntent, navigate }) {
               </span>
             </div>
           </div>
-          <button className="btn-go-course" onClick={() => navigate(`/lecture/${course._id}`)}>
+          <button
+            className="btn-go-course"
+            onClick={() => navigate(courses.length === 1 ? `/lecture/${firstCourseId}` : "/courses")}
+          >
             Start learning <HiArrowRight size={16} />
           </button>
         </div>
@@ -280,10 +290,10 @@ function SuccessScreen({ course, paymentIntent, navigate }) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// ORDER SUMMARY — left panel, same structure as your original mockup
+// ORDER SUMMARY — now lists every course in the cart
 // ═══════════════════════════════════════════════════════════════════════════
 
-function OrderSummary({ course, pricing, promoInput, setPromoInput, promoApplied, promoError, onApplyPromo, onRemovePromo }) {
+function OrderSummary({ courses, pricing, promoInput, setPromoInput, promoApplied, promoError, onApplyPromo, onRemovePromo }) {
   return (
     <div className="order-summary">
       <div className="summary-header">
@@ -291,27 +301,29 @@ function OrderSummary({ course, pricing, promoInput, setPromoInput, promoApplied
         <p>Review your purchase before payment</p>
       </div>
 
-      <div className="course-item">
-        <div className="course-thumb"><HiPlay size={28} /></div>
-        <div className="course-details">
-          <p className="course-title">{course.title}</p>
-          <p className="course-instructor">By {course.instructor?.username || "Instructor"}</p>
-          <div className="course-badges">
-            <span className="badge blue"><HiUsers size={11} /> {(course.studentsEnrolledCount || 0).toLocaleString()}</span>
-            <span className="badge purple"><HiPlay size={11} /> {course.lessonsCount ?? 0} lectures</span>
-            <span className="badge green"><HiClock size={11} /> {course.duration}</span>
+      {courses.map((course) => (
+        <div className="course-item" key={course._id}>
+          <div className="course-thumb"><HiPlay size={28} /></div>
+          <div className="course-details">
+            <p className="course-title">{course.title}</p>
+            <p className="course-instructor">By {course.instructor?.username || "Instructor"}</p>
+            <div className="course-badges">
+              <span className="badge blue"><HiUsers size={11} /> {(course.studentsEnrolledCount || 0).toLocaleString()}</span>
+              <span className="badge purple"><HiPlay size={11} /> {course.lessonsCount ?? 0} lectures</span>
+              <span className="badge green"><HiClock size={11} /> {course.duration}</span>
+            </div>
+          </div>
+          <div className="price-col" style={{ textAlign: "right", flexShrink: 0 }}>
+            <div className="price-current">${course.price}</div>
           </div>
         </div>
-        <div className="price-col" style={{ textAlign: "right", flexShrink: 0 }}>
-          <div className="price-current">${course.price}</div>
-        </div>
-      </div>
+      ))}
 
       <div style={{ padding: "14px 28px", borderBottom: "1px solid #f3f4f6" }}>
-        <p style={{ fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 8 }}>This course includes</p>
+        <p style={{ fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 8 }}>This order includes</p>
         <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
           {[
-            { icon: HiPlay, text: `${course.lessonsCount ?? 0} on-demand video lectures` },
+            { icon: HiPlay, text: "On-demand video lectures" },
             { icon: HiDocumentText, text: "Downloadable resources & notes" },
             { icon: HiDownload, text: "Certificate of completion" },
             { icon: HiClock, text: "Full lifetime access" },
@@ -354,7 +366,7 @@ function OrderSummary({ course, pricing, promoInput, setPromoInput, promoApplied
 
       <div className="price-breakdown">
         <div className="price-row">
-          <span className="price-row-label">Course price</span>
+          <span className="price-row-label">Subtotal</span>
           <span className="price-row-value">${pricing.coursePrice}</span>
         </div>
         {pricing.discountAmount > 0 && (
