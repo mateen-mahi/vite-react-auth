@@ -15,6 +15,10 @@ const STRIPE_APPEARANCE = {
   variables: { colorPrimary: "#7c3aed" },
 };
 
+// Same key Courses.jsx uses to persist the cart in localStorage.
+// Must clear this once a payment actually succeeds.
+const CART_STORAGE_KEY = "academy_course_cart";
+
 // ═══════════════════════════════════════════════════════════════════════════
 // PAGE
 // ═══════════════════════════════════════════════════════════════════════════
@@ -23,9 +27,6 @@ export default function StripePaymentPage() {
   const location = useLocation();
   const navigate = useNavigate();
 
-  // courseIds comes from router state set by Courses.jsx's handleCheckout.
-  // If someone lands here directly (refresh, bookmark, back button), state
-  // is lost — bounce them back to /courses rather than firing a broken request.
   const courseIds = location.state?.courseIds;
 
   const [courses, setCourses] = useState([]);
@@ -47,7 +48,6 @@ export default function StripePaymentPage() {
     }
   }, [courseIds, navigate]);
 
-  // Course details for the summary panel — one call per course id.
   useEffect(() => {
     if (!courseIds || courseIds.length === 0) return;
     const fetchCourseDetails = async () => {
@@ -113,7 +113,7 @@ export default function StripePaymentPage() {
   };
 
   if (!courseIds || courseIds.length === 0) {
-    return null; // redirecting via the effect above
+    return null;
   }
 
   if (loadingQuote || courses.length === 0 || !pricing) {
@@ -201,6 +201,8 @@ function CheckoutForm({ courses, pricing, navigate }) {
     }
 
     if (paymentIntent?.status === "succeeded") {
+      // Payment confirmed — safe to clear the cart now, not before.
+      localStorage.removeItem(CART_STORAGE_KEY);
       setConfirmedIntent(paymentIntent);
     }
     setSubmitting(false);
@@ -290,7 +292,7 @@ function SuccessScreen({ courses, paymentIntent, navigate }) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// ORDER SUMMARY — now lists every course in the cart
+// ORDER SUMMARY
 // ═══════════════════════════════════════════════════════════════════════════
 
 function OrderSummary({ courses, pricing, promoInput, setPromoInput, promoApplied, promoError, onApplyPromo, onRemovePromo }) {
