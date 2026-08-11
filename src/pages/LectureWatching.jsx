@@ -1,24 +1,10 @@
-// Lectures.jsx
-import { useEffect, useRef, useState } from "react";
-import { useParams } from "react-router-dom"; 
+import { useEffect, useRef, useState, useCallback } from "react";
+import { useParams } from "react-router-dom";
 import api from "../services/api";
-import { FiCheckCircle, FiCircle, FiClock, FiPlayCircle } from "react-icons/fi";
-import "../styles/lectures.css";
+import { FiCheckCircle, FiCircle, FiClock, FiPlayCircle, FiLoader } from "react-icons/fi";
+import "../styles/lectures.css"
 
 const WATCH_THRESHOLD = 0.3;
-const STORAGE_KEY = "academy_watched_lectures";
-
-const loadWatched = () => {
-  try {
-    return JSON.parse(localStorage.getItem(STORAGE_KEY)) || {};
-  } catch {
-    return {};
-  }
-};
-
-const saveWatched = (data) => {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-};
 
 let ytApiLoaded = false;
 const loadYTApi = () => {
@@ -35,6 +21,10 @@ const formatDuration = (minutes) => {
   return `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
 };
 
+// Progress records come back with lectureId either populated (object) or
+// raw (string) depending on the endpoint — normalize either shape to an id.
+const idOf = (ref) => (ref && typeof ref === "object" ? ref._id : ref);
+
 export default function Lectures() {
   const { courseId } = useParams();
 
@@ -42,30 +32,49 @@ export default function Lectures() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [activeLecture, setActiveLecture] = useState(null);
-  const [watched, setWatched] = useState(loadWatched);
+  const [watched, setWatched] = useState({});
   const [progress, setProgress] = useState(0);
+  const [overallProgress, setOverallProgress] = useState(0);
+  const [syncing, setSyncing] = useState(false);
+  const [syncError, setSyncError] = useState(null);
 
   const playerRef = useRef(null);
   const intervalRef = useRef(null);
   const markedRef = useRef({});
+  const courseIdRef = useRef(courseId);
+  courseIdRef.current = courseId;
 
-  // ── Fetch lectures ──────────────────────────────────────
+  // ── Fetch lectures + this student's existing progress ────
   useEffect(() => {
-    const fetchLectures = async () => {
+    const fetchAll = async () => {
       try {
         setLoading(true);
-        const res = await api.get(`/lectures/course/${courseId}`);
-        const data = res.data;
-        const lecturesData = data.data || [];
+        const [lecRes, progRes] = await Promise.all([
+          api.get(`/lectures/course/${courseId}`),
+          api.get(`/progress/${courseId}`).catch(() => null),
+        ]);
+
+        const lecturesData = lecRes.data?.data || [];
         const mapped = lecturesData.map((lec) => ({
           id: lec.id,
           title: lec.title,
           description: lec.description,
           duration: formatDuration(lec.duration),
           videoId: lec.videoId,
-        }));"inWWhr5tnEA"
+        }));
+
         setLectures(mapped);
         if (mapped.length > 0) setActiveLecture(mapped[0]);
+
+        const progressLectures = progRes?.data?.progress?.lectures || [];
+        const watchedMap = {};
+        progressLectures.forEach((l) => {
+          if (l.watched) watchedMap[idOf(l.lectureId)] = true;
+        });
+        setWatched(watchedMap);
+        setOverallProgress(progRes?.data?.progress?.overallProgress || 0);
+        markedRef.current = { ...watchedMap };
+
         setError(null);
       } catch (err) {
         setError(err.message);
@@ -74,22 +83,15 @@ export default function Lectures() {
       }
     };
 
-    if (courseId) fetchLectures();
+    if (courseId) fetchAll();
   }, [courseId]);
 
-  // ── YouTube API ──────────────────────────────────────────
+  // ── YouTube API bootstrap ──────────────────────────────────
   useEffect(() => {
     loadYTApi();
-    // If YT API is already loaded, ensure onYouTubeIframeAPIReady is set
-    if (window.YT && window.YT.Player && !playerRef.current) {
-      // Trigger player creation if activeLecture exists
-      if (activeLecture) {
-        // The other useEffect will handle this
-      }
-    }
   }, []);
 
-  // ── Player (FIXED: autoplay + playVideo) ──────────────
+  // ── Player ─────────────────────────────────────────────────
   useEffect(() => {
     if (!activeLecture) return;
 
@@ -108,14 +110,13 @@ export default function Lectures() {
           rel: 0,
           modestbranding: 1,
           origin: window.location.origin,
-          autoplay: 0,          
+          autoplay: 0,
           controls: 1,
-          mute: 0,              
+          mute: 0,
         },
         events: {
           onReady: () => {
             startPolling();
-            // Explicitly try to play (browser may still block, but we try)
             playerRef.current?.playVideo();
           },
           onStateChange: (e) => {
@@ -143,7 +144,39 @@ export default function Lectures() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeLecture?.id]);
 
-  // ── Polling ──────────────────────────────────────────────
+  // ── Mark a lecture watched on the backend (once per lecture) ─
+  const markWatched = useCallback(async (lectureId, lastPosition) => {
+    if (markedRef.current[lectureId]) return;
+    markedRef.current[lectureId] = true;
+    setWatched((prev) => ({ ...prev, [lectureId]: true }));
+    setSyncError(null);
+
+    try {
+      setSyncing(true);
+      const res = await api.patch(`/progress/${courseIdRef.current}/lecture`, {
+        lectureId,
+        watched: true,
+        lastPosition,
+      });
+      if (res.data?.progress?.overallProgress != null) {
+        setOverallProgress(res.data.progress.overallProgress);
+      }
+    } catch (err) {
+      console.error("Failed to sync lecture progress:", err);
+      // Roll back the optimistic mark so the UI matches what the server has.
+      markedRef.current[lectureId] = false;
+      setWatched((prev) => {
+        const next = { ...prev };
+        delete next[lectureId];
+        return next;
+      });
+      setSyncError("Couldn't save your progress. It'll retry once you keep watching.");
+    } finally {
+      setSyncing(false);
+    }
+  }, []);
+
+  // ── Polling ────────────────────────────────────────────────
   const startPolling = () => {
     clearInterval(intervalRef.current);
     intervalRef.current = setInterval(() => {
@@ -157,13 +190,8 @@ export default function Lectures() {
       const ratio = current / total;
       setProgress(Math.min(ratio * 100, 100));
 
-      if (ratio >= WATCH_THRESHOLD && !markedRef.current[activeLecture.id]) {
-        markedRef.current[activeLecture.id] = true;
-        setWatched((prev) => {
-          const updated = { ...prev, [activeLecture.id]: true };
-          saveWatched(updated);
-          return updated;
-        });
+      if (ratio >= WATCH_THRESHOLD && activeLecture && !markedRef.current[activeLecture.id]) {
+        markWatched(activeLecture.id, current);
       }
     }, 1000);
   };
@@ -173,22 +201,41 @@ export default function Lectures() {
     setActiveLecture(lecture);
   };
 
-  // ── Loading / Error ──────────────────────────────────────
+  // ── Loading / Error ────────────────────────────────────────
   if (loading) {
-    return <div className="lectures-page"><p>Loading lectures…</p></div>;
+    return (
+      <div className="lectures-page">
+        <div className="lp-state">
+          <FiLoader className="lp-spin" />
+          <p>Loading lectures…</p>
+        </div>
+      </div>
+    );
   }
 
   if (error) {
-    return <div className="lectures-page"><p>Error: {error}</p></div>;
+    return (
+      <div className="lectures-page">
+        <div className="lp-state lp-state-error">
+          <p>Something went wrong: {error}</p>
+        </div>
+      </div>
+    );
   }
 
   if (!lectures.length) {
-    return <div className="lectures-page"><p>No lectures found for this course.</p></div>;
+    return (
+      <div className="lectures-page">
+        <div className="lp-state">
+          <p>No lectures found for this course.</p>
+        </div>
+      </div>
+    );
   }
 
-  const watchedCount = Object.keys(watched).filter(id => watched[id]).length;
+  const watchedCount = Object.keys(watched).filter((id) => watched[id]).length;
 
-  // ── Render ────────────────────────────────────────────────
+  // ── Render ─────────────────────────────────────────────────
   return (
     <div className="lectures-page">
       <div className="lp-header">
@@ -196,16 +243,25 @@ export default function Lectures() {
           <h1 className="lp-title">Lectures</h1>
           <p className="lp-subtitle">Watch at least 30% of a lecture to mark it complete.</p>
         </div>
-        <div className="lp-progress-badge">
-          <span className="lp-badge-count">{watchedCount}</span>
-          <span className="lp-badge-label">/ {lectures.length} completed</span>
+        <div className="lp-header-right">
+          <div className="lp-overall">
+            <div className="lp-overall-track">
+              <div className="lp-overall-fill" style={{ width: `${overallProgress}%` }} />
+            </div>
+            <span className="lp-overall-label">{overallProgress}% course progress</span>
+          </div>
+          <div className="lp-progress-badge">
+            <span className="lp-badge-count">{watchedCount}</span>
+            <span className="lp-badge-label">/ {lectures.length} completed</span>
+          </div>
         </div>
       </div>
+
+      {syncError && <div className="lp-sync-error">{syncError}</div>}
 
       <div className="lp-player-wrapper">
         <div className="lp-player-box">
           <div id="yt-player">
-            {/* Fallback iframe while YT API loads or if it fails */}
             {activeLecture?.videoId && (
               <iframe
                 width="100%"
@@ -237,7 +293,8 @@ export default function Lectures() {
             </span>
           ) : (
             <span className="lp-status-badge pending">
-              <FiPlayCircle /> In Progress
+              {syncing ? <FiLoader className="lp-spin" /> : <FiPlayCircle />}
+              {syncing ? "Saving…" : "In Progress"}
             </span>
           )}
         </div>

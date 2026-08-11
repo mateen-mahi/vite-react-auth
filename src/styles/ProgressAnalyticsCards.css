@@ -1,0 +1,236 @@
+.pa-section {
+  --pa-text: #0f172a;
+  --pa-muted: #64748b;
+  --pa-border: #e2e8f0;
+  --pa-card: #ffffff;
+  --pa-primary: #2563eb;
+
+  font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  color: var(--pa-text);
+  margin-top: 28px;
+}
+
+.pa-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.pa-section-title {
+  font-size: 16px;
+  font-weight: 700;
+  margin: 0;
+}
+
+.pa-refresh-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: 1px solid var(--pa-border);
+  background: var(--pa-card);
+  color: var(--pa-muted);
+  cursor: pointer;
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+
+.pa-refresh-btn:hover {
+  color: var(--pa-primary);
+  border-color: var(--pa-primary);
+}
+
+.pa-error {
+  background: #ef444414;
+  color: #ef4444;
+  border: 1px solid #ef444433;
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-size: 13px;
+  margin-bottom: 14px;
+}
+
+.pa-spin {
+  animation: pa-spin 0.9s linear infinite;
+}
+
+@keyframes pa-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* ── KPI grid — mirrors admin-kpi-card visual language ────────────────── */
+.pa-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 14px;
+  margin-bottom: 20px;
+}
+
+.pa-kpi-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: var(--pa-card);
+  border: 1px solid var(--pa-border);
+  border-radius: 14px;
+  padding: 18px 20px;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.05);
+}
+
+.pa-loading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--pa-muted);
+  font-size: 14px;
+  grid-column: 1 / -1;
+}
+
+.pa-kpi-icon {
+  flex: 0 0 auto;
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 19px;
+}
+
+.pa-kpi-value {
+  font-size: 20px;
+  font-weight: 700;
+  margin: 0 0 2px;
+  letter-spacing: -0.01em;
+}
+
+.pa-kpi-label {
+  font-size: 12.5px;
+  color: var(--pa-muted);
+  margin: 0;
+}
+
+/* ── Course breakdown list ─────────────────────────────────────────────── */
+.pa-course-list {
+  background: var(--pa-card);
+  border: 1px solid var(--pa-border);
+  border-radius: 14px;
+  padding: 16px 20px;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.05);
+}
+
+.pa-course-list-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--pa-muted);
+  margin-bottom: 14px;
+}
+
+.pa-course-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 10px 0;
+  border-top: 1px solid var(--pa-border);
+}
+
+.pa-course-row:first-of-type {
+  border-top: none;
+  padding-top: 0;
+}
+
+.pa-course-info {
+  min-width: 0;
+}
+
+.pa-course-name {
+  font-size: 13.5px;
+  font-weight: 600;
+  margin: 0 0 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 260px;
+}
+
+.pa-course-sub {
+  font-size: 12px;
+  color: var(--pa-muted);
+  margin: 0;
+}
+
+.pa-course-bar-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 0 0 auto;
+  width: 160px;
+}
+
+.pa-course-bar-track {
+  flex: 1;
+  height: 6px;
+  border-radius: 999px;
+  background: #f1f5f9;
+  overflow: hidden;
+}
+
+.pa-course-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #2563eb, #7c3aed);
+  border-radius: 999px;
+  transition: width 0.4s ease;
+}
+
+.pa-course-bar-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--pa-muted);
+  width: 34px;
+  text-align: right;
+}
+
+/* ── Responsive ────────────────────────────────────────────────────────── */
+@media (max-width: 640px) {
+  .pa-kpi-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .pa-course-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .pa-course-bar-wrap {
+    width: 100%;
+  }
+
+  .pa-course-name {
+    max-width: 100%;
+  }
+}
+
+@media (max-width: 400px) {
+  .pa-kpi-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pa-course-bar-fill {
+    transition: none;
+  }
+  .pa-spin {
+    animation: none;
+  }
+}

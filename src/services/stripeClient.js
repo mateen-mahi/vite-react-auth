@@ -1,5 +1,3 @@
-
-// src/services/stripeClient.js
 import { loadStripe } from "@stripe/stripe-js";
 
 

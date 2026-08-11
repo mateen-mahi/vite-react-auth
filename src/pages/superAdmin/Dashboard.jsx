@@ -4,6 +4,7 @@ import {
   FiActivity, FiAlertTriangle, FiBell, FiCpu,
 } from "react-icons/fi";
 import KpiCards from "../../components/Admin/KpiCards";
+import ProgressAnalyticsCards from "../../components/Admin/ProgressAnalyticsCards";
 import UserTable from "../../components/Admin/UserTable";
 import CourseTable from "../../components/Admin/CourseTable";
 import LectureTable from "../../components/Admin/LectureTable";
@@ -63,6 +64,7 @@ export default function Dashboard() {
         {activeTab === "overview" && (
           <>
             <KpiCards />
+            <ProgressAnalyticsCards />
             <ManagementShortcuts />
             <div className="admin-charts-grid">
               <SignupTrendChart />
