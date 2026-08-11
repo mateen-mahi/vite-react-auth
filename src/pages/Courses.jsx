@@ -29,16 +29,9 @@ const CART_STORAGE_KEY = "academy_course_cart";
 // ── Helpers ──────────────────────────────────────────────
 const formatPrice = (price) => (price === 0 ? "Free" : `$${price}`);
 
-// TEMPORARY dummy progress — deterministic per course, stable across
-// re-renders. Swap for real LectureProgress data later.
-const getDummyProgress = (id) => {
-  if (!id) return 0;
-  let hash = 0;
-  for (let i = 0; i < id.length; i++) {
-    hash = (hash * 31 + id.charCodeAt(i)) % 97;
-  }
-  return hash % 96;
-};
+// Progress records come back with courseId either populated (object) or
+// raw (string) depending on the endpoint — normalize either shape to an id.
+const idOf = (ref) => (ref && typeof ref === "object" ? ref._id : ref);
 
 // ── Lightweight toast ──
 function Toast({ msg, onClose }) {
@@ -58,7 +51,7 @@ function Toast({ msg, onClose }) {
 }
 
 export default function Courses() {
-  const { user } = useAuth();
+  const { user, onEvent } = useAuth();
   const navigate = useNavigate();
   const isLoggedIn = Boolean(user);
   const userId = user?._id;
@@ -70,6 +63,9 @@ export default function Courses() {
 
   const [enrolledCourses, setEnrolledCourses] = useState([]);
   const [loadingEnrolled, setLoadingEnrolled] = useState(false);
+
+  // { [courseId]: overallProgress } — real per-course progress for this student.
+  const [progressMap, setProgressMap] = useState({});
 
   const [toast, setToast] = useState(null);
   const showToast = (msg) => { setToast(msg); setTimeout(() => setToast(null), 3000); };
@@ -106,9 +102,49 @@ export default function Courses() {
       }
     };
 
+    const fetchProgress = async () => {
+      if (!userId) {
+        setProgressMap({});
+        return;
+      }
+      try {
+        const res = await api.get("/progress");
+        const list = res.data?.progress || [];
+        const map = {};
+        list.forEach((p) => {
+          map[idOf(p.courseId)] = p.overallProgress || 0;
+        });
+        setProgressMap(map);
+      } catch (err) {
+        console.log("Failed to fetch progress:", err);
+        setProgressMap({});
+      }
+    };
+
     fetchCourses();
     fetchMyCourses();
+    fetchProgress();
   }, [userId]);
+
+  // ── Real-time: keep progress bars in sync without a refresh, whether the
+  // update came from this tab, another tab, or another device.
+  useEffect(() => {
+    if (!onEvent) return;
+
+    const offLecture = onEvent("progress:lectureUpdated", (data) => {
+      if (data.overallProgress == null) return;
+      setProgressMap((prev) => ({ ...prev, [data.courseId]: data.overallProgress }));
+    });
+
+    const offCompleted = onEvent("course:completed", (data) => {
+      setProgressMap((prev) => ({ ...prev, [data.courseId]: 100 }));
+    });
+
+    return () => {
+      offLecture();
+      offCompleted();
+    };
+  }, [onEvent]);
 
   // ── Cart (localStorage-backed) ──
   const [cart, setCart] = useState(() => {
@@ -341,10 +377,10 @@ export default function Courses() {
                 <div className="courses-featured-progress-wrap">
                   <div className="courses-featured-progress-label">
                     <span>Progress</span>
-                    <span>{getDummyProgress(heroCourse._id)}%</span>
+                    <span>{progressMap[heroCourse._id] ?? 0}%</span>
                   </div>
                   <div className="courses-featured-progress-track">
-                    <div className="courses-featured-progress-fill" style={{ width: `${getDummyProgress(heroCourse._id)}%` }} />
+                    <div className="courses-featured-progress-fill" style={{ width: `${progressMap[heroCourse._id] ?? 0}%` }} />
                   </div>
                 </div>
                 <div style={{ display: "flex", gap: 10 }}>
@@ -393,6 +429,7 @@ export default function Courses() {
                 key={course._id}
                 course={course}
                 enrolled
+                progress={progressMap[course._id] ?? 0}
                 unenrolling={unenrollingId === course._id}
                 onUnenroll={handleUnenroll}
                 onNavigate={() => navigate(`/activities/${course._id}`)}
@@ -476,7 +513,7 @@ export default function Courses() {
 }
 
 // ── Course card ─────────────────────────────────────────────
-function CourseCard({ course, enrolled, inCart, isLoggedIn, unenrolling, onAddToCart, onUnenroll, onNavigate }) {
+function CourseCard({ course, enrolled, progress = 0, inCart, isLoggedIn, unenrolling, onAddToCart, onUnenroll, onNavigate }) {
   const lvlStyle = LEVEL_COLOR[course.level] || LEVEL_COLOR.Beginner;
   const instructorName = typeof course.instructor === "object" ? course.instructor?.username : "Instructor";
   const lessonsCount = course.lessonsCount ?? course.lectures?.length ?? 0;
@@ -515,11 +552,13 @@ function CourseCard({ course, enrolled, inCart, isLoggedIn, unenrolling, onAddTo
         {enrolled && (
           <div className="course-card-progress">
             <div className="course-card-progress-label">
-              <span className="cp-tag in-progress"><FiCheckCircle /> Enrolled</span>
-              <span className="cp-pct">{getDummyProgress(course._id)}%</span>
+              <span className={`cp-tag ${progress >= 100 ? "completed" : "in-progress"}`}>
+                <FiCheckCircle /> {progress >= 100 ? "Completed" : "Enrolled"}
+              </span>
+              <span className="cp-pct">{progress}%</span>
             </div>
             <div className="course-card-progress-track">
-              <div className="course-card-progress-fill" style={{ width: `${getDummyProgress(course._id)}%`, background: course.color }} />
+              <div className="course-card-progress-fill" style={{ width: `${progress}%`, background: course.color }} />
             </div>
           </div>
         )}
