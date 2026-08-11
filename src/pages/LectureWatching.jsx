@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { useParams } from "react-router-dom";
 import api from "../services/api";
+import { useAuth } from "../context/AuthContext"; 
 import { FiCheckCircle, FiCircle, FiClock, FiPlayCircle, FiLoader } from "react-icons/fi";
-import "../styles/lectures.css"
+import "../styles/lectures.css";
 
 const WATCH_THRESHOLD = 0.3;
 
@@ -27,6 +28,7 @@ const idOf = (ref) => (ref && typeof ref === "object" ? ref._id : ref);
 
 export default function Lectures() {
   const { courseId } = useParams();
+  const { onEvent } = useAuth();
 
   const [lectures, setLectures] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -85,6 +87,30 @@ export default function Lectures() {
 
     if (courseId) fetchAll();
   }, [courseId]);
+
+  // ── Real-time: pick up lecture-watched updates pushed from the backend —
+  // covers this same account watching on another tab/device, so the UI here
+  // updates without needing a page refresh.
+  useEffect(() => {
+    if (!onEvent) return;
+
+    const offLecture = onEvent("progress:lectureUpdated", (data) => {
+      if (String(data.courseId) !== String(courseId)) return;
+      markedRef.current[data.lectureId] = true;
+      setWatched((prev) => ({ ...prev, [data.lectureId]: true }));
+      if (data.overallProgress != null) setOverallProgress(data.overallProgress);
+    });
+
+    const offCompleted = onEvent("course:completed", (data) => {
+      if (String(data.courseId) !== String(courseId)) return;
+      setOverallProgress(100);
+    });
+
+    return () => {
+      offLecture();
+      offCompleted();
+    };
+  }, [onEvent, courseId]);
 
   // ── YouTube API bootstrap ──────────────────────────────────
   useEffect(() => {
