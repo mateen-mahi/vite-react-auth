@@ -1,13 +1,13 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { useParams } from "react-router-dom";
 import api from "../services/api";
-import { useAuth } from "../context/AuthContext"; // ⚠️ adjust path if different
+import { useAuth } from "../context/AuthContext";
 import { FiLoader, FiAlertCircle, FiRefreshCw } from "react-icons/fi";
 import { withTimeout } from "../utils/withTimeout";
 import LectureProgressHeader from "../components/Lecture/LectureProgressHeader";
 import LectureVideoPanel from "../components/Lecture/LectureVideoPanel";
 import LectureList from "../components/Lecture/LectureList";
-import "./LectureWatching.css";
+import "../styles/lectures.css";
 
 const WATCH_THRESHOLD = 0.3;
 const FETCH_TIMEOUT_MS = 15000;
