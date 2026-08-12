@@ -1,0 +1,115 @@
+@import "./styles/tokens.css";
+
+.qnb-wrap {
+  font-family: var(--lms-font);
+  margin-bottom: 26px;
+}
+
+.qnb-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-bottom: 12px;
+}
+
+.qnb-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11.5px;
+  color: var(--lms-muted);
+}
+
+.qnb-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 999px;
+  display: inline-block;
+}
+
+.qnb-dot.unanswered {
+  background: var(--lms-neutral-chip);
+  border: 1.5px solid var(--lms-border);
+}
+
+.qnb-dot.answered {
+  background: var(--lms-primary);
+}
+
+.qnb-dot.flagged {
+  background: var(--lms-amber);
+}
+
+.qnb-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.qnb-bubble {
+  position: relative;
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  border: 1.5px solid var(--lms-border);
+  background: var(--lms-neutral-chip);
+  color: var(--lms-muted);
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.1s ease, box-shadow 0.15s ease;
+}
+
+/* Answered — filled primary */
+.qnb-bubble.answered {
+  background: var(--lms-primary);
+  border-color: var(--lms-primary);
+  color: #fff;
+}
+
+/* Flagged overrides answered/unanswered coloring — comes after them in the
+   cascade so it wins regardless of answer state, per spec: a flagged
+   question always reads as "needs another look" first. */
+.qnb-bubble.flagged {
+  background: var(--lms-amber-soft);
+  border-color: var(--lms-amber);
+  color: var(--lms-amber);
+}
+
+.qnb-flag-icon {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  width: 13px;
+  height: 13px;
+  padding: 2px;
+  background: var(--lms-amber);
+  color: #fff;
+  border-radius: 999px;
+  box-sizing: content-box;
+}
+
+/* Active — always wins, layered on top of any of the above */
+.qnb-bubble.active {
+  box-shadow: 0 0 0 3px var(--lms-primary-soft), 0 0 0 1.5px var(--lms-primary) inset;
+  transform: scale(1.08);
+}
+
+.qnb-bubble.active.flagged {
+  box-shadow: 0 0 0 3px var(--lms-amber-soft), 0 0 0 1.5px var(--lms-amber) inset;
+}
+
+.qnb-bubble:hover {
+  transform: scale(1.05);
+}
+
+@media (max-width: 400px) {
+  .qnb-bubble {
+    width: 30px;
+    height: 30px;
+    font-size: 11.5px;
+  }
+}

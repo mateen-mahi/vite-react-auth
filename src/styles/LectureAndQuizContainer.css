@@ -1,42 +1,48 @@
-/* Container.css */
-.container {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 1rem;
-  font-family: system-ui, -apple-system, sans-serif;
+@import "./tokens.css";
+
+.lqc-container {
+  font-family: var(--lms-font);
 }
 
-.container-nav {
+.lqc-nav {
   display: flex;
-  gap: 1rem;
-  margin-bottom: 1.5rem;
-  border-bottom: 2px solid #e5e7eb;
-  padding-bottom: 0.5rem;
+  gap: 6px;
+  max-width: 980px;
+  margin: 20px auto 0;
+  padding: 0 20px;
 }
 
-.container-nav button {
-  background: none;
+.lqc-nav button {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--lms-neutral-chip);
+  color: var(--lms-muted);
   border: none;
-  padding: 0.6rem 1.5rem;
-  font-size: 1rem;
+  border-radius: var(--lms-radius-sm);
+  padding: 10px 18px;
+  font-size: 14px;
   font-weight: 600;
-  color: #6b7280;
   cursor: pointer;
-  border-radius: 8px 8px 0 0;
-  transition: all 0.2s ease;
+  transition: background 0.15s ease, color 0.15s ease;
 }
 
-.container-nav button:hover {
-  background: #f3f4f6;
-  color: #1f2937;
+.lqc-nav button:hover {
+  background: var(--lms-primary-soft);
+  color: var(--lms-primary);
 }
 
-.container-nav button.active {
-  color: #2563eb;
-  background: #eff6ff;
-  border-bottom: 3px solid #2563eb;
+.lqc-nav button.active {
+  background: var(--lms-primary);
+  color: #fff;
 }
 
-.container-content {
-  min-height: 500px; /* ensure stable layout */
+.lqc-content {
+  min-height: 60vh;
+}
+
+@media (max-width: 640px) {
+  .lqc-nav {
+    padding: 0 14px;
+  }
 }

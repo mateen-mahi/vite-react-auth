@@ -1,0 +1,39 @@
+/**
+ * Design tokens shared across the Lecture + Quiz feature.
+ * Change a color here and it updates everywhere that @imports this file —
+ * this is the one place to touch when adjusting the palette.
+ */
+:root {
+  /* Brand palette — same family already used across the admin dashboard */
+  --lms-primary: #2563eb;
+  --lms-primary-dark: #1d4ed8;
+  --lms-primary-soft: #2563eb14;
+  --lms-purple: #7c3aed;
+  --lms-purple-soft: #7c3aed14;
+  --lms-success: #16a34a;
+  --lms-success-soft: #16a34a14;
+  --lms-amber: #d97706;
+  --lms-amber-soft: #d9770614;
+  --lms-red: #ef4444;
+  --lms-red-soft: #ef444414;
+  --lms-cyan: #0891b2;
+
+  /* Neutrals */
+  --lms-text: #0f172a;
+  --lms-muted: #64748b;
+  --lms-muted-soft: #94a3b8;
+  --lms-border: #e2e8f0;
+  --lms-bg: #f8fafc;
+  --lms-card: #ffffff;
+  --lms-neutral-chip: #f1f5f9;
+
+  /* Shape + shadow */
+  --lms-radius-lg: 18px;
+  --lms-radius-md: 12px;
+  --lms-radius-sm: 8px;
+  --lms-shadow-sm: 0 1px 3px rgba(15, 23, 42, 0.06);
+  --lms-shadow-md: 0 4px 16px rgba(15, 23, 42, 0.08);
+
+  /* Type */
+  --lms-font: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}

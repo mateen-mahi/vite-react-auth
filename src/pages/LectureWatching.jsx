@@ -2,10 +2,15 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import { useParams } from "react-router-dom";
 import api from "../services/api";
 import { useAuth } from "../context/AuthContext"; 
-import { FiCheckCircle, FiCircle, FiClock, FiPlayCircle, FiLoader } from "react-icons/fi";
+import { FiLoader, FiAlertCircle, FiRefreshCw } from "react-icons/fi";
+import { withTimeout } from "../utils/withTimeout";
+import LectureProgressHeader from "../components/Lecture/LectureProgressHeader";
+import LectureVideoPanel from "../components/Lecture/LectureVideoPanel";
+import LectureList from "../components/Lecture/LectureList";
 import "../styles/lectures.css";
 
 const WATCH_THRESHOLD = 0.3;
+const FETCH_TIMEOUT_MS = 15000;
 
 let ytApiLoaded = false;
 const loadYTApi = () => {
@@ -26,7 +31,7 @@ const formatDuration = (minutes) => {
 // raw (string) depending on the endpoint — normalize either shape to an id.
 const idOf = (ref) => (ref && typeof ref === "object" ? ref._id : ref);
 
-export default function Lectures() {
+export default function LectureWatching() {
   const { courseId } = useParams();
   const { onEvent } = useAuth();
 
@@ -41,6 +46,7 @@ export default function Lectures() {
   const [syncError, setSyncError] = useState(null);
   const [playerReady, setPlayerReady] = useState(false);
   const [playerError, setPlayerError] = useState(null);
+  const [retryTick, setRetryTick] = useState(0);
 
   const playerRef = useRef(null);
   const intervalRef = useRef(null);
@@ -50,13 +56,15 @@ export default function Lectures() {
 
   // ── Fetch lectures + this student's existing progress ────
   useEffect(() => {
+    let cancelled = false;
+
     const fetchAll = async () => {
+      setLoading(true);
+      setError(null);
+
       try {
-        setLoading(true);
-        const [lecRes, progRes] = await Promise.all([
-          api.get(`/lectures/course/${courseId}`),
-          api.get(`/progress/${courseId}`).catch(() => null),
-        ]);
+        const lecRes = await withTimeout(api.get(`/lectures/course/${courseId}`), FETCH_TIMEOUT_MS, "Loading lectures");
+        if (cancelled) return;
 
         const lecturesData = lecRes.data?.data || [];
         const mapped = lecturesData.map((lec) => ({
@@ -66,29 +74,38 @@ export default function Lectures() {
           duration: formatDuration(lec.duration),
           videoId: lec.videoId,
         }));
-
         setLectures(mapped);
         if (mapped.length > 0) setActiveLecture(mapped[0]);
 
-        const progressLectures = progRes?.data?.progress?.lectures || [];
-        const watchedMap = {};
-        progressLectures.forEach((l) => {
-          if (l.watched) watchedMap[idOf(l.lectureId)] = true;
-        });
-        setWatched(watchedMap);
-        setOverallProgress(progRes?.data?.progress?.overallProgress || 0);
-        markedRef.current = { ...watchedMap };
-
-        setError(null);
+        // Progress is best-effort — a brand new student legitimately has none yet.
+        try {
+          const progRes = await withTimeout(api.get(`/progress/${courseId}`), FETCH_TIMEOUT_MS, "Loading progress");
+          if (cancelled) return;
+          const progressLectures = progRes.data?.progress?.lectures || [];
+          const watchedMap = {};
+          progressLectures.forEach((l) => {
+            if (l.watched) watchedMap[idOf(l.lectureId)] = true;
+          });
+          setWatched(watchedMap);
+          setOverallProgress(progRes.data?.progress?.overallProgress || 0);
+          markedRef.current = { ...watchedMap };
+        } catch {
+          setWatched({});
+          setOverallProgress(0);
+          markedRef.current = {};
+        }
       } catch (err) {
-        setError(err.message);
+        if (!cancelled) setError(err.message || "Failed to load lectures.");
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     };
 
     if (courseId) fetchAll();
-  }, [courseId]);
+    return () => {
+      cancelled = true;
+    };
+  }, [courseId, retryTick]);
 
   // ── Real-time: pick up lecture-watched updates pushed from the backend —
   // covers this same account watching on another tab/device, so the UI here
@@ -132,17 +149,14 @@ export default function Lectures() {
       if (playerRef.current) {
         try {
           playerRef.current.destroy();
-        } catch (e) {
+        } catch {
           // player was already torn down by the API itself — ignore
         }
         playerRef.current = null;
       }
 
-      // NOTE: the target div (#yt-player) must have NO React-rendered
-      // children. The YT IFrame API takes ownership of this node and
-      // replaces it with its own iframe — if React also renders a child
-      // into the same node, the two fight over the DOM and getDuration()/
-      // getCurrentTime() silently return 0 forever instead of erroring.
+      // The target div (#yt-player) must stay React-empty — see the note
+      // in LectureVideoPanel.jsx for why.
       playerRef.current = new window.YT.Player("yt-player", {
         videoId: activeLecture.videoId,
         playerVars: {
@@ -155,7 +169,6 @@ export default function Lectures() {
         },
         events: {
           onReady: () => {
-            console.log("[Lectures] YT player ready:", activeLecture.id);
             setPlayerReady(true);
             setPlayerError(null);
             startPolling();
@@ -163,16 +176,11 @@ export default function Lectures() {
           },
           onStateChange: (e) => {
             if (e.data === window.YT.PlayerState.PLAYING) startPolling();
-            if (
-              e.data === window.YT.PlayerState.PAUSED ||
-              e.data === window.YT.PlayerState.ENDED
-            ) {
+            if (e.data === window.YT.PlayerState.PAUSED || e.data === window.YT.PlayerState.ENDED) {
               clearInterval(intervalRef.current);
             }
           },
           onError: (e) => {
-            // Common codes: 2 invalid videoId param, 5 HTML5 player error,
-            // 100 video not found/private, 101 & 150 embedding disabled by owner.
             const messages = {
               2: "Invalid video — check the video ID for this lecture.",
               5: "This video can't be played in the embedded player right now.",
@@ -180,7 +188,6 @@ export default function Lectures() {
               101: "The video owner has disabled playback on other websites.",
               150: "The video owner has disabled playback on other websites.",
             };
-            console.error("[Lectures] YT player error, code:", e.data);
             setPlayerError(messages[e.data] || "This video failed to load.");
             setPlayerReady(false);
           },
@@ -194,9 +201,7 @@ export default function Lectures() {
       window.onYouTubeIframeAPIReady = createPlayer;
     }
 
-    return () => {
-      clearInterval(intervalRef.current);
-    };
+    return () => clearInterval(intervalRef.current);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeLecture?.id]);
 
@@ -219,7 +224,6 @@ export default function Lectures() {
       }
     } catch (err) {
       console.error("Failed to sync lecture progress:", err);
-      // Roll back the optimistic mark so the UI matches what the server has.
       markedRef.current[lectureId] = false;
       setWatched((prev) => {
         const next = { ...prev };
@@ -235,25 +239,13 @@ export default function Lectures() {
   // ── Polling ────────────────────────────────────────────────
   const startPolling = () => {
     clearInterval(intervalRef.current);
-    let loggedBadDuration = false;
-
     intervalRef.current = setInterval(() => {
       const player = playerRef.current;
       if (!player || typeof player.getCurrentTime !== "function") return;
 
       const current = player.getCurrentTime();
       const total = player.getDuration();
-
-      if (!total || total === 0) {
-        if (!loggedBadDuration) {
-          loggedBadDuration = true;
-          console.warn(
-            "[Lectures] getDuration() is returning 0 — the player never loaded real video metadata. " +
-              "This usually means the YT container DOM was fought over by React, or the video can't be embedded."
-          );
-        }
-        return;
-      }
+      if (!total || total === 0) return;
 
       const ratio = current / total;
       setProgress(Math.min(ratio * 100, 100));
@@ -269,12 +261,21 @@ export default function Lectures() {
     setActiveLecture(lecture);
   };
 
+  const handleNext = () => {
+    const idx = lectures.findIndex((l) => l.id === activeLecture?.id);
+    if (idx !== -1 && idx < lectures.length - 1) {
+      setActiveLecture(lectures[idx + 1]);
+    }
+  };
+
+  const handleRetry = () => setRetryTick((t) => t + 1);
+
   // ── Loading / Error ────────────────────────────────────────
   if (loading) {
     return (
-      <div className="lectures-page">
-        <div className="lp-state">
-          <FiLoader className="lp-spin" />
+      <div className="lw-page">
+        <div className="lw-state">
+          <FiLoader className="lw-spin" />
           <p>Loading lectures…</p>
         </div>
       </div>
@@ -283,9 +284,13 @@ export default function Lectures() {
 
   if (error) {
     return (
-      <div className="lectures-page">
-        <div className="lp-state lp-state-error">
-          <p>Something went wrong: {error}</p>
+      <div className="lw-page">
+        <div className="lw-state lw-state-error">
+          <FiAlertCircle />
+          <p>{error}</p>
+          <button className="lw-retry-btn" onClick={handleRetry}>
+            <FiRefreshCw /> Retry
+          </button>
         </div>
       </div>
     );
@@ -293,8 +298,8 @@ export default function Lectures() {
 
   if (!lectures.length) {
     return (
-      <div className="lectures-page">
-        <div className="lp-state">
+      <div className="lw-page">
+        <div className="lw-state">
           <p>No lectures found for this course.</p>
         </div>
       </div>
@@ -302,106 +307,35 @@ export default function Lectures() {
   }
 
   const watchedCount = Object.keys(watched).filter((id) => watched[id]).length;
+  const activeIndex = lectures.findIndex((l) => l.id === activeLecture.id);
 
-  // ── Render ─────────────────────────────────────────────────
   return (
-    <div className="lectures-page">
-      <div className="lp-header">
-        <div>
-          <h1 className="lp-title">Lectures</h1>
-          <p className="lp-subtitle">Watch at least 30% of a lecture to mark it complete.</p>
-        </div>
-        <div className="lp-header-right">
-          <div className="lp-overall">
-            <div className="lp-overall-track">
-              <div className="lp-overall-fill" style={{ width: `${overallProgress}%` }} />
-            </div>
-            <span className="lp-overall-label">{overallProgress}% course progress</span>
-          </div>
-          <div className="lp-progress-badge">
-            <span className="lp-badge-count">{watchedCount}</span>
-            <span className="lp-badge-label">/ {lectures.length} completed</span>
-          </div>
-        </div>
-      </div>
+    <div className="lw-page">
+      <LectureProgressHeader
+        overallProgress={overallProgress}
+        watchedCount={watchedCount}
+        totalCount={lectures.length}
+      />
 
-      {syncError && <div className="lp-sync-error">{syncError}</div>}
+      {syncError && <div className="lw-sync-error">{syncError}</div>}
 
-      <div className="lp-player-wrapper">
-        <div className="lp-player-box">
-          {/* This div must stay empty — the YouTube IFrame API takes full
-              ownership of it and swaps it for its own iframe. Rendering any
-              React children into it causes a DOM-ownership conflict where
-              getDuration()/getCurrentTime() silently return 0 forever. */}
-          <div id="yt-player" />
+      <LectureVideoPanel
+        activeLecture={activeLecture}
+        playerReady={playerReady}
+        playerError={playerError}
+        progress={progress}
+        isWatched={!!watched[activeLecture.id]}
+        syncing={syncing}
+        onNext={handleNext}
+        hasNext={activeIndex !== -1 && activeIndex < lectures.length - 1}
+      />
 
-          {!playerReady && !playerError && (
-            <div className="lp-player-overlay">
-              <FiLoader className="lp-spin" />
-              <span>Loading player…</span>
-            </div>
-          )}
-
-          {playerError && (
-            <div className="lp-player-overlay lp-player-overlay-error">
-              <span>{playerError}</span>
-            </div>
-          )}
-        </div>
-        <div className="lp-bar-track">
-          <div
-            className={`lp-bar-fill ${watched[activeLecture.id] ? "watched" : ""}`}
-            style={{ width: `${progress}%` }}
-          />
-        </div>
-        <div className="lp-player-meta">
-          <div>
-            <h2 className="lp-active-title">{activeLecture.title}</h2>
-            <p className="lp-active-desc">{activeLecture.description}</p>
-          </div>
-          {watched[activeLecture.id] ? (
-            <span className="lp-status-badge watched">
-              <FiCheckCircle /> Watched
-            </span>
-          ) : (
-            <span className="lp-status-badge pending">
-              {syncing ? <FiLoader className="lp-spin" /> : <FiPlayCircle />}
-              {syncing ? "Saving…" : "In Progress"}
-            </span>
-          )}
-        </div>
-      </div>
-
-      <div className="lp-list">
-        <h3 className="lp-list-heading">All Lectures</h3>
-        {lectures.map((lec, index) => {
-          const isActive = lec.id === activeLecture.id;
-          const isWatched = !!watched[lec.id];
-          return (
-            <button
-              key={lec.id}
-              className={`lp-card ${isActive ? "active" : ""} ${isWatched ? "done" : ""}`}
-              onClick={() => handleSelect(lec)}
-            >
-              <div className="lp-card-num">{index + 1}</div>
-              <div className="lp-card-body">
-                <p className="lp-card-title">{lec.title}</p>
-                <p className="lp-card-desc">{lec.description}</p>
-              </div>
-              <div className="lp-card-right">
-                <span className="lp-card-duration">
-                  <FiClock /> {lec.duration}
-                </span>
-                {isWatched ? (
-                  <FiCheckCircle className="lp-check watched" />
-                ) : (
-                  <FiCircle className="lp-check pending" />
-                )}
-              </div>
-            </button>
-          );
-        })}
-      </div>
+      <LectureList
+        lectures={lectures}
+        activeId={activeLecture.id}
+        watched={watched}
+        onSelect={handleSelect}
+      />
     </div>
   );
 }

@@ -1,0 +1,116 @@
+@import "./styles/tokens.css";
+
+.qqc-area {
+  font-family: var(--lms-font);
+  margin-bottom: 26px;
+}
+
+.qqc-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 22px;
+}
+
+.qqc-text {
+  font-size: 17px;
+  font-weight: 600;
+  line-height: 1.5;
+  margin: 0;
+  color: var(--lms-text);
+  flex: 1;
+}
+
+.qqc-flag-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 0 0 auto;
+  background: var(--lms-neutral-chip);
+  color: var(--lms-muted);
+  border: 1.5px solid transparent;
+  border-radius: 999px;
+  padding: 7px 13px;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.qqc-flag-btn:hover {
+  background: var(--lms-amber-soft);
+  color: var(--lms-amber);
+}
+
+.qqc-flag-btn.flagged {
+  background: var(--lms-amber-soft);
+  color: var(--lms-amber);
+  border-color: var(--lms-amber);
+}
+
+.qqc-options {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.qqc-option {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  text-align: left;
+  background: var(--lms-card);
+  border: 1.5px solid var(--lms-border);
+  border-radius: var(--lms-radius-md);
+  padding: 13px 16px;
+  cursor: pointer;
+  font-size: 14px;
+  color: var(--lms-text);
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.qqc-option:hover {
+  border-color: #93c5fd;
+  background: var(--lms-primary-soft);
+}
+
+.qqc-option.selected {
+  border-color: var(--lms-primary);
+  background: var(--lms-primary-soft);
+}
+
+.qqc-option-letter {
+  flex: 0 0 26px;
+  height: 26px;
+  border-radius: var(--lms-radius-sm);
+  background: var(--lms-neutral-chip);
+  color: var(--lms-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.qqc-option.selected .qqc-option-letter {
+  background: var(--lms-primary);
+  color: #fff;
+}
+
+.qqc-option-text {
+  flex: 1;
+}
+
+.qqc-option-check {
+  color: var(--lms-primary);
+  flex: 0 0 auto;
+}
+
+@media (max-width: 560px) {
+  .qqc-top {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}

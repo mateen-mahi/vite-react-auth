@@ -1,0 +1,110 @@
+@import "./tokens.css";
+
+.qrm-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  z-index: 1000;
+  font-family: var(--lms-font);
+}
+
+.qrm-card {
+  background: var(--lms-card);
+  border-radius: var(--lms-radius-lg);
+  padding: 26px 26px 22px;
+  max-width: 420px;
+  width: 100%;
+  box-shadow: var(--lms-shadow-md);
+}
+
+.qrm-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.qrm-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 16px;
+  font-weight: 700;
+  margin: 0;
+  color: var(--lms-amber);
+}
+
+.qrm-close {
+  background: none;
+  border: none;
+  color: var(--lms-muted);
+  cursor: pointer;
+  font-size: 18px;
+  line-height: 1;
+  padding: 2px;
+}
+
+.qrm-sub {
+  font-size: 13.5px;
+  color: var(--lms-muted);
+  margin: 0 0 18px;
+  line-height: 1.5;
+}
+
+.qrm-section {
+  margin-bottom: 16px;
+}
+
+.qrm-section-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--lms-text);
+  margin: 0 0 8px;
+}
+
+.qrm-chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.qrm-chip {
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  border: none;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.qrm-chip-unanswered {
+  background: var(--lms-red-soft);
+  color: var(--lms-red);
+}
+
+.qrm-chip-flagged {
+  background: var(--lms-amber-soft);
+  color: var(--lms-amber);
+}
+
+.qrm-close-btn {
+  width: 100%;
+  margin-top: 6px;
+  background: var(--lms-primary);
+  color: #fff;
+  border: none;
+  border-radius: var(--lms-radius-sm);
+  padding: 12px;
+  font-size: 13.5px;
+  font-weight: 700;
+  cursor: pointer;
+}

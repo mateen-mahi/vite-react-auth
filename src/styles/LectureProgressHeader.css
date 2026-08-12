@@ -1,0 +1,94 @@
+@import "./styles/tokens.css";
+
+.lph-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+  margin-bottom: 24px;
+  font-family: var(--lms-font);
+}
+
+.lph-title {
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin: 0 0 4px;
+  color: var(--lms-text);
+}
+
+.lph-subtitle {
+  font-size: 14px;
+  color: var(--lms-muted);
+  margin: 0;
+}
+
+.lph-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 10px;
+  min-width: 220px;
+}
+
+.lph-overall {
+  width: 100%;
+}
+
+.lph-overall-track {
+  width: 100%;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--lms-border);
+  overflow: hidden;
+}
+
+.lph-overall-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--lms-primary), var(--lms-purple));
+  border-radius: 999px;
+  transition: width 0.4s ease;
+}
+
+.lph-overall-label {
+  display: block;
+  margin-top: 6px;
+  font-size: 12px;
+  color: var(--lms-muted);
+  text-align: right;
+}
+
+.lph-badge {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  background: var(--lms-card);
+  border: 1px solid var(--lms-border);
+  border-radius: 999px;
+  padding: 6px 14px;
+  font-size: 13px;
+}
+
+.lph-badge-count {
+  font-weight: 700;
+  font-size: 15px;
+  color: var(--lms-primary);
+}
+
+.lph-badge-label {
+  color: var(--lms-muted);
+}
+
+@media (max-width: 640px) {
+  .lph-header {
+    flex-direction: column;
+  }
+  .lph-right {
+    align-items: stretch;
+    width: 100%;
+  }
+  .lph-overall-label {
+    text-align: left;
+  }
+}
