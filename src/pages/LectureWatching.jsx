@@ -1,13 +1,13 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { useParams } from "react-router-dom";
 import api from "../services/api";
-import { useAuth } from "../context/AuthContext"; 
+import { useAuth } from "../context/AuthContext"; // ⚠️ adjust path if different
 import { FiLoader, FiAlertCircle, FiRefreshCw } from "react-icons/fi";
 import { withTimeout } from "../utils/withTimeout";
 import LectureProgressHeader from "../components/Lecture/LectureProgressHeader";
 import LectureVideoPanel from "../components/Lecture/LectureVideoPanel";
 import LectureList from "../components/Lecture/LectureList";
-import "../styles/lectures.css";
+import "./LectureWatching.css";
 
 const WATCH_THRESHOLD = 0.3;
 const FETCH_TIMEOUT_MS = 15000;
@@ -21,9 +21,24 @@ const loadYTApi = () => {
   document.body.appendChild(tag);
 };
 
-const formatDuration = (minutes) => {
-  const mins = Math.floor(minutes);
-  const secs = Math.round((minutes - mins) * 60);
+// Lecture duration can come back as a plain number of minutes (e.g. 12.5)
+// or as a string (either "12.5" or an already-formatted "12:30") — handle
+// both instead of assuming one shape.
+const formatDuration = (duration) => {
+  if (duration == null) return "00:00";
+
+  if (typeof duration === "string") {
+    const trimmed = duration.trim();
+    if (trimmed.includes(":")) return trimmed; // already "mm:ss" — use as-is
+    const parsed = parseFloat(trimmed);
+    if (Number.isNaN(parsed)) return "00:00";
+    duration = parsed;
+  }
+
+  if (typeof duration !== "number" || Number.isNaN(duration)) return "00:00";
+
+  const mins = Math.floor(duration);
+  const secs = Math.round((duration - mins) * 60);
   return `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
 };
 
