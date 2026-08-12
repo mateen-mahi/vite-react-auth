@@ -1,8 +1,17 @@
-import { useEffect, useRef, useState, useCallback } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  useCallback,
+} from "react";
 import { useParams } from "react-router-dom";
 import api from "../services/api";
 import { useAuth } from "../context/AuthContext";
-import { FiLoader, FiAlertCircle, FiRefreshCw } from "react-icons/fi";
+import {
+  FiLoader,
+  FiAlertCircle,
+  FiRefreshCw,
+} from "react-icons/fi";
 import { withTimeout } from "../utils/withTimeout";
 import LectureProgressHeader from "../components/Lecture/LectureProgressHeader";
 import LectureVideoPanel from "../components/Lecture/LectureVideoPanel";
@@ -14,14 +23,17 @@ const FETCH_TIMEOUT_MS = 15000;
 const POLLING_INTERVAL_MS = 1000;
 
 // ============================================================
-// YouTube IFrame API
+// YouTube API loader
 // ============================================================
 
 let youtubeApiPromise = null;
 
 const loadYTApi = () => {
-  // Already loaded
-  if (window.YT?.Player) {
+  // Already available
+  if (
+    window.YT &&
+    typeof window.YT.Player === "function"
+  ) {
     return Promise.resolve(window.YT);
   }
 
@@ -30,55 +42,77 @@ const loadYTApi = () => {
     return youtubeApiPromise;
   }
 
-  youtubeApiPromise = new Promise((resolve, reject) => {
-    const existingScript = document.querySelector(
-      'script[src="https://www.youtube.com/iframe_api"]'
-    );
-
-    const previousCallback = window.onYouTubeIframeAPIReady;
-
-    window.onYouTubeIframeAPIReady = () => {
-      if (typeof previousCallback === "function") {
-        previousCallback();
-      }
-
-      if (window.YT?.Player) {
-        resolve(window.YT);
-      } else {
-        reject(
-          new Error(
-            "YouTube API loaded but Player is unavailable."
-          )
+  youtubeApiPromise = new Promise(
+    (resolve, reject) => {
+      const existingScript =
+        document.querySelector(
+          'script[src="https://www.youtube.com/iframe_api"]'
         );
-      }
-    };
 
-    if (!existingScript) {
-      const script = document.createElement("script");
+      const previousCallback =
+        window.onYouTubeIframeAPIReady;
 
-      script.src = "https://www.youtube.com/iframe_api";
-      script.async = true;
+      window.onYouTubeIframeAPIReady = () => {
+        if (
+          typeof previousCallback ===
+          "function"
+        ) {
+          previousCallback();
+        }
 
-      script.onerror = () => {
-        reject(
-          new Error("Failed to load YouTube IFrame API.")
-        );
+        if (
+          window.YT &&
+          typeof window.YT.Player ===
+            "function"
+        ) {
+          resolve(window.YT);
+        } else {
+          reject(
+            new Error(
+              "YouTube API loaded but Player is unavailable."
+            )
+          );
+        }
       };
 
-      document.body.appendChild(script);
-    }
+      if (!existingScript) {
+        const script =
+          document.createElement("script");
 
-    // Safety timeout
-    setTimeout(() => {
-      if (window.YT?.Player) {
-        resolve(window.YT);
-      } else {
-        reject(
-          new Error("YouTube API loading timed out.")
-        );
+        script.src =
+          "https://www.youtube.com/iframe_api";
+
+        script.async = true;
+
+        script.onerror = () => {
+          reject(
+            new Error(
+              "Failed to load YouTube IFrame API."
+            )
+          );
+        };
+
+        document.body.appendChild(script);
       }
-    }, 15000);
-  });
+
+      // Safety timeout
+      setTimeout(() => {
+        if (
+          window.YT &&
+          typeof window.YT.Player ===
+            "function"
+        ) {
+          resolve(window.YT);
+        } else {
+          reject(
+            new Error(
+              "YouTube API loading timed out."
+            )
+          );
+        }
+      }, 15000);
+    }
+  );
 
   return youtubeApiPromise;
 };
@@ -90,30 +124,36 @@ const loadYTApi = () => {
 const formatDuration = (minutes) => {
   const value = Number(minutes);
 
-  if (!Number.isFinite(value) || value < 0) {
+  if (
+    !Number.isFinite(value) ||
+    value < 0
+  ) {
     return "00:00";
   }
 
   let mins = Math.floor(value);
-  let secs = Math.round((value - mins) * 60);
+  let secs = Math.round(
+    (value - mins) * 60
+  );
 
   if (secs >= 60) {
     mins += Math.floor(secs / 60);
     secs %= 60;
   }
 
-  return `${String(mins).padStart(2, "0")}:${String(secs).padStart(
+  return `${String(mins).padStart(
     2,
     "0"
-  )}`;
+  )}:${String(secs).padStart(2, "0")}`;
 };
 
-// Normalize lecture IDs whether populated or raw
 const idOf = (ref) => {
   if (!ref) return null;
 
   if (typeof ref === "object") {
-    return ref._id ? String(ref._id) : null;
+    return ref._id
+      ? String(ref._id)
+      : null;
   }
 
   return String(ref);
@@ -131,68 +171,98 @@ export default function LectureWatching() {
   // State
   // ----------------------------------------------------------
 
-  const [lectures, setLectures] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [lectures, setLectures] =
+    useState([]);
 
-  const [activeLecture, setActiveLecture] = useState(null);
+  const [loading, setLoading] =
+    useState(true);
 
-  const [watched, setWatched] = useState({});
-  const [progress, setProgress] = useState(0);
-  const [overallProgress, setOverallProgress] = useState(0);
+  const [error, setError] =
+    useState(null);
 
-  const [syncing, setSyncing] = useState(false);
-  const [syncError, setSyncError] = useState(null);
+  const [activeLecture, setActiveLecture] =
+    useState(null);
 
-  const [playerReady, setPlayerReady] = useState(false);
-  const [playerError, setPlayerError] = useState(null);
+  const [watched, setWatched] =
+    useState({});
 
-  const [retryTick, setRetryTick] = useState(0);
+  const [progress, setProgress] =
+    useState(0);
+
+  const [overallProgress, setOverallProgress] =
+    useState(0);
+
+  const [syncing, setSyncing] =
+    useState(false);
+
+  const [syncError, setSyncError] =
+    useState(null);
+
+  const [playerReady, setPlayerReady] =
+    useState(false);
+
+  const [playerError, setPlayerError] =
+    useState(null);
+
+  const [retryTick, setRetryTick] =
+    useState(0);
 
   // ----------------------------------------------------------
   // Refs
   // ----------------------------------------------------------
 
-  const playerRef = useRef(null);
-  const intervalRef = useRef(null);
+  const playerRef =
+    useRef(null);
 
-  // Lectures already marked watched
-  const markedRef = useRef({});
+  const playerContainerRef =
+    useRef(null);
 
-  // Always keep latest lecture available to polling
-  const activeLectureRef = useRef(null);
+  const intervalRef =
+    useRef(null);
 
-  // Always keep latest course ID
-  const courseIdRef = useRef(courseId);
+  const markedRef =
+    useRef({});
 
-  // Latest markWatched function
-  const markWatchedRef = useRef(null);
+  const activeLectureRef =
+    useRef(null);
+
+  const courseIdRef =
+    useRef(courseId);
+
+  const markWatchedRef =
+    useRef(null);
 
   // ----------------------------------------------------------
-  // Keep refs synchronized
+  // Keep refs updated
   // ----------------------------------------------------------
 
   useEffect(() => {
-    courseIdRef.current = courseId;
+    courseIdRef.current =
+      courseId;
   }, [courseId]);
 
   useEffect(() => {
-    activeLectureRef.current = activeLecture;
+    activeLectureRef.current =
+      activeLecture;
   }, [activeLecture]);
 
   // ==========================================================
   // Stop polling
   // ==========================================================
 
-  const stopPolling = useCallback(() => {
-    if (intervalRef.current) {
-      clearInterval(intervalRef.current);
-      intervalRef.current = null;
-    }
-  }, []);
+  const stopPolling =
+    useCallback(() => {
+      if (intervalRef.current) {
+        clearInterval(
+          intervalRef.current
+        );
+
+        intervalRef.current = null;
+      }
+    }, []);
 
   // ==========================================================
-  // Fetch lectures and progress
+  // Fetch lectures + progress
   // ==========================================================
 
   useEffect(() => {
@@ -204,78 +274,109 @@ export default function LectureWatching() {
 
       try {
         // ----------------------------------------------------
-        // Fetch lectures
+        // Lectures
         // ----------------------------------------------------
 
-        const lecRes = await withTimeout(
-          api.get(`/lectures/course/${courseId}`),
-          FETCH_TIMEOUT_MS,
-          "Loading lectures"
-        );
+        const lecRes =
+          await withTimeout(
+            api.get(
+              `/lectures/course/${courseId}`
+            ),
+            FETCH_TIMEOUT_MS,
+            "Loading lectures"
+          );
 
         if (cancelled) return;
 
-        const lecturesData = lecRes.data?.data || [];
+        const lecturesData =
+          lecRes.data?.data || [];
 
-        const mapped = lecturesData.map((lec) => {
-          const displayDuration =
-            typeof lec.duration === "string" &&
-            lec.duration.includes(":")
-              ? lec.duration
-              : formatDuration(lec.duration);
+        const mapped =
+          lecturesData.map((lec) => {
+            const displayDuration =
+              typeof lec.duration ===
+                "string" &&
+              lec.duration.includes(":")
+                ? lec.duration
+                : formatDuration(
+                    lec.duration
+                  );
 
-          return {
-            id: String(lec._id),
-            title: lec.title || "Untitled Lecture",
-            description: lec.description || "",
-            duration: displayDuration,
-            videoId: lec.videoId,
-          };
-        });
+            return {
+              id: String(lec._id),
+              title:
+                lec.title ||
+                "Untitled Lecture",
+              description:
+                lec.description || "",
+              duration:
+                displayDuration,
+              videoId:
+                lec.videoId,
+            };
+          });
 
         setLectures(mapped);
 
         if (mapped.length > 0) {
-          setActiveLecture(mapped[0]);
+          setActiveLecture(
+            mapped[0]
+          );
         } else {
           setActiveLecture(null);
         }
 
         // ----------------------------------------------------
-        // Fetch progress
+        // Progress
         // ----------------------------------------------------
 
         try {
-          const progRes = await withTimeout(
-            api.get(`/progress/${courseId}`),
-            FETCH_TIMEOUT_MS,
-            "Loading progress"
-          );
+          const progRes =
+            await withTimeout(
+              api.get(
+                `/progress/${courseId}`
+              ),
+              FETCH_TIMEOUT_MS,
+              "Loading progress"
+            );
 
           if (cancelled) return;
 
           const progressLectures =
-            progRes.data?.progress?.lectures || [];
+            progRes.data?.progress
+              ?.lectures || [];
 
           const watchedMap = {};
 
-          progressLectures.forEach((lectureProgress) => {
-            if (!lectureProgress?.watched) return;
+          progressLectures.forEach(
+            (lectureProgress) => {
+              if (
+                !lectureProgress?.watched
+              ) {
+                return;
+              }
 
-            const lectureId = idOf(
-              lectureProgress.lectureId
-            );
+              const lectureId =
+                idOf(
+                  lectureProgress.lectureId
+                );
 
-            if (lectureId) {
-              watchedMap[lectureId] = true;
+              if (lectureId) {
+                watchedMap[
+                  lectureId
+                ] = true;
+              }
             }
-          });
+          );
 
-          setWatched(watchedMap);
+          setWatched(
+            watchedMap
+          );
 
           setOverallProgress(
             Number(
-              progRes.data?.progress?.overallProgress
+              progRes.data?.progress
+                ?.overallProgress
             ) || 0
           );
 
@@ -283,7 +384,6 @@ export default function LectureWatching() {
             ...watchedMap,
           };
         } catch (progressError) {
-          // Progress is best effort
           console.warn(
             "Could not load lecture progress:",
             progressError
@@ -332,203 +432,268 @@ export default function LectureWatching() {
       return undefined;
     }
 
-    const offLecture = onEvent(
-      "progress:lectureUpdated",
-      (data) => {
-        if (
-          String(data?.courseId) !==
-          String(courseId)
-        ) {
-          return;
+    const offLecture =
+      onEvent(
+        "progress:lectureUpdated",
+        (data) => {
+          if (
+            String(
+              data?.courseId
+            ) !== String(courseId)
+          ) {
+            return;
+          }
+
+          const lectureId =
+            idOf(data?.lectureId);
+
+          if (!lectureId) return;
+
+          markedRef.current[
+            lectureId
+          ] = true;
+
+          setWatched((prev) => ({
+            ...prev,
+            [lectureId]: true,
+          }));
+
+          if (
+            data?.overallProgress !=
+            null
+          ) {
+            setOverallProgress(
+              Number(
+                data.overallProgress
+              ) || 0
+            );
+          }
         }
+      );
 
-        const lectureId = idOf(data?.lectureId);
+    const offCompleted =
+      onEvent(
+        "course:completed",
+        (data) => {
+          if (
+            String(
+              data?.courseId
+            ) !== String(courseId)
+          ) {
+            return;
+          }
 
-        if (!lectureId) return;
-
-        markedRef.current[lectureId] = true;
-
-        setWatched((prev) => ({
-          ...prev,
-          [lectureId]: true,
-        }));
-
-        if (data?.overallProgress != null) {
-          setOverallProgress(
-            Number(data.overallProgress) || 0
-          );
+          setOverallProgress(100);
         }
-      }
-    );
-
-    const offCompleted = onEvent(
-      "course:completed",
-      (data) => {
-        if (
-          String(data?.courseId) !==
-          String(courseId)
-        ) {
-          return;
-        }
-
-        setOverallProgress(100);
-      }
-    );
+      );
 
     return () => {
-      if (typeof offLecture === "function") {
+      if (
+        typeof offLecture ===
+        "function"
+      ) {
         offLecture();
       }
 
-      if (typeof offCompleted === "function") {
+      if (
+        typeof offCompleted ===
+        "function"
+      ) {
         offCompleted();
       }
     };
   }, [onEvent, courseId]);
 
   // ==========================================================
-  // Mark lecture watched
+  // Mark watched
   // ==========================================================
 
-  const markWatched = useCallback(
-    async (lectureId, lastPosition) => {
-      const normalizedId = idOf(lectureId);
+  const markWatched =
+    useCallback(
+      async (
+        lectureId,
+        lastPosition
+      ) => {
+        const normalizedId =
+          idOf(lectureId);
 
-      if (!normalizedId) return;
-
-      // Already marked
-      if (markedRef.current[normalizedId]) {
-        return;
-      }
-
-      // Optimistic UI update
-      markedRef.current[normalizedId] = true;
-
-      setWatched((prev) => ({
-        ...prev,
-        [normalizedId]: true,
-      }));
-
-      setSyncError(null);
-
-      try {
-        setSyncing(true);
-
-        const res = await api.patch(
-          `/progress/${courseIdRef.current}/lecture`,
-          {
-            lectureId: normalizedId,
-            watched: true,
-            lastPosition:
-              Number(lastPosition) || 0,
-          }
-        );
+        if (!normalizedId) {
+          return;
+        }
 
         if (
-          res.data?.progress?.overallProgress !=
-          null
+          markedRef.current[
+            normalizedId
+          ]
         ) {
-          setOverallProgress(
-            Number(
-              res.data.progress.overallProgress
-            ) || 0
-          );
+          return;
         }
-      } catch (err) {
-        console.error(
-          "Failed to sync lecture progress:",
-          err
-        );
 
-        // Allow retry
-        markedRef.current[normalizedId] = false;
+        // Optimistic update
+        markedRef.current[
+          normalizedId
+        ] = true;
 
-        setWatched((prev) => {
-          const next = { ...prev };
-          delete next[normalizedId];
-          return next;
-        });
+        setWatched((prev) => ({
+          ...prev,
+          [normalizedId]: true,
+        }));
 
-        setSyncError(
-          "Couldn't save your progress. We'll retry automatically."
-        );
-      } finally {
-        setSyncing(false);
-      }
-    },
-    []
-  );
+        setSyncError(null);
+
+        try {
+          setSyncing(true);
+
+          const res =
+            await api.patch(
+              `/progress/${courseIdRef.current}/lecture`,
+              {
+                lectureId:
+                  normalizedId,
+                watched: true,
+                lastPosition:
+                  Number(
+                    lastPosition
+                  ) || 0,
+              }
+            );
+
+          if (
+            res.data?.progress
+              ?.overallProgress !=
+            null
+          ) {
+            setOverallProgress(
+              Number(
+                res.data.progress
+                  .overallProgress
+              ) || 0
+            );
+          }
+        } catch (err) {
+          console.error(
+            "Failed to sync lecture progress:",
+            err
+          );
+
+          markedRef.current[
+            normalizedId
+          ] = false;
+
+          setWatched((prev) => {
+            const next = {
+              ...prev,
+            };
+
+            delete next[
+              normalizedId
+            ];
+
+            return next;
+          });
+
+          setSyncError(
+            "Couldn't save your progress. We'll retry automatically."
+          );
+        } finally {
+          setSyncing(false);
+        }
+      },
+      []
+    );
 
   useEffect(() => {
-    markWatchedRef.current = markWatched;
+    markWatchedRef.current =
+      markWatched;
   }, [markWatched]);
 
   // ==========================================================
-  // Start progress polling
+  // Start polling
   // ==========================================================
 
-  const startPolling = useCallback(() => {
-    stopPolling();
+  const startPolling =
+    useCallback(() => {
+      stopPolling();
 
-    intervalRef.current = setInterval(() => {
-      const player = playerRef.current;
-      const lecture = activeLectureRef.current;
+      intervalRef.current =
+        setInterval(() => {
+          const player =
+            playerRef.current;
 
-      if (!player || !lecture) {
-        return;
-      }
+          const lecture =
+            activeLectureRef.current;
 
-      if (
-        typeof player.getCurrentTime !==
-          "function" ||
-        typeof player.getDuration !==
-          "function"
-      ) {
-        return;
-      }
+          if (
+            !player ||
+            !lecture
+          ) {
+            return;
+          }
 
-      let current;
-      let total;
+          if (
+            typeof player.getCurrentTime !==
+              "function" ||
+            typeof player.getDuration !==
+              "function"
+          ) {
+            return;
+          }
 
-      try {
-        current = Number(
-          player.getCurrentTime()
-        );
+          let current;
+          let total;
 
-        total = Number(
-          player.getDuration()
-        );
-      } catch {
-        return;
-      }
+          try {
+            current = Number(
+              player.getCurrentTime()
+            );
 
-      if (
-        !Number.isFinite(current) ||
-        !Number.isFinite(total) ||
-        total <= 0
-      ) {
-        return;
-      }
+            total = Number(
+              player.getDuration()
+            );
+          } catch {
+            return;
+          }
 
-      const ratio = Math.min(
-        Math.max(current / total, 0),
-        1
-      );
+          if (
+            !Number.isFinite(
+              current
+            ) ||
+            !Number.isFinite(
+              total
+            ) ||
+            total <= 0
+          ) {
+            return;
+          }
 
-      setProgress(ratio * 100);
+          const ratio =
+            Math.min(
+              Math.max(
+                current / total,
+                0
+              ),
+              1
+            );
 
-      // Mark watched after 30%
-      if (
-        ratio >= WATCH_THRESHOLD &&
-        !markedRef.current[lecture.id]
-      ) {
-        markWatchedRef.current?.(
-          lecture.id,
-          current
-        );
-      }
-    }, POLLING_INTERVAL_MS);
-  }, [stopPolling]);
+          setProgress(
+            ratio * 100
+          );
+
+          // 30% watched
+          if (
+            ratio >=
+              WATCH_THRESHOLD &&
+            !markedRef.current[
+              lecture.id
+            ]
+          ) {
+            markWatchedRef.current?.(
+              lecture.id,
+              current
+            );
+          }
+        }, POLLING_INTERVAL_MS);
+    }, [stopPolling]);
 
   // ==========================================================
   // YouTube player
@@ -540,6 +705,7 @@ export default function LectureWatching() {
       !activeLecture?.videoId
     ) {
       setPlayerReady(false);
+
       setPlayerError(
         "This lecture does not have a valid YouTube video."
       );
@@ -549,186 +715,211 @@ export default function LectureWatching() {
 
     let cancelled = false;
 
-    const initializePlayer = async () => {
-      try {
-        // Stop previous polling
-        stopPolling();
+    const initializePlayer =
+      async () => {
+        try {
+          stopPolling();
 
-        setProgress(0);
-        setPlayerReady(false);
-        setPlayerError(null);
+          setProgress(0);
+          setPlayerReady(false);
+          setPlayerError(null);
 
-        // ----------------------------------------------------
-        // Wait for YouTube API
-        // ----------------------------------------------------
+          // --------------------------------------------------
+          // Wait for YouTube API
+          // --------------------------------------------------
 
-        await loadYTApi();
+          await loadYTApi();
 
-        if (cancelled) return;
-
-        // ----------------------------------------------------
-        // Find player container
-        // ----------------------------------------------------
-
-        const target =
-          document.getElementById(
-            "yt-player"
-          );
-
-        if (!target) {
-          throw new Error(
-            "YouTube player container was not found."
-          );
-        }
-
-        // ----------------------------------------------------
-        // Destroy previous player
-        // ----------------------------------------------------
-
-        if (playerRef.current) {
-          try {
-            playerRef.current.destroy();
-          } catch {
-            // Ignore cleanup error
+          if (cancelled) {
+            return;
           }
 
-          playerRef.current = null;
-        }
+          // --------------------------------------------------
+          // Use React ref instead of getElementById
+          // --------------------------------------------------
 
-        // Make sure YouTube has a clean container
-        target.innerHTML = "";
+          const container =
+            playerContainerRef.current;
 
-        console.log(
-          "Creating YouTube player for:",
-          activeLecture.videoId
-        );
+          if (!container) {
+            throw new Error(
+              "YouTube player container is not ready."
+            );
+          }
 
-        // ----------------------------------------------------
-        // Create player
-        // ----------------------------------------------------
+          console.log(
+            "YouTube container found:",
+            container
+          );
 
-        playerRef.current =
-          new window.YT.Player(
-            "yt-player",
-            {
-              videoId: activeLecture.videoId,
+          console.log(
+            "Creating YouTube player for:",
+            activeLecture.videoId
+          );
 
-              playerVars: {
-                rel: 0,
-                modestbranding: 1,
-                origin: window.location.origin,
-                autoplay: 0,
-                controls: 1,
-                mute: 0,
-              },
+          // --------------------------------------------------
+          // Destroy previous player
+          // --------------------------------------------------
 
-              events: {
-                // ------------------------------------------
-                // Player ready
-                // ------------------------------------------
-
-                onReady: () => {
-                  if (cancelled) return;
-
-                  console.log(
-                    "YouTube player ready"
-                  );
-
-                  setPlayerReady(true);
-                  setPlayerError(null);
-
-                  // Do NOT autoplay.
-                  // User can press Play.
-                },
-
-                // ------------------------------------------
-                // Player state
-                // ------------------------------------------
-
-                onStateChange: (event) => {
-                  if (cancelled) return;
-
-                  console.log(
-                    "YouTube state:",
-                    event.data
-                  );
-
-                  // Playing
-                  if (
-                    event.data ===
-                    window.YT.PlayerState
-                      .PLAYING
-                  ) {
-                    startPolling();
-                  }
-
-                  // Paused
-                  if (
-                    event.data ===
-                      window.YT.PlayerState
-                        .PAUSED ||
-                    event.data ===
-                      window.YT.PlayerState
-                        .ENDED
-                  ) {
-                    stopPolling();
-                  }
-                },
-
-                // ------------------------------------------
-                // Player error
-                // ------------------------------------------
-
-                onError: (event) => {
-                  if (cancelled) return;
-
-                  console.error(
-                    "YouTube player error:",
-                    event.data
-                  );
-
-                  const messages = {
-                    2: "Invalid YouTube video ID.",
-                    5: "This video cannot be played in the embedded player.",
-                    100: "Video not found or it is private.",
-                    101: "The video owner has disabled embedding.",
-                    150: "The video owner has disabled embedding.",
-                  };
-
-                  setPlayerError(
-                    messages[event.data] ||
-                      `YouTube player error: ${event.data}`
-                  );
-
-                  setPlayerReady(false);
-
-                  stopPolling();
-                },
-              },
+          if (playerRef.current) {
+            try {
+              playerRef.current.destroy();
+            } catch {
+              // Ignore cleanup error
             }
-          );
-      } catch (error) {
-        console.error(
-          "Failed to initialize YouTube player:",
-          error
-        );
 
-        if (!cancelled) {
-          setPlayerReady(false);
+            playerRef.current =
+              null;
+          }
 
-          setPlayerError(
-            error?.message ||
-              "Failed to initialize video player."
+          // --------------------------------------------------
+          // Create player
+          // --------------------------------------------------
+
+          playerRef.current =
+            new window.YT.Player(
+              container,
+              {
+                videoId:
+                  activeLecture.videoId,
+
+                playerVars: {
+                  rel: 0,
+                  modestbranding: 1,
+                  origin:
+                    window.location.origin,
+                  autoplay: 0,
+                  controls: 1,
+                  mute: 0,
+                },
+
+                events: {
+                  // ----------------------------------------
+                  // Ready
+                  // ----------------------------------------
+
+                  onReady: () => {
+                    if (cancelled) {
+                      return;
+                    }
+
+                    console.log(
+                      "YouTube player ready"
+                    );
+
+                    setPlayerReady(
+                      true
+                    );
+
+                    setPlayerError(
+                      null
+                    );
+
+                    // No autoplay
+                  },
+
+                  // ----------------------------------------
+                  // State
+                  // ----------------------------------------
+
+                  onStateChange:
+                    (event) => {
+                      if (
+                        cancelled
+                      ) {
+                        return;
+                      }
+
+                      console.log(
+                        "YouTube state:",
+                        event.data
+                      );
+
+                      if (
+                        event.data ===
+                        window.YT
+                          .PlayerState
+                          .PLAYING
+                      ) {
+                        startPolling();
+                      }
+
+                      if (
+                        event.data ===
+                          window.YT
+                            .PlayerState
+                            .PAUSED ||
+                        event.data ===
+                          window.YT
+                            .PlayerState
+                            .ENDED
+                      ) {
+                        stopPolling();
+                      }
+                    },
+
+                  // ----------------------------------------
+                  // Error
+                  // ----------------------------------------
+
+                  onError:
+                    (event) => {
+                      if (
+                        cancelled
+                      ) {
+                        return;
+                      }
+
+                      console.error(
+                        "YouTube player error:",
+                        event.data
+                      );
+
+                      const messages =
+                        {
+                          2: "Invalid YouTube video ID.",
+                          5: "This video cannot be played in the embedded player.",
+                          100: "Video not found or it is private.",
+                          101: "The video owner has disabled embedding.",
+                          150: "The video owner has disabled embedding.",
+                        };
+
+                      setPlayerError(
+                        messages[
+                          event.data
+                        ] ||
+                          `YouTube player error: ${event.data}`
+                      );
+
+                      setPlayerReady(
+                        false
+                      );
+
+                      stopPolling();
+                    },
+                },
+              }
+            );
+        } catch (err) {
+          console.error(
+            "Failed to initialize YouTube player:",
+            err
           );
+
+          if (!cancelled) {
+            setPlayerReady(
+              false
+            );
+
+            setPlayerError(
+              err?.message ||
+                "Failed to initialize video player."
+            );
+          }
         }
-      }
-    };
+      };
 
     initializePlayer();
-
-    // --------------------------------------------------------
-    // Cleanup
-    // --------------------------------------------------------
 
     return () => {
       cancelled = true;
@@ -742,7 +933,8 @@ export default function LectureWatching() {
           // Ignore cleanup error
         }
 
-        playerRef.current = null;
+        playerRef.current =
+          null;
       }
     };
   }, [
@@ -756,52 +948,71 @@ export default function LectureWatching() {
   // Select lecture
   // ==========================================================
 
-  const handleSelect = useCallback(
-    (lecture) => {
-      if (!lecture?.id) return;
+  const handleSelect =
+    useCallback(
+      (lecture) => {
+        if (!lecture?.id) {
+          return;
+        }
 
-      if (
-        lecture.id === activeLecture?.id
-      ) {
-        return;
-      }
+        if (
+          lecture.id ===
+          activeLecture?.id
+        ) {
+          return;
+        }
 
-      setActiveLecture(lecture);
-      setSyncError(null);
-      setProgress(0);
-    },
-    [activeLecture?.id]
-  );
+        setActiveLecture(
+          lecture
+        );
+
+        setSyncError(null);
+        setProgress(0);
+      },
+      [activeLecture?.id]
+    );
 
   // ==========================================================
   // Next lecture
   // ==========================================================
 
-  const handleNext = useCallback(() => {
-    if (!activeLecture) return;
+  const handleNext =
+    useCallback(() => {
+      if (!activeLecture) {
+        return;
+      }
 
-    const index = lectures.findIndex(
-      (lecture) =>
-        lecture.id === activeLecture.id
-    );
+      const index =
+        lectures.findIndex(
+          (lecture) =>
+            lecture.id ===
+            activeLecture.id
+        );
 
-    if (
-      index !== -1 &&
-      index < lectures.length - 1
-    ) {
-      setActiveLecture(
-        lectures[index + 1]
-      );
-    }
-  }, [activeLecture, lectures]);
+      if (
+        index !== -1 &&
+        index <
+          lectures.length - 1
+      ) {
+        setActiveLecture(
+          lectures[index + 1]
+        );
+      }
+    }, [
+      activeLecture,
+      lectures,
+    ]);
 
   // ==========================================================
   // Retry
   // ==========================================================
 
-  const handleRetry = useCallback(() => {
-    setRetryTick((tick) => tick + 1);
-  }, []);
+  const handleRetry =
+    useCallback(() => {
+      setRetryTick(
+        (tick) => tick + 1
+      );
+    }, []);
 
   // ==========================================================
   // Loading
@@ -812,8 +1023,9 @@ export default function LectureWatching() {
       <div className="lw-page">
         <div className="lw-state">
           <FiLoader className="lw-spin" />
-
-          <p>Loading lectures…</p>
+          <p>
+            Loading lectures…
+          </p>
         </div>
       </div>
     );
@@ -833,7 +1045,9 @@ export default function LectureWatching() {
 
           <button
             className="lw-retry-btn"
-            onClick={handleRetry}
+            onClick={
+              handleRetry
+            }
           >
             <FiRefreshCw />
             Retry
@@ -855,7 +1069,8 @@ export default function LectureWatching() {
       <div className="lw-page">
         <div className="lw-state">
           <p>
-            No lectures found for this course.
+            No lectures found for
+            this course.
           </p>
         </div>
       </div>
@@ -866,14 +1081,17 @@ export default function LectureWatching() {
   // Derived values
   // ==========================================================
 
-  const watchedCount = Object.keys(
-    watched
-  ).filter((id) => watched[id]).length;
+  const watchedCount =
+    Object.keys(watched).filter(
+      (id) => watched[id]
+    ).length;
 
-  const activeIndex = lectures.findIndex(
-    (lecture) =>
-      lecture.id === activeLecture.id
-  );
+  const activeIndex =
+    lectures.findIndex(
+      (lecture) =>
+        lecture.id ===
+        activeLecture.id
+    );
 
   const hasNext =
     activeIndex !== -1 &&
@@ -887,9 +1105,15 @@ export default function LectureWatching() {
   return (
     <div className="lw-page">
       <LectureProgressHeader
-        overallProgress={overallProgress}
-        watchedCount={watchedCount}
-        totalCount={lectures.length}
+        overallProgress={
+          overallProgress
+        }
+        watchedCount={
+          watchedCount
+        }
+        totalCount={
+          lectures.length
+        }
       />
 
       {syncError && (
@@ -899,23 +1123,38 @@ export default function LectureWatching() {
       )}
 
       <LectureVideoPanel
-        activeLecture={activeLecture}
-        playerReady={playerReady}
-        playerError={playerError}
+        activeLecture={
+          activeLecture
+        }
+        playerReady={
+          playerReady
+        }
+        playerError={
+          playerError
+        }
         progress={progress}
         isWatched={
-          !!watched[activeLecture.id]
+          !!watched[
+            activeLecture.id
+          ]
         }
         syncing={syncing}
         onNext={handleNext}
         hasNext={hasNext}
+        playerContainerRef={
+          playerContainerRef
+        }
       />
 
       <LectureList
         lectures={lectures}
-        activeId={activeLecture.id}
+        activeId={
+          activeLecture.id
+        }
         watched={watched}
-        onSelect={handleSelect}
+        onSelect={
+          handleSelect
+        }
       />
     </div>
   );
