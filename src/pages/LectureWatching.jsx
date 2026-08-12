@@ -13,67 +13,79 @@ const WATCH_THRESHOLD = 0.3;
 const FETCH_TIMEOUT_MS = 15000;
 const POLLING_INTERVAL_MS = 1000;
 
-// ------------------------------------------------------------
-// YouTube API
-// ------------------------------------------------------------
+// ============================================================
+// YouTube IFrame API
+// ============================================================
 
-let ytApiLoaded = false;
-let ytApiLoading = false;
-const ytApiCallbacks = [];
+let youtubeApiPromise = null;
 
-const loadYTApi = (callback) => {
-  // Already available
+const loadYTApi = () => {
+  // Already loaded
   if (window.YT?.Player) {
-    callback();
-    return;
+    return Promise.resolve(window.YT);
   }
 
-  // Add callback to queue
-  ytApiCallbacks.push(callback);
-
-  // Script is already loading
-  if (ytApiLoading) {
-    return;
+  // Already loading
+  if (youtubeApiPromise) {
+    return youtubeApiPromise;
   }
 
-  ytApiLoading = true;
+  youtubeApiPromise = new Promise((resolve, reject) => {
+    const existingScript = document.querySelector(
+      'script[src="https://www.youtube.com/iframe_api"]'
+    );
 
-  // YouTube API callback
-  window.onYouTubeIframeAPIReady = () => {
-    ytApiLoaded = true;
-    ytApiLoading = false;
+    const previousCallback = window.onYouTubeIframeAPIReady;
 
-    const callbacks = [...ytApiCallbacks];
-    ytApiCallbacks.length = 0;
-
-    callbacks.forEach((cb) => {
-      try {
-        cb();
-      } catch (error) {
-        console.error("YouTube initialization error:", error);
+    window.onYouTubeIframeAPIReady = () => {
+      if (typeof previousCallback === "function") {
+        previousCallback();
       }
-    });
-  };
 
-  // Script already exists in DOM
-  const existingScript = document.querySelector(
-    'script[src="https://www.youtube.com/iframe_api"]'
-  );
+      if (window.YT?.Player) {
+        resolve(window.YT);
+      } else {
+        reject(
+          new Error(
+            "YouTube API loaded but Player is unavailable."
+          )
+        );
+      }
+    };
 
-  if (existingScript) {
-    return;
-  }
+    if (!existingScript) {
+      const script = document.createElement("script");
 
-  const script = document.createElement("script");
-  script.src = "https://www.youtube.com/iframe_api";
-  script.async = true;
+      script.src = "https://www.youtube.com/iframe_api";
+      script.async = true;
 
-  document.body.appendChild(script);
+      script.onerror = () => {
+        reject(
+          new Error("Failed to load YouTube IFrame API.")
+        );
+      };
+
+      document.body.appendChild(script);
+    }
+
+    // Safety timeout
+    setTimeout(() => {
+      if (window.YT?.Player) {
+        resolve(window.YT);
+      } else {
+        reject(
+          new Error("YouTube API loading timed out.")
+        );
+      }
+    }, 15000);
+  });
+
+  return youtubeApiPromise;
 };
 
-// ------------------------------------------------------------
+// ============================================================
 // Helpers
-// ------------------------------------------------------------
+// ============================================================
 
 const formatDuration = (minutes) => {
   const value = Number(minutes);
@@ -85,7 +97,6 @@ const formatDuration = (minutes) => {
   let mins = Math.floor(value);
   let secs = Math.round((value - mins) * 60);
 
-  // Handle cases like 4.999 minutes => 05:00
   if (secs >= 60) {
     mins += Math.floor(secs / 60);
     secs %= 60;
@@ -97,15 +108,7 @@ const formatDuration = (minutes) => {
   )}`;
 };
 
-// Progress records can contain either:
-//
-// lectureId: "mongo-id"
-//
-// OR
-//
-// lectureId: { _id: "mongo-id", ... }
-//
-// Normalize both forms.
+// Normalize lecture IDs whether populated or raw
 const idOf = (ref) => {
   if (!ref) return null;
 
@@ -116,13 +119,17 @@ const idOf = (ref) => {
   return String(ref);
 };
 
-// ------------------------------------------------------------
+// ============================================================
 // Component
-// ------------------------------------------------------------
+// ============================================================
 
 export default function LectureWatching() {
   const { courseId } = useParams();
   const { onEvent } = useAuth();
+
+  // ----------------------------------------------------------
+  // State
+  // ----------------------------------------------------------
 
   const [lectures, setLectures] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -149,19 +156,16 @@ export default function LectureWatching() {
   const playerRef = useRef(null);
   const intervalRef = useRef(null);
 
-  // Prevent duplicate backend requests for the same lecture
+  // Lectures already marked watched
   const markedRef = useRef({});
 
-  // Always keep latest active lecture available to polling
+  // Always keep latest lecture available to polling
   const activeLectureRef = useRef(null);
 
-  // Keep latest course ID
+  // Always keep latest course ID
   const courseIdRef = useRef(courseId);
 
-  // Used to prevent callbacks from an old player affecting new player
-  const playerGenerationRef = useRef(0);
-
-  // Keep callback available even if component changes
+  // Latest markWatched function
   const markWatchedRef = useRef(null);
 
   // ----------------------------------------------------------
@@ -176,9 +180,9 @@ export default function LectureWatching() {
     activeLectureRef.current = activeLecture;
   }, [activeLecture]);
 
-  // ----------------------------------------------------------
-  // Clear polling
-  // ----------------------------------------------------------
+  // ==========================================================
+  // Stop polling
+  // ==========================================================
 
   const stopPolling = useCallback(() => {
     if (intervalRef.current) {
@@ -187,9 +191,9 @@ export default function LectureWatching() {
     }
   }, []);
 
-  // ----------------------------------------------------------
-  // Fetch lectures + progress
-  // ----------------------------------------------------------
+  // ==========================================================
+  // Fetch lectures and progress
+  // ==========================================================
 
   useEffect(() => {
     let cancelled = false;
@@ -199,9 +203,9 @@ export default function LectureWatching() {
       setError(null);
 
       try {
-        // ----------------------------------------------
+        // ----------------------------------------------------
         // Fetch lectures
-        // ----------------------------------------------
+        // ----------------------------------------------------
 
         const lecRes = await withTimeout(
           api.get(`/lectures/course/${courseId}`),
@@ -215,7 +219,8 @@ export default function LectureWatching() {
 
         const mapped = lecturesData.map((lec) => {
           const displayDuration =
-            typeof lec.duration === "string" && lec.duration.includes(":")
+            typeof lec.duration === "string" &&
+            lec.duration.includes(":")
               ? lec.duration
               : formatDuration(lec.duration);
 
@@ -236,9 +241,9 @@ export default function LectureWatching() {
           setActiveLecture(null);
         }
 
-        // ----------------------------------------------
+        // ----------------------------------------------------
         // Fetch progress
-        // ----------------------------------------------
+        // ----------------------------------------------------
 
         try {
           const progRes = await withTimeout(
@@ -257,7 +262,9 @@ export default function LectureWatching() {
           progressLectures.forEach((lectureProgress) => {
             if (!lectureProgress?.watched) return;
 
-            const lectureId = idOf(lectureProgress.lectureId);
+            const lectureId = idOf(
+              lectureProgress.lectureId
+            );
 
             if (lectureId) {
               watchedMap[lectureId] = true;
@@ -267,13 +274,16 @@ export default function LectureWatching() {
           setWatched(watchedMap);
 
           setOverallProgress(
-            Number(progRes.data?.progress?.overallProgress) || 0
+            Number(
+              progRes.data?.progress?.overallProgress
+            ) || 0
           );
 
-          markedRef.current = { ...watchedMap };
+          markedRef.current = {
+            ...watchedMap,
+          };
         } catch (progressError) {
-          // Progress is best-effort.
-          // A new student may not have progress yet.
+          // Progress is best effort
           console.warn(
             "Could not load lecture progress:",
             progressError
@@ -287,10 +297,14 @@ export default function LectureWatching() {
         }
       } catch (err) {
         if (!cancelled) {
-          console.error("Failed to load lectures:", err);
+          console.error(
+            "Failed to load lectures:",
+            err
+          );
 
           setError(
-            err?.message || "Failed to load lectures."
+            err?.message ||
+              "Failed to load lectures."
           );
         }
       } finally {
@@ -309,18 +323,21 @@ export default function LectureWatching() {
     };
   }, [courseId, retryTick]);
 
-  // ----------------------------------------------------------
+  // ==========================================================
   // Real-time progress events
-  // ----------------------------------------------------------
+  // ==========================================================
 
   useEffect(() => {
-    if (!onEvent) return undefined;
+    if (!onEvent) {
+      return undefined;
+    }
 
     const offLecture = onEvent(
       "progress:lectureUpdated",
       (data) => {
         if (
-          String(data?.courseId) !== String(courseId)
+          String(data?.courseId) !==
+          String(courseId)
         ) {
           return;
         }
@@ -348,7 +365,8 @@ export default function LectureWatching() {
       "course:completed",
       (data) => {
         if (
-          String(data?.courseId) !== String(courseId)
+          String(data?.courseId) !==
+          String(courseId)
         ) {
           return;
         }
@@ -368,20 +386,9 @@ export default function LectureWatching() {
     };
   }, [onEvent, courseId]);
 
-  // ----------------------------------------------------------
-  // YouTube API bootstrap
-  // ----------------------------------------------------------
-
-  useEffect(() => {
-    loadYTApi(() => {
-      // API loaded.
-      // Player effect will create the player when needed.
-    });
-  }, []);
-
-  // ----------------------------------------------------------
+  // ==========================================================
   // Mark lecture watched
-  // ----------------------------------------------------------
+  // ==========================================================
 
   const markWatched = useCallback(
     async (lectureId, lastPosition) => {
@@ -389,12 +396,12 @@ export default function LectureWatching() {
 
       if (!normalizedId) return;
 
-      // Already successfully marked
+      // Already marked
       if (markedRef.current[normalizedId]) {
         return;
       }
 
-      // Optimistically mark locally
+      // Optimistic UI update
       markedRef.current[normalizedId] = true;
 
       setWatched((prev) => ({
@@ -412,12 +419,14 @@ export default function LectureWatching() {
           {
             lectureId: normalizedId,
             watched: true,
-            lastPosition: Number(lastPosition) || 0,
+            lastPosition:
+              Number(lastPosition) || 0,
           }
         );
 
         if (
-          res.data?.progress?.overallProgress != null
+          res.data?.progress?.overallProgress !=
+          null
         ) {
           setOverallProgress(
             Number(
@@ -431,7 +440,7 @@ export default function LectureWatching() {
           err
         );
 
-        // Allow another attempt
+        // Allow retry
         markedRef.current[normalizedId] = false;
 
         setWatched((prev) => {
@@ -450,14 +459,13 @@ export default function LectureWatching() {
     []
   );
 
-  // Keep latest callback in ref
   useEffect(() => {
     markWatchedRef.current = markWatched;
   }, [markWatched]);
 
-  // ----------------------------------------------------------
-  // Start polling
-  // ----------------------------------------------------------
+  // ==========================================================
+  // Start progress polling
+  // ==========================================================
 
   const startPolling = useCallback(() => {
     stopPolling();
@@ -471,8 +479,10 @@ export default function LectureWatching() {
       }
 
       if (
-        typeof player.getCurrentTime !== "function" ||
-        typeof player.getDuration !== "function"
+        typeof player.getCurrentTime !==
+          "function" ||
+        typeof player.getDuration !==
+          "function"
       ) {
         return;
       }
@@ -481,8 +491,13 @@ export default function LectureWatching() {
       let total;
 
       try {
-        current = Number(player.getCurrentTime());
-        total = Number(player.getDuration());
+        current = Number(
+          player.getCurrentTime()
+        );
+
+        total = Number(
+          player.getDuration()
+        );
       } catch {
         return;
       }
@@ -502,6 +517,7 @@ export default function LectureWatching() {
 
       setProgress(ratio * 100);
 
+      // Mark watched after 30%
       if (
         ratio >= WATCH_THRESHOLD &&
         !markedRef.current[lecture.id]
@@ -514,195 +530,216 @@ export default function LectureWatching() {
     }, POLLING_INTERVAL_MS);
   }, [stopPolling]);
 
-  // ----------------------------------------------------------
+  // ==========================================================
   // YouTube player
-  // ----------------------------------------------------------
+  // ==========================================================
 
   useEffect(() => {
-    if (!activeLecture?.id) {
+    if (
+      !activeLecture?.id ||
+      !activeLecture?.videoId
+    ) {
+      setPlayerReady(false);
+      setPlayerError(
+        "This lecture does not have a valid YouTube video."
+      );
+
       return undefined;
     }
 
     let cancelled = false;
 
-    stopPolling();
+    const initializePlayer = async () => {
+      try {
+        // Stop previous polling
+        stopPolling();
 
-    setProgress(0);
-    setPlayerReady(false);
-    setPlayerError(null);
+        setProgress(0);
+        setPlayerReady(false);
+        setPlayerError(null);
 
-    // New player generation
-    const generation =
-      playerGenerationRef.current + 1;
+        // ----------------------------------------------------
+        // Wait for YouTube API
+        // ----------------------------------------------------
 
-    playerGenerationRef.current = generation;
+        await loadYTApi();
 
-    const destroyPlayer = () => {
-      stopPolling();
+        if (cancelled) return;
 
-      if (playerRef.current) {
-        try {
-          playerRef.current.destroy();
-        } catch (error) {
-          console.warn(
-            "YouTube player cleanup warning:",
-            error
+        // ----------------------------------------------------
+        // Find player container
+        // ----------------------------------------------------
+
+        const target =
+          document.getElementById(
+            "yt-player"
+          );
+
+        if (!target) {
+          throw new Error(
+            "YouTube player container was not found."
           );
         }
 
-        playerRef.current = null;
-      }
-    };
+        // ----------------------------------------------------
+        // Destroy previous player
+        // ----------------------------------------------------
 
-    const createPlayer = () => {
-      if (cancelled) return;
-
-      if (
-        !window.YT ||
-        typeof window.YT.Player !== "function"
-      ) {
-        return;
-      }
-
-      const target = document.getElementById(
-        "yt-player"
-      );
-
-      if (!target) {
-        console.warn(
-          "YouTube player target #yt-player was not found."
-        );
-        return;
-      }
-
-      destroyPlayer();
-
-      if (cancelled) return;
-
-      try {
-        playerRef.current = new window.YT.Player(
-          "yt-player",
-          {
-            videoId: activeLecture.videoId,
-
-            playerVars: {
-              rel: 0,
-              modestbranding: 1,
-              origin: window.location.origin,
-              autoplay: 0,
-              controls: 1,
-              mute: 0,
-            },
-
-            events: {
-              onReady: () => {
-                if (
-                  cancelled ||
-                  generation !==
-                    playerGenerationRef.current
-                ) {
-                  return;
-                }
-
-                setPlayerReady(true);
-                setPlayerError(null);
-
-                // Do NOT autoplay.
-                // Polling starts only when the user presses Play.
-              },
-
-              onStateChange: (event) => {
-                if (
-                  cancelled ||
-                  generation !==
-                    playerGenerationRef.current
-                ) {
-                  return;
-                }
-
-                if (
-                  event.data ===
-                  window.YT.PlayerState.PLAYING
-                ) {
-                  startPolling();
-                }
-
-                if (
-                  event.data ===
-                    window.YT.PlayerState.PAUSED ||
-                  event.data ===
-                    window.YT.PlayerState.ENDED
-                ) {
-                  stopPolling();
-                }
-              },
-
-              onError: (event) => {
-                if (
-                  cancelled ||
-                  generation !==
-                    playerGenerationRef.current
-                ) {
-                  return;
-                }
-
-                const messages = {
-                  2: "Invalid video — check the video ID for this lecture.",
-                  5: "This video can't be played in the embedded player right now.",
-                  100: "This video was not found or is private.",
-                  101: "The video owner has disabled playback on other websites.",
-                  150: "The video owner has disabled playback on other websites.",
-                };
-
-                setPlayerError(
-                  messages[event.data] ||
-                    "This video failed to load."
-                );
-
-                setPlayerReady(false);
-
-                stopPolling();
-              },
-            },
+        if (playerRef.current) {
+          try {
+            playerRef.current.destroy();
+          } catch {
+            // Ignore cleanup error
           }
+
+          playerRef.current = null;
+        }
+
+        // Make sure YouTube has a clean container
+        target.innerHTML = "";
+
+        console.log(
+          "Creating YouTube player for:",
+          activeLecture.videoId
         );
+
+        // ----------------------------------------------------
+        // Create player
+        // ----------------------------------------------------
+
+        playerRef.current =
+          new window.YT.Player(
+            "yt-player",
+            {
+              videoId: activeLecture.videoId,
+
+              playerVars: {
+                rel: 0,
+                modestbranding: 1,
+                origin: window.location.origin,
+                autoplay: 0,
+                controls: 1,
+                mute: 0,
+              },
+
+              events: {
+                // ------------------------------------------
+                // Player ready
+                // ------------------------------------------
+
+                onReady: () => {
+                  if (cancelled) return;
+
+                  console.log(
+                    "YouTube player ready"
+                  );
+
+                  setPlayerReady(true);
+                  setPlayerError(null);
+
+                  // Do NOT autoplay.
+                  // User can press Play.
+                },
+
+                // ------------------------------------------
+                // Player state
+                // ------------------------------------------
+
+                onStateChange: (event) => {
+                  if (cancelled) return;
+
+                  console.log(
+                    "YouTube state:",
+                    event.data
+                  );
+
+                  // Playing
+                  if (
+                    event.data ===
+                    window.YT.PlayerState
+                      .PLAYING
+                  ) {
+                    startPolling();
+                  }
+
+                  // Paused
+                  if (
+                    event.data ===
+                      window.YT.PlayerState
+                        .PAUSED ||
+                    event.data ===
+                      window.YT.PlayerState
+                        .ENDED
+                  ) {
+                    stopPolling();
+                  }
+                },
+
+                // ------------------------------------------
+                // Player error
+                // ------------------------------------------
+
+                onError: (event) => {
+                  if (cancelled) return;
+
+                  console.error(
+                    "YouTube player error:",
+                    event.data
+                  );
+
+                  const messages = {
+                    2: "Invalid YouTube video ID.",
+                    5: "This video cannot be played in the embedded player.",
+                    100: "Video not found or it is private.",
+                    101: "The video owner has disabled embedding.",
+                    150: "The video owner has disabled embedding.",
+                  };
+
+                  setPlayerError(
+                    messages[event.data] ||
+                      `YouTube player error: ${event.data}`
+                  );
+
+                  setPlayerReady(false);
+
+                  stopPolling();
+                },
+              },
+            }
+          );
       } catch (error) {
         console.error(
-          "Failed to create YouTube player:",
+          "Failed to initialize YouTube player:",
           error
         );
 
-        setPlayerError(
-          "Failed to initialize the video player."
-        );
+        if (!cancelled) {
+          setPlayerReady(false);
 
-        setPlayerReady(false);
+          setPlayerError(
+            error?.message ||
+              "Failed to initialize video player."
+          );
+        }
       }
     };
 
-    // API already available
-    if (
-      window.YT &&
-      typeof window.YT.Player === "function"
-    ) {
-      createPlayer();
-    } else {
-      // Wait for API
-      loadYTApi(createPlayer);
-    }
+    initializePlayer();
+
+    // --------------------------------------------------------
+    // Cleanup
+    // --------------------------------------------------------
 
     return () => {
       cancelled = true;
 
       stopPolling();
 
-      playerGenerationRef.current += 1;
-
       if (playerRef.current) {
         try {
           playerRef.current.destroy();
         } catch {
-          // Ignore cleanup errors
+          // Ignore cleanup error
         }
 
         playerRef.current = null;
@@ -715,27 +752,30 @@ export default function LectureWatching() {
     stopPolling,
   ]);
 
-  // ----------------------------------------------------------
-  // Lecture selection
-  // ----------------------------------------------------------
+  // ==========================================================
+  // Select lecture
+  // ==========================================================
 
   const handleSelect = useCallback(
     (lecture) => {
       if (!lecture?.id) return;
 
-      if (lecture.id === activeLecture?.id) {
+      if (
+        lecture.id === activeLecture?.id
+      ) {
         return;
       }
 
       setActiveLecture(lecture);
       setSyncError(null);
+      setProgress(0);
     },
     [activeLecture?.id]
   );
 
-  // ----------------------------------------------------------
+  // ==========================================================
   // Next lecture
-  // ----------------------------------------------------------
+  // ==========================================================
 
   const handleNext = useCallback(() => {
     if (!activeLecture) return;
@@ -749,36 +789,39 @@ export default function LectureWatching() {
       index !== -1 &&
       index < lectures.length - 1
     ) {
-      setActiveLecture(lectures[index + 1]);
+      setActiveLecture(
+        lectures[index + 1]
+      );
     }
   }, [activeLecture, lectures]);
 
-  // ----------------------------------------------------------
+  // ==========================================================
   // Retry
-  // ----------------------------------------------------------
+  // ==========================================================
 
   const handleRetry = useCallback(() => {
     setRetryTick((tick) => tick + 1);
   }, []);
 
-  // ----------------------------------------------------------
-  // Loading state
-  // ----------------------------------------------------------
+  // ==========================================================
+  // Loading
+  // ==========================================================
 
   if (loading) {
     return (
       <div className="lw-page">
         <div className="lw-state">
           <FiLoader className="lw-spin" />
+
           <p>Loading lectures…</p>
         </div>
       </div>
     );
   }
 
-  // ----------------------------------------------------------
-  // Error state
-  // ----------------------------------------------------------
+  // ==========================================================
+  // Error
+  // ==========================================================
 
   if (error) {
     return (
@@ -800,27 +843,32 @@ export default function LectureWatching() {
     );
   }
 
-  // ----------------------------------------------------------
+  // ==========================================================
   // No lectures
-  // ----------------------------------------------------------
+  // ==========================================================
 
-  if (!lectures.length || !activeLecture) {
+  if (
+    !lectures.length ||
+    !activeLecture
+  ) {
     return (
       <div className="lw-page">
         <div className="lw-state">
-          <p>No lectures found for this course.</p>
+          <p>
+            No lectures found for this course.
+          </p>
         </div>
       </div>
     );
   }
 
-  // ----------------------------------------------------------
+  // ==========================================================
   // Derived values
-  // ----------------------------------------------------------
+  // ==========================================================
 
-  const watchedCount = Object.keys(watched).filter(
-    (id) => watched[id]
-  ).length;
+  const watchedCount = Object.keys(
+    watched
+  ).filter((id) => watched[id]).length;
 
   const activeIndex = lectures.findIndex(
     (lecture) =>
@@ -829,11 +877,12 @@ export default function LectureWatching() {
 
   const hasNext =
     activeIndex !== -1 &&
-    activeIndex < lectures.length - 1;
+    activeIndex <
+      lectures.length - 1;
 
-  // ----------------------------------------------------------
+  // ==========================================================
   // Render
-  // ----------------------------------------------------------
+  // ==========================================================
 
   return (
     <div className="lw-page">
@@ -854,7 +903,9 @@ export default function LectureWatching() {
         playerReady={playerReady}
         playerError={playerError}
         progress={progress}
-        isWatched={!!watched[activeLecture.id]}
+        isWatched={
+          !!watched[activeLecture.id]
+        }
         syncing={syncing}
         onNext={handleNext}
         hasNext={hasNext}
