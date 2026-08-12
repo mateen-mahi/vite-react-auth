@@ -7,7 +7,7 @@ import { withTimeout } from "../utils/withTimeout";
 import LectureProgressHeader from "../components/Lecture/LectureProgressHeader";
 import LectureVideoPanel from "../components/Lecture/LectureVideoPanel";
 import LectureList from "../components/Lecture/LectureList";
-import "../styles/lectures.css";
+import "./LectureWatching.css";
 
 const WATCH_THRESHOLD = 0.3;
 const FETCH_TIMEOUT_MS = 15000;
@@ -121,6 +121,11 @@ export default function LectureWatching() {
       if (data.overallProgress != null) setOverallProgress(data.overallProgress);
     });
 
+    const offQuiz = onEvent("progress:quizAttempted", (data) => {
+      if (String(data.courseId) !== String(courseId)) return;
+      if (data.overallProgress != null) setOverallProgress(data.overallProgress);
+    });
+
     const offCompleted = onEvent("course:completed", (data) => {
       if (String(data.courseId) !== String(courseId)) return;
       setOverallProgress(100);
@@ -128,6 +133,7 @@ export default function LectureWatching() {
 
     return () => {
       offLecture();
+      offQuiz();
       offCompleted();
     };
   }, [onEvent, courseId]);

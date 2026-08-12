@@ -136,12 +136,18 @@ export default function Courses() {
       setProgressMap((prev) => ({ ...prev, [data.courseId]: data.overallProgress }));
     });
 
+    const offQuiz = onEvent("progress:quizAttempted", (data) => {
+      if (data.overallProgress == null) return;
+      setProgressMap((prev) => ({ ...prev, [data.courseId]: data.overallProgress }));
+    });
+
     const offCompleted = onEvent("course:completed", (data) => {
       setProgressMap((prev) => ({ ...prev, [data.courseId]: 100 }));
     });
 
     return () => {
       offLecture();
+      offQuiz();
       offCompleted();
     };
   }, [onEvent]);
