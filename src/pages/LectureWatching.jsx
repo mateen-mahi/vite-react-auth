@@ -7,7 +7,7 @@ import { withTimeout } from "../utils/withTimeout";
 import LectureProgressHeader from "../components/Lecture/LectureProgressHeader";
 import LectureVideoPanel from "../components/Lecture/LectureVideoPanel";
 import LectureList from "../components/Lecture/LectureList";
-import "./LectureWatching.css";
+import "../styles/lectures.css";
 
 const WATCH_THRESHOLD = 0.3;
 const FETCH_TIMEOUT_MS = 15000;
