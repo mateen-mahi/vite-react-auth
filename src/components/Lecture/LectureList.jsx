@@ -21,7 +21,7 @@ export default function LectureList({ lectures, activeId, watched, onSelect }) {
             </div>
             <div className="ll-card-right">
               <span className="ll-card-duration">
-                <FiClock /> {lec.duration}
+                <FiClock /> {lec.duration || "error"}
               </span>
               {isWatched ? (
                 <FiCheckCircle className="ll-check watched" />
