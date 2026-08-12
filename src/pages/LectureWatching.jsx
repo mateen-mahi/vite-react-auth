@@ -39,6 +39,8 @@ export default function Lectures() {
   const [overallProgress, setOverallProgress] = useState(0);
   const [syncing, setSyncing] = useState(false);
   const [syncError, setSyncError] = useState(null);
+  const [playerReady, setPlayerReady] = useState(false);
+  const [playerError, setPlayerError] = useState(null);
 
   const playerRef = useRef(null);
   const intervalRef = useRef(null);
@@ -123,13 +125,24 @@ export default function Lectures() {
 
     clearInterval(intervalRef.current);
     setProgress(0);
+    setPlayerReady(false);
+    setPlayerError(null);
 
     const createPlayer = () => {
       if (playerRef.current) {
-        playerRef.current.destroy();
+        try {
+          playerRef.current.destroy();
+        } catch (e) {
+          // player was already torn down by the API itself — ignore
+        }
         playerRef.current = null;
       }
 
+      // NOTE: the target div (#yt-player) must have NO React-rendered
+      // children. The YT IFrame API takes ownership of this node and
+      // replaces it with its own iframe — if React also renders a child
+      // into the same node, the two fight over the DOM and getDuration()/
+      // getCurrentTime() silently return 0 forever instead of erroring.
       playerRef.current = new window.YT.Player("yt-player", {
         videoId: activeLecture.videoId,
         playerVars: {
@@ -142,6 +155,9 @@ export default function Lectures() {
         },
         events: {
           onReady: () => {
+            console.log("[Lectures] YT player ready:", activeLecture.id);
+            setPlayerReady(true);
+            setPlayerError(null);
             startPolling();
             playerRef.current?.playVideo();
           },
@@ -153,6 +169,20 @@ export default function Lectures() {
             ) {
               clearInterval(intervalRef.current);
             }
+          },
+          onError: (e) => {
+            // Common codes: 2 invalid videoId param, 5 HTML5 player error,
+            // 100 video not found/private, 101 & 150 embedding disabled by owner.
+            const messages = {
+              2: "Invalid video — check the video ID for this lecture.",
+              5: "This video can't be played in the embedded player right now.",
+              100: "This video was not found or is private.",
+              101: "The video owner has disabled playback on other websites.",
+              150: "The video owner has disabled playback on other websites.",
+            };
+            console.error("[Lectures] YT player error, code:", e.data);
+            setPlayerError(messages[e.data] || "This video failed to load.");
+            setPlayerReady(false);
           },
         },
       });
@@ -205,13 +235,25 @@ export default function Lectures() {
   // ── Polling ────────────────────────────────────────────────
   const startPolling = () => {
     clearInterval(intervalRef.current);
+    let loggedBadDuration = false;
+
     intervalRef.current = setInterval(() => {
       const player = playerRef.current;
       if (!player || typeof player.getCurrentTime !== "function") return;
 
       const current = player.getCurrentTime();
       const total = player.getDuration();
-      if (!total || total === 0) return;
+
+      if (!total || total === 0) {
+        if (!loggedBadDuration) {
+          loggedBadDuration = true;
+          console.warn(
+            "[Lectures] getDuration() is returning 0 — the player never loaded real video metadata. " +
+              "This usually means the YT container DOM was fought over by React, or the video can't be embedded."
+          );
+        }
+        return;
+      }
 
       const ratio = current / total;
       setProgress(Math.min(ratio * 100, 100));
@@ -287,20 +329,24 @@ export default function Lectures() {
 
       <div className="lp-player-wrapper">
         <div className="lp-player-box">
-          <div id="yt-player">
-            {activeLecture?.videoId && (
-              <iframe
-                width="100%"
-                height="100%"
-                src={`https://www.youtube.com/embed/${activeLecture.videoId}?rel=0&modestbranding=1&autoplay=0&mute=0`}
-                title={activeLecture.title}
-                frameBorder="0"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                allowFullScreen
-                style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%" }}
-              />
-            )}
-          </div>
+          {/* This div must stay empty — the YouTube IFrame API takes full
+              ownership of it and swaps it for its own iframe. Rendering any
+              React children into it causes a DOM-ownership conflict where
+              getDuration()/getCurrentTime() silently return 0 forever. */}
+          <div id="yt-player" />
+
+          {!playerReady && !playerError && (
+            <div className="lp-player-overlay">
+              <FiLoader className="lp-spin" />
+              <span>Loading player…</span>
+            </div>
+          )}
+
+          {playerError && (
+            <div className="lp-player-overlay lp-player-overlay-error">
+              <span>{playerError}</span>
+            </div>
+          )}
         </div>
         <div className="lp-bar-track">
           <div
