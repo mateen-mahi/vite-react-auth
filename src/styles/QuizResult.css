@@ -1,4 +1,4 @@
-@import "./styles/tokens.css";
+@import "./tokens.css";
 
 .qr-card {
   background: var(--lms-card);

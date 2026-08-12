@@ -1,4 +1,4 @@
-@import "./styles/tokens.css";
+@import "./tokens.css";
 
 .qnb-wrap {
   font-family: var(--lms-font);
