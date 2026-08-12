@@ -6,11 +6,13 @@ export default function LectureList({ lectures, activeId, watched, onSelect }) {
     <div className="ll-list">
       <h3 className="ll-heading">All Lectures</h3>
       {lectures.map((lec, index) => {
-        const isActive = lec.id === activeId;
-        const isWatched = !!watched[lec.id];
+        // Changed lec.id to lec._id to match your MongoDB backend
+        const isActive = lec._id === activeId;
+        const isWatched = !!watched[lec._id];
+        
         return (
           <button
-            key={lec.id}
+            key={lec._id} // Changed to _id
             className={`ll-card ${isActive ? "active" : ""} ${isWatched ? "done" : ""}`}
             onClick={() => onSelect(lec)}
           >
@@ -21,7 +23,7 @@ export default function LectureList({ lectures, activeId, watched, onSelect }) {
             </div>
             <div className="ll-card-right">
               <span className="ll-card-duration">
-                <FiClock /> {lec.duration || "error"}
+                <FiClock /> {lec.duration || "00:00"}
               </span>
               {isWatched ? (
                 <FiCheckCircle className="ll-check watched" />
