@@ -31,6 +31,7 @@ import QuizManagement from "./pages/admin/QuizManagement/QuizManagement";
 import NotesManagement from "./pages/admin/NotesManagement/NotesManagement";
 import CertificateManagement from "./pages/admin/CertificateManagement/CertificateManagement";
 import DangerZone from "./pages/admin/DangerZone/DangerZone";
+import ChatbotPage from "./pages/ChatbotPage";
 
 
 function App() {
@@ -66,7 +67,8 @@ function App() {
       <Route path="/certificate" element={<Certificate />} />
       <Route path="/complaints" element={<Complaints />} />
       <Route path="/payment-gateway" element={<PaymentGateway />} />
-    
+      <Route path="/chatbot" element={<ChatbotPage/>} />
+
 
 
     <Route element={<RoleRoute allowedRoles={["admin", "super-admin"]} />}>

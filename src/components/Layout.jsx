@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Outlet } from "react-router-dom";
 import Sidebar from "./Sidebar";
+import ChatbotLauncherButton from "./ChatbotLauncherButton";
 import "../styles/Sidebar.css";
 import Navbar from "./Navbar";
 
@@ -26,9 +27,11 @@ export default function Layout() {
       <main
         className={`content ${isOpen && !isMobile ? "expanded" : "collapsed"}`}
       >
+        
         <Navbar isOpen={isOpen} isMobile={isMobile} />
         <Outlet />
       </main>
+        <ChatbotLauncherButton/>
     </div>
   );
 }
