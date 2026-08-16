@@ -1,10 +1,18 @@
 /* ── Navbar ─────────────────────────────────────────── */
+
+:root {
+  /* Source of truth for the navbar's fixed height at each breakpoint.
+     Sidebar.css reads matching literal values for .content's padding-top
+     so page content never renders underneath this fixed bar. */
+  --navbar-height: 68px;
+}
+
 .navbar {
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 0 24px;
-  height: 68px;
+  height: var(--navbar-height);
   background: #ffffff;
   border-bottom: 1px solid #e8eaf0;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
@@ -272,8 +280,11 @@
 
 /* ── Tablets ─────────────────────────────────────────── */
 @media (max-width: 1024px) {
+  :root {
+    --navbar-height: 64px;
+  }
+
   .navbar {
-    height: 64px;
     padding: 0 18px;
   }
 
@@ -294,9 +305,12 @@
 
 /* ── Mobile ──────────────────────────────────────────── */
 @media (max-width: 768px) {
+  :root {
+    --navbar-height: 62px;
+  }
+
   .navbar {
     /* left: 0 !important; */
-    height: 62px;
     padding: 0 14px 0 60px;
   }
 
@@ -339,8 +353,11 @@
 
 /* ── Small Mobile ───────────────────────────────────── */
 @media (max-width: 480px) {
+  :root {
+    --navbar-height: 58px;
+  }
+
   .navbar {
-    height: 58px;
     padding: 0 10px 0 54px;
   }
 
