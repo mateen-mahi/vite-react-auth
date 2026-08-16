@@ -811,6 +811,331 @@
   animation: spin 0.8s linear infinite;
 }
 
+
+
+/* ═══════════════════════════════════════════════════════════════════════
+   DELETE FEATURE — append to chat.css. Combines with everything already
+   in the file (presence/unread/typing/seen, DM sidebar, modals, etc.)
+═══════════════════════════════════════════════════════════════════════ */
+
+/* ─── Message row (bubble + hover action trigger) ────────────────────────── */
+
+.msg-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+}
+
+.msg-row.own {
+  flex-direction: row-reverse;
+}
+
+.msg-row.other {
+  flex-direction: row;
+}
+
+.msg-actions-trigger {
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: #94a3b8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  opacity: 0;
+  transform: scale(0.85);
+  transition: opacity 0.15s ease, transform 0.15s ease, background 0.15s ease, color 0.15s ease;
+}
+
+.chat-message:hover .msg-actions-trigger {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.msg-actions-trigger:hover {
+  background: #f1f5f9;
+  color: #475569;
+}
+
+.msg-row:has(.msg-actions-menu) .msg-actions-trigger {
+  opacity: 1;
+  transform: scale(1);
+  background: #f1f5f9;
+  color: #2563eb;
+}
+
+/* ─── Dropdown menu for a single message ─────────────────────────────────── */
+
+.msg-actions-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  z-index: 20;
+  min-width: 172px;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.14);
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  animation: msgMenuIn 0.14s ease;
+}
+
+.msg-actions-menu.own {
+  right: 0;
+}
+
+.msg-actions-menu.other {
+  left: 0;
+}
+
+@keyframes msgMenuIn {
+  from { opacity: 0; transform: translateY(-4px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.msg-actions-menu button {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  padding: 8px 10px;
+  border: none;
+  background: transparent;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #334155;
+  cursor: pointer;
+  text-align: left;
+  white-space: nowrap;
+  transition: background 0.15s;
+}
+
+.msg-actions-menu button svg {
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+.msg-actions-menu button:hover {
+  background: #f1f5f9;
+}
+
+.msg-actions-menu button.danger {
+  color: #ef4444;
+}
+
+.msg-actions-menu button.danger:hover {
+  background: #fff5f5;
+}
+
+/* ─── Deleted-message bubble state ────────────────────────────────────────── */
+
+.chat-bubble.deleted {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-style: italic;
+  color: #94a3b8;
+  background: #f8fafc !important;
+  border: 1px dashed #e2e8f0;
+}
+
+.chat-bubble.own.deleted {
+  background: #eff2f7 !important;
+  color: #94a3b8;
+}
+
+.msg-deleted-icon {
+  font-size: 13px;
+  flex-shrink: 0;
+}
+
+/* ─── Seen label (used by DM bubbles) ────────────────────────────────────── */
+
+.chat-seen-label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: #2563eb;
+  margin: 3px 4px 0;
+}
+
+/* ─── DM chat header layout for the new menu ─────────────────────────────── */
+
+.dm-chat-header-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.dm-header-menu-wrap {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.dm-header-menu-trigger {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  border: none;
+  background: transparent;
+  color: #64748b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.dm-header-menu-trigger:hover {
+  background: #f1f5f9;
+  color: #334155;
+}
+
+.dm-header-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 30;
+  min-width: 176px;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.14);
+  padding: 6px;
+  animation: msgMenuIn 0.14s ease;
+}
+
+.dm-header-menu button {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  padding: 9px 10px;
+  border: none;
+  background: transparent;
+  border-radius: 8px;
+  font-size: 13.5px;
+  font-weight: 500;
+  cursor: pointer;
+  text-align: left;
+  color: #334155;
+  transition: background 0.15s;
+}
+
+.dm-header-menu button svg {
+  font-size: 15px;
+}
+
+.dm-header-menu button.danger {
+  color: #ef4444;
+}
+
+.dm-header-menu button.danger:hover {
+  background: #fff5f5;
+}
+
+/* ─── Confirm modal (reuses .chat-modal-overlay) ──────────────────────────── */
+
+.chat-confirm-box {
+  width: 100%;
+  max-width: 360px;
+  background: #fff;
+  border-radius: 18px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.25);
+  padding: 22px;
+  animation: msgMenuIn 0.16s ease;
+}
+
+.chat-confirm-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0 0 8px;
+}
+
+.chat-confirm-body {
+  font-size: 13.5px;
+  color: #64748b;
+  line-height: 1.55;
+  margin: 0 0 20px;
+}
+
+.chat-confirm-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.chat-confirm-btn {
+  padding: 9px 16px;
+  border-radius: 10px;
+  border: none;
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.15s, transform 0.1s;
+}
+
+.chat-confirm-btn:hover {
+  opacity: 0.9;
+}
+
+.chat-confirm-btn:active {
+  transform: scale(0.97);
+}
+
+.chat-confirm-btn.cancel {
+  background: #f1f5f9;
+  color: #334155;
+}
+
+.chat-confirm-btn.primary {
+  background: linear-gradient(135deg, #2563eb, #3b82f6);
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.28);
+}
+
+.chat-confirm-btn.danger {
+  background: linear-gradient(135deg, #ef4444, #f87171);
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.28);
+}
+
+/* ─── Mobile: no hover, so keep the trigger visible + roomier tap targets ── */
+
+@media (max-width: 640px) {
+  .msg-actions-trigger {
+    opacity: 1;
+    transform: scale(1);
+    width: 26px;
+    height: 26px;
+  }
+
+  .msg-actions-menu,
+  .dm-header-menu {
+    min-width: 190px;
+  }
+
+  .msg-actions-menu button,
+  .dm-header-menu button {
+    padding: 10px 12px;
+    font-size: 14px;
+  }
+
+  .chat-confirm-box {
+    padding: 18px;
+  }
+}
+
 /* ─── Mobile ─────────────────────────────────────────────────────────────── */
 
 @media (max-width: 640px) {

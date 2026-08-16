@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import api from "../services/api";
 import "../styles/Forgot-password.css";
+import appConfig from "../config/appConfig";
 
 export default function ForgotPassword() {
   const navigate = useNavigate();
@@ -69,10 +70,13 @@ export default function ForgotPassword() {
       </div>
 
       {/* Brand mark */}
-      <div className="fp-brand">
-        <span className="fp-brand__hex" aria-hidden="true">⬡</span>
-        <span className="fp-brand__name">AuthSystem</span>
-      </div>
+<div className="fp-brand">
+  <img
+    src={appConfig.whiteLogo}
+    alt={appConfig.appName}
+    className="fp-brand__logo"
+  />
+</div>
 
       {/* Card */}
       <div className="fp-card">
@@ -90,10 +94,10 @@ export default function ForgotPassword() {
         </div>
 
         {/* Headings */}
-        <h1 className="fp-title">Forgot Password?</h1>
-        <p className="fp-subtitle">
-          Enter your email and we'll send you a secure link to reset your password.
-        </p>
+<h1 className="fp-title">Reset Your Password</h1>
+    <p className="fp-subtitle">
+  Enter your email and we'll send you a secure link to reset your password.
+</p>
 
         {/* Alerts */}
         {apiError && (
@@ -158,8 +162,9 @@ export default function ForgotPassword() {
       </div>
 
       {/* Footer note */}
-      <p className="fp-footer-note">Reset links expire after 15 minutes.</p>
-    </div>
+<p className="fp-footer-note">
+  Secure reset links expire after 15 minutes for your protection.
+</p>    </div>
   );
 }
 

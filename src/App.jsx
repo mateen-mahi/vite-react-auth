@@ -31,7 +31,6 @@ import QuizManagement from "./pages/admin/QuizManagement/QuizManagement";
 import NotesManagement from "./pages/admin/NotesManagement/NotesManagement";
 import CertificateManagement from "./pages/admin/CertificateManagement/CertificateManagement";
 import DangerZone from "./pages/admin/DangerZone/DangerZone";
-import ChatbotPage from "./pages/ChatbotPage";
 
 
 function App() {
@@ -39,10 +38,12 @@ function App() {
     <AuthProvider>
       <BrowserRouter>
         <Routes>
-          <Route path="/" element={<Navigate to="/login" replace />} />
+          {/* <Route path="/" element={<Navigate to="/login" replace />} /> */}
 
           {/* No sidebar */}
           <Route element={<GuestRoute />}>
+                <Route path="/" element={<Courses />} />
+
             <Route path="/login"                 element={<Signin />} />
             <Route path="/signup"                element={<Signup />} />
             <Route path="/verify-user-mail"      element={<VerifyUserMail />} />
@@ -67,7 +68,6 @@ function App() {
       <Route path="/certificate" element={<Certificate />} />
       <Route path="/complaints" element={<Complaints />} />
       <Route path="/payment-gateway" element={<PaymentGateway />} />
-      <Route path="/chatbot" element={<ChatbotPage/>} />
 
 
 

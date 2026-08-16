@@ -1,30 +1,36 @@
-@import "./tokens.css";
+/* ═══════════════════════════════════════════════════════════════════════
+   LectureVideoPanel.css
+   The player box uses aspect-ratio so it scales fluidly at any width
+   instead of a fixed pixel height — this is the main fix for "not
+   responsive": a hardcoded height breaks on narrow screens.
+═══════════════════════════════════════════════════════════════════════ */
 
 .lvp-wrapper {
-  background: var(--lms-card);
-  border: 1px solid var(--lms-border);
-  border-radius: var(--lms-radius-lg);
-  padding: 16px;
-  box-shadow: var(--lms-shadow-sm);
-  margin-bottom: 28px;
-  font-family: var(--lms-font);
+  grid-area: video;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
 }
 
 .lvp-box {
   position: relative;
   width: 100%;
-  padding-top: 56.25%; /* 16:9 */
-  border-radius: var(--lms-radius-md);
-  overflow: hidden;
+  aspect-ratio: 16 / 9;
   background: #0f172a;
+  border-radius: 18px;
+  overflow: hidden;
+  box-shadow: 0 8px 28px rgba(15, 23, 42, 0.12);
 }
 
-#yt-player,
-.lvp-box > iframe {
+/* The YT IFrame API swaps the target div for an <iframe id="yt-player">,
+   so this selector still matches after it mounts. */
+.lvp-box #yt-player,
+.lvp-box iframe {
   position: absolute;
   inset: 0;
-  width: 100%;
-  height: 100%;
+  width: 100% !important;
+  height: 100% !important;
   border: 0;
 }
 
@@ -35,135 +41,160 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: 10px;
+  background: rgba(15, 23, 42, 0.92);
   color: #cbd5e1;
   font-size: 13.5px;
-  background: rgba(15, 23, 42, 0.55);
-  pointer-events: none;
+  z-index: 2;
+  padding: 0 24px;
+  text-align: center;
 }
 
-.lvp-overlay-error {
-  color: #fecaca;
-  background: rgba(15, 23, 42, 0.85);
-  text-align: center;
-  padding: 20px;
+.lvp-overlay svg {
+  font-size: 26px;
+  color: #60a5fa;
 }
 
 .lvp-spin {
-  animation: lvp-spin 0.9s linear infinite;
+  animation: lvpSpin 0.8s linear infinite;
 }
 
-@keyframes lvp-spin {
-  from { transform: rotate(0deg); }
+@keyframes lvpSpin {
   to { transform: rotate(360deg); }
 }
 
+.lvp-overlay-error {
+  color: #fca5a5;
+}
+
+/* ─── Watch progress bar ──────────────────────────────────────────────────── */
+
 .lvp-bar-track {
   width: 100%;
-  height: 5px;
-  background: var(--lms-border);
-  border-radius: 999px;
-  margin-top: 14px;
+  height: 6px;
+  border-radius: 99px;
+  background: #e2e8f0;
   overflow: hidden;
 }
 
 .lvp-bar-fill {
   height: 100%;
-  background: var(--lms-primary);
-  border-radius: 999px;
+  border-radius: 99px;
+  background: linear-gradient(90deg, #2563eb, #60a5fa);
   transition: width 0.3s linear;
 }
 
 .lvp-bar-fill.watched {
-  background: var(--lms-success);
+  background: linear-gradient(90deg, #16a34a, #4ade80);
 }
+
+/* ─── Meta row (title/desc + status + next button) ───────────────────────── */
 
 .lvp-meta {
   display: flex;
+  flex-wrap: wrap;
   align-items: flex-start;
   justify-content: space-between;
   gap: 16px;
-  margin-top: 16px;
-  flex-wrap: wrap;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  padding: 18px 22px;
 }
 
 .lvp-meta-text {
-  min-width: 0;
+  flex: 1;
+  min-width: 200px;
 }
 
 .lvp-active-title {
   font-size: 17px;
-  font-weight: 600;
-  margin: 0 0 4px;
-  color: var(--lms-text);
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0 0 6px;
 }
 
 .lvp-active-desc {
   font-size: 13.5px;
-  color: var(--lms-muted);
+  color: #64748b;
+  line-height: 1.55;
   margin: 0;
-  max-width: 60ch;
 }
 
 .lvp-meta-actions {
   display: flex;
   align-items: center;
-  gap: 10px;
-  flex: 0 0 auto;
+  gap: 12px;
+  flex-shrink: 0;
+  flex-wrap: wrap;
 }
 
 .lvp-status-badge {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 7px;
+  padding: 8px 14px;
+  border-radius: 99px;
   font-size: 12.5px;
   font-weight: 600;
-  padding: 6px 12px;
-  border-radius: 999px;
   white-space: nowrap;
 }
 
 .lvp-status-badge.watched {
-  background: var(--lms-success-soft);
-  color: var(--lms-success);
+  background: #f0fdf4;
+  color: #16a34a;
+  border: 1px solid #bbf7d0;
 }
 
 .lvp-status-badge.pending {
-  background: var(--lms-neutral-chip);
-  color: var(--lms-muted);
+  background: #eff6ff;
+  color: #2563eb;
+  border: 1px solid #bfdbfe;
+}
+
+.lvp-status-badge .lvp-spin {
+  font-size: 13px;
 }
 
 .lvp-next-btn {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: 6px;
-  background: var(--lms-primary);
-  color: #fff;
+  gap: 7px;
+  padding: 9px 18px;
   border: none;
-  border-radius: var(--lms-radius-sm);
-  padding: 9px 16px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #2563eb, #3b82f6);
+  color: #fff;
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
+  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.28);
+  transition: opacity 0.15s, transform 0.1s;
   white-space: nowrap;
-  transition: background 0.15s ease;
 }
 
-.lvp-next-btn:hover {
-  background: var(--lms-primary-dark);
+.lvp-next-btn:hover { opacity: 0.92; }
+.lvp-next-btn:active { transform: scale(0.97); }
+
+/* ─── Responsive ──────────────────────────────────────────────────────────── */
+
+@media (max-width: 768px) {
+  .lvp-box { border-radius: 14px; }
+  .lvp-meta { padding: 16px; border-radius: 12px; }
 }
 
-@media (max-width: 640px) {
+@media (max-width: 480px) {
   .lvp-meta {
     flex-direction: column;
     align-items: stretch;
   }
+
   .lvp-meta-actions {
     justify-content: space-between;
   }
-}
 
-@media (prefers-reduced-motion: reduce) {
-  .lvp-bar-fill { transition: none; }
-  .lvp-spin { animation: none; }
+  .lvp-next-btn {
+    flex: 1;
+    justify-content: center;
+  }
 }

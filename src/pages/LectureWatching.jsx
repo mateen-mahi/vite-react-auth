@@ -4,6 +4,7 @@ import api from "../services/api";
 import { useAuth } from "../context/AuthContext";
 import { FiLoader, FiAlertCircle, FiRefreshCw } from "react-icons/fi";
 import { withTimeout } from "../utils/withTimeout";
+import { loadYouTubeIframeAPI } from "../utils/loadYoutubeApi.js";
 import LectureProgressHeader from "../components/Lecture/LectureProgressHeader";
 import LectureVideoPanel from "../components/Lecture/LectureVideoPanel";
 import LectureList from "../components/Lecture/LectureList";
@@ -11,15 +12,6 @@ import "../styles/lectures.css";
 
 const WATCH_THRESHOLD = 0.3;
 const FETCH_TIMEOUT_MS = 15000;
-
-let ytApiLoaded = false;
-const loadYTApi = () => {
-  if (ytApiLoaded || window.YT) return;
-  ytApiLoaded = true;
-  const tag = document.createElement("script");
-  tag.src = "https://www.youtube.com/iframe_api";
-  document.body.appendChild(tag);
-};
 
 // Lecture duration can come back as a plain number of minutes (e.g. 12.5)
 // or as a string (either "12.5" or an already-formatted "12:30") — handle
@@ -154,8 +146,11 @@ export default function LectureWatching() {
   }, [onEvent, courseId]);
 
   // ── YouTube API bootstrap ──────────────────────────────────
+  // Kick off loading as early as possible, in parallel with the lectures
+  // fetch above. The player-creation effect below awaits the same cached
+  // promise, so it's correct regardless of which one finishes first.
   useEffect(() => {
-    loadYTApi();
+    loadYouTubeIframeAPI();
   }, []);
 
   // ── Player ─────────────────────────────────────────────────
@@ -168,7 +163,16 @@ export default function LectureWatching() {
     setPlayerReady(false);
     setPlayerError(null);
 
+    // Guards against a stale player being created if this effect's cleanup
+    // runs (lecture switched again, or component unmounted) before the API
+    // promise resolves — otherwise a slow-to-resolve promise from an old
+    // lecture could construct a player for a container/video that's no
+    // longer current.
+    let cancelled = false;
+
     const createPlayer = () => {
+      if (cancelled) return;
+
       if (playerRef.current) {
         try {
           playerRef.current.destroy();
@@ -196,7 +200,11 @@ export default function LectureWatching() {
             setPlayerReady(true);
             setPlayerError(null);
             startPolling();
-            playerRef.current?.playVideo();
+            // Not calling playVideo() here on purpose — most browsers
+            // block unmuted autoplay anyway, so attempting it just races
+            // against the browser's own policy. The player is cued and
+            // paused on the first frame the moment it's ready, with full
+            // controls visible, so the user can press play themselves.
           },
           onStateChange: (e) => {
             if (e.data === window.YT.PlayerState.PLAYING) startPolling();
@@ -219,13 +227,12 @@ export default function LectureWatching() {
       });
     };
 
-    if (window.YT && window.YT.Player) {
-      createPlayer();
-    } else {
-      window.onYouTubeIframeAPIReady = createPlayer;
-    }
+    loadYouTubeIframeAPI().then(createPlayer);
 
-    return () => clearInterval(intervalRef.current);
+    return () => {
+      cancelled = true;
+      clearInterval(intervalRef.current);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeLecture?._id]);
 

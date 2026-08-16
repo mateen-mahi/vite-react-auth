@@ -2,23 +2,49 @@ import { useState, useRef, useEffect } from "react";
 import api from "../services/api";
 import { useAuth } from "../context/AuthContext";
 import {
-  FiUser, FiMail, FiShield, FiCalendar,
-  FiCheckCircle, FiAlertCircle, FiClock,
-  FiMonitor, FiMapPin, FiLock, FiEye,
-  FiEyeOff, FiSave, FiRefreshCw, FiCamera,
+  FiUser,
+  FiMail,
+  FiShield,
+  FiCalendar,
+  FiCheckCircle,
+  FiAlertCircle,
+  FiClock,
+  FiMonitor,
+  FiMapPin,
+  FiLock,
+  FiEye,
+  FiEyeOff,
+  FiSave,
+  FiRefreshCw,
+  FiCamera,
 } from "react-icons/fi";
 import AvatarCropModal from "./AvatarCropModal";
 import "../styles/profile.css";
 
-const getLoginTime = (entry) => entry.loginTime || entry.timestamp || entry.createdAt || entry.time;
+const getLoginTime = (entry) =>
+  entry.loginTime || entry.timestamp || entry.createdAt || entry.time;
 const getIp = (entry) => entry.ipAddress || entry.ip || "Unknown IP";
-const getLocation = (entry) => entry.location || entry.place || "Unknown location";
-const formatDate = (d) => new Date(d).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" });
-const formatDateTime = (d) => new Date(d).toLocaleString("en-US", { year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
+const getLocation = (entry) =>
+  entry.location || entry.place || "Unknown location";
+const getDevice = (entry) => entry.device || {};
+const formatDate = (d) =>
+  new Date(d).toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
+const formatDateTime = (d) =>
+  new Date(d).toLocaleString("en-US", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 
 const TABS = [
-  { id: "info",     label: "Account Info",    icon: FiUser },
-  { id: "history",  label: "Login History",   icon: FiClock },
+  { id: "info", label: "Account Info", icon: FiUser },
+  { id: "history", label: "Login History", icon: FiClock },
   { id: "password", label: "Change Password", icon: FiLock },
 ];
 
@@ -54,9 +80,9 @@ export default function Profile() {
   const [activeTab, setActiveTab] = useState("info");
 
   // ── Avatar / upload state ────────────────────────────────
-  const [avatarUrl, setAvatarUrl]   = useState(null);
-  const [imgError, setImgError]     = useState(false);
-  const [uploading, setUploading]   = useState(false);
+  const [avatarUrl, setAvatarUrl] = useState(null);
+  const [imgError, setImgError] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState(null);
   const fileInputRef = useRef(null);
 
@@ -136,13 +162,16 @@ export default function Profile() {
   };
 
   // ── Change password state ────────────────────────────────
-  const [pwForm, setPwForm]     = useState({ current: "", next: "", confirm: "" });
-  const [pwShow, setPwShow]     = useState({ current: false, next: false, confirm: false });
+  const [pwForm, setPwForm] = useState({ current: "", next: "", confirm: "" });
+  const [pwShow, setPwShow] = useState({
+    current: false,
+    next: false,
+    confirm: false,
+  });
   const [pwStatus, setPwStatus] = useState(null);
   const [pwLoading, setPwLoading] = useState(false);
 
   const toggleShow = (f) => setPwShow((p) => ({ ...p, [f]: !p[f] }));
-
 
   const handlePasswordChange = async (e) => {
     e.preventDefault();
@@ -153,11 +182,17 @@ export default function Profile() {
       return;
     }
     if (pwForm.next.length < 6) {
-      setPwStatus({ type: "error", msg: "Password must be at least 6 characters." });
+      setPwStatus({
+        type: "error",
+        msg: "Password must be at least 6 characters.",
+      });
       return;
     }
     if (pwForm.current === pwForm.next) {
-      setPwStatus({ type: "error", msg: "New password must be different from your current one." });
+      setPwStatus({
+        type: "error",
+        msg: "New password must be different from your current one.",
+      });
       return;
     }
 
@@ -171,7 +206,9 @@ export default function Profile() {
       setPwForm({ current: "", next: "", confirm: "" });
     } catch (err) {
       // Backend returns 401 for a wrong current password, 400 for validation issues
-      const msg = err.response?.data?.message || "Failed to change password. Please try again.";
+      const msg =
+        err.response?.data?.message ||
+        "Failed to change password. Please try again.";
       setPwStatus({ type: "error", msg });
     } finally {
       setPwLoading(false);
@@ -182,7 +219,9 @@ export default function Profile() {
   if (loadingProfile) {
     return (
       <div className="prof-page">
-        <div className="prof-loading"><FiRefreshCw className="prof-spin" /> Loading your profile…</div>
+        <div className="prof-loading">
+          <FiRefreshCw className="prof-spin" /> Loading your profile…
+        </div>
       </div>
     );
   }
@@ -190,7 +229,9 @@ export default function Profile() {
   if (profileError || !profile) {
     return (
       <div className="prof-page">
-        <div className="prof-error"><FiAlertCircle /> {profileError || "Profile not found."}</div>
+        <div className="prof-error">
+          <FiAlertCircle /> {profileError || "Profile not found."}
+        </div>
       </div>
     );
   }
@@ -198,12 +239,11 @@ export default function Profile() {
   const user = profile;
 
   const loginHistory = [...(profile.loginHistory || [])].sort(
-    (a, b) => new Date(getLoginTime(b)) - new Date(getLoginTime(a))
+    (a, b) => new Date(getLoginTime(b)) - new Date(getLoginTime(a)),
   );
 
   return (
     <div className="prof-page">
-
       {/* ── Hero ── */}
       <div className="prof-hero">
         <div className="prof-hero-bg" />
@@ -228,7 +268,11 @@ export default function Profile() {
               )}
 
               <span className="prof-avatar-edit-badge">
-                {uploading ? <FiRefreshCw className="prof-spin" /> : <FiCamera />}
+                {uploading ? (
+                  <FiRefreshCw className="prof-spin" />
+                ) : (
+                  <FiCamera />
+                )}
               </span>
             </button>
 
@@ -250,15 +294,22 @@ export default function Profile() {
           )}
 
           {uploadError && (
-            <p className="prof-avatar-error"><FiAlertCircle /> {uploadError}</p>
+            <p className="prof-avatar-error">
+              <FiAlertCircle /> {uploadError}
+            </p>
           )}
 
           <div className="prof-hero-name-row">
             <h1 className="prof-name">{user.username}</h1>
-            {user.isVerified
-              ? <span className="prof-badge verified"><FiCheckCircle /> Verified</span>
-              : <span className="prof-badge unverified"><FiAlertCircle /> Unverified</span>
-            }
+            {user.isVerified ? (
+              <span className="prof-badge verified">
+                <FiCheckCircle /> Verified
+              </span>
+            ) : (
+              <span className="prof-badge unverified">
+                <FiAlertCircle /> Unverified
+              </span>
+            )}
           </div>
           <p className="prof-email">{user.email}</p>
           <p className="prof-role-pill">{user.role}</p>
@@ -284,7 +335,9 @@ export default function Profile() {
               <FiCheckCircle className="prof-stat-icon" />
               <div>
                 <p className="prof-stat-label">Status</p>
-                <p className={`prof-stat-value ${user.isVerified ? "clr-green" : "clr-red"}`}>
+                <p
+                  className={`prof-stat-value ${user.isVerified ? "clr-green" : "clr-red"}`}
+                >
                   {user.isVerified ? "Active" : "Pending"}
                 </p>
               </div>
@@ -296,24 +349,37 @@ export default function Profile() {
       {/* ── Tabs ── */}
       <div className="prof-tabs">
         {TABS.map(({ id, label, icon: Icon }) => (
-          <button key={id} className={`prof-tab ${activeTab === id ? "active" : ""}`} onClick={() => setActiveTab(id)}>
-            <Icon /><span>{label}</span>
+          <button
+            key={id}
+            className={`prof-tab ${activeTab === id ? "active" : ""}`}
+            onClick={() => setActiveTab(id)}
+          >
+            <Icon />
+            <span>{label}</span>
           </button>
         ))}
       </div>
 
       {/* ── Panel ── */}
       <div className="prof-panel">
-
         {/* Account Info */}
         {activeTab === "info" && (
           <div className="prof-info-grid">
-            <InfoRow icon={FiUser}        label="Username"       value={user.username} />
-            <InfoRow icon={FiMail}        label="Email"          value={user.email} />
-            <InfoRow icon={FiShield}      label="Role"           value={user.role} />
-            <InfoRow icon={FiUser}        label="Gender"         value={user.gender} />
-            <InfoRow icon={FiCalendar}    label="Joined"         value={formatDate(user.createdAt)} />
-            <InfoRow icon={FiCheckCircle} label="Email Verified" value={user.isVerified ? "Yes" : "No"} valueClass={user.isVerified ? "clr-green" : "clr-red"} />
+            <InfoRow icon={FiUser} label="Username" value={user.username} />
+            <InfoRow icon={FiMail} label="Email" value={user.email} />
+            <InfoRow icon={FiShield} label="Role" value={user.role} />
+            <InfoRow icon={FiUser} label="Gender" value={user.gender} />
+            <InfoRow
+              icon={FiCalendar}
+              label="Joined"
+              value={formatDate(user.createdAt)}
+            />
+            <InfoRow
+              icon={FiCheckCircle}
+              label="Email Verified"
+              value={user.isVerified ? "Yes" : "No"}
+              valueClass={user.isVerified ? "clr-green" : "clr-red"}
+            />
           </div>
         )}
 
@@ -324,16 +390,37 @@ export default function Profile() {
               <p className="prof-empty">No login activity recorded yet.</p>
             )}
             {loginHistory.map((entry, i) => (
-              <div key={entry._id || i} className={`prof-history-item ${i === 0 ? "latest" : ""}`}>
+              <div
+                key={entry._id || i}
+                className={`prof-history-item ${i === 0 ? "latest" : ""}`}
+              >
                 <div className="prof-history-dot" />
                 <div className="prof-history-body">
                   <div className="prof-history-top">
-                    <span className="prof-history-time"><FiClock /> {formatDateTime(getLoginTime(entry))}</span>
+                    <span className="prof-history-time">
+                      <FiClock /> {formatDateTime(getLoginTime(entry))}
+                    </span>
                     {i === 0 && <span className="prof-latest-tag">Latest</span>}
                   </div>
                   <div className="prof-history-meta">
-                    <span><FiMonitor /> {getIp(entry)}</span>
-                    <span><FiMapPin /> {getLocation(entry)}</span>
+                    <span>
+                      <FiMonitor />
+                      {getIp(entry)}
+                    </span>
+
+                    <span>
+                      <FiMapPin />
+                      {getLocation(entry)}
+                    </span>
+
+                    <span>
+                      <FiMonitor />
+                      {entry.device?.deviceType || "Unknown device"}
+                    </span>
+
+                    <span>🌐 {entry.device?.browser || "Unknown browser"}</span>
+
+                    <span>💻 {entry.device?.os || "Unknown OS"}</span>
                   </div>
                 </div>
               </div>
@@ -344,18 +431,24 @@ export default function Profile() {
         {/* Change Password */}
         {activeTab === "password" && (
           <form className="prof-pw-form" onSubmit={handlePasswordChange}>
-            <p className="prof-pw-note">Choose a strong password — at least 6 characters.</p>
+            <p className="prof-pw-note">
+              Choose a strong password — at least 6 characters.
+            </p>
 
             {pwStatus && (
               <div className={`prof-pw-status ${pwStatus.type}`}>
-                {pwStatus.type === "success" ? <FiCheckCircle /> : <FiAlertCircle />}
+                {pwStatus.type === "success" ? (
+                  <FiCheckCircle />
+                ) : (
+                  <FiAlertCircle />
+                )}
                 {pwStatus.msg}
               </div>
             )}
 
             {[
               { key: "current", label: "Current password" },
-              { key: "next",    label: "New password" },
+              { key: "next", label: "New password" },
               { key: "confirm", label: "Confirm new password" },
             ].map(({ key, label }) => (
               <div key={key} className="prof-pw-field">
@@ -365,19 +458,37 @@ export default function Profile() {
                     type={pwShow[key] ? "text" : "password"}
                     className="prof-pw-input"
                     value={pwForm[key]}
-                    onChange={(e) => setPwForm((p) => ({ ...p, [key]: e.target.value }))}
+                    onChange={(e) =>
+                      setPwForm((p) => ({ ...p, [key]: e.target.value }))
+                    }
                     required
                     placeholder="••••••••"
                   />
-                  <button type="button" className="prof-pw-eye" onClick={() => toggleShow(key)}>
+                  <button
+                    type="button"
+                    className="prof-pw-eye"
+                    onClick={() => toggleShow(key)}
+                  >
                     {pwShow[key] ? <FiEyeOff /> : <FiEye />}
                   </button>
                 </div>
               </div>
             ))}
 
-            <button type="submit" className="prof-pw-submit" disabled={pwLoading}>
-              {pwLoading ? <><FiRefreshCw className="prof-spin" /> Saving…</> : <><FiSave /> Save Password</>}
+            <button
+              type="submit"
+              className="prof-pw-submit"
+              disabled={pwLoading}
+            >
+              {pwLoading ? (
+                <>
+                  <FiRefreshCw className="prof-spin" /> Saving…
+                </>
+              ) : (
+                <>
+                  <FiSave /> Save Password
+                </>
+              )}
             </button>
           </form>
         )}
@@ -389,7 +500,9 @@ export default function Profile() {
 function InfoRow({ icon: Icon, label, value, valueClass = "" }) {
   return (
     <div className="prof-info-row">
-      <div className="prof-info-icon-wrap"><Icon /></div>
+      <div className="prof-info-icon-wrap">
+        <Icon />
+      </div>
       <div className="prof-info-text">
         <p className="prof-info-label">{label}</p>
         <p className={`prof-info-value ${valueClass}`}>{value || "—"}</p>

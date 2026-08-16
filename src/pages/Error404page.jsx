@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import "../styles/Error404page.css";
+import appConfig from "../config/appConfig";
 
 /* Glitch characters pool */
 const GLITCH_CHARS = "!@#$%^&*?/\\|<>[]{}~±§";
@@ -81,8 +82,7 @@ export default function Error404Page() {
 
       {/* ── Brand ── */}
       <div className="e4-brand">
-        <span className="e4-brand__hex" aria-hidden="true">⬡</span>
-        <span className="e4-brand__name">AuthSystem</span>
+        <img src={appConfig.whiteLogo} alt={appConfig.appName} />
       </div>
 
       {/* ── Card ── */}

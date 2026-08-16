@@ -1,58 +1,86 @@
-@import "./tokens.css";
+/* ═══════════════════════════════════════════════════════════════════════
+   LectureList.css
+   Desktop: sticky scrollable sidebar next to the video.
+   Mobile:  full-width stacked list below the video.
+═══════════════════════════════════════════════════════════════════════ */
 
 .ll-list {
-  font-family: var(--lms-font);
+  grid-area: list;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  padding: 16px;
+  min-width: 0;
+}
+
+@media (min-width: 1080px) {
+  .ll-list {
+    position: sticky;
+    top: 20px;
+    max-height: calc(100vh - 40px);
+    overflow-y: auto;
+  }
+
+  .ll-list::-webkit-scrollbar { width: 5px; }
+  .ll-list::-webkit-scrollbar-track { background: transparent; }
+  .ll-list::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 99px; }
 }
 
 .ll-heading {
   font-size: 14px;
   font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: var(--lms-muted);
-  margin: 0 0 12px;
+  color: #0f172a;
+  margin: 2px 4px 4px;
 }
 
 .ll-card {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 12px;
   width: 100%;
-  text-align: left;
-  background: var(--lms-card);
-  border: 1px solid var(--lms-border);
-  border-radius: var(--lms-radius-md);
-  padding: 14px 16px;
-  margin-bottom: 10px;
+  padding: 12px;
+  border: 1.5px solid #f1f5f9;
+  border-radius: 12px;
+  background: #f8fafc;
   cursor: pointer;
-  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  text-align: left;
+  transition: background 0.15s, border-color 0.15s, transform 0.1s;
 }
 
 .ll-card:hover {
-  border-color: #cbd5e1;
-  box-shadow: var(--lms-shadow-sm);
+  background: #eff6ff;
+  border-color: #bfdbfe;
+}
+
+.ll-card:active {
+  transform: scale(0.99);
 }
 
 .ll-card.active {
-  border-color: var(--lms-primary);
-  box-shadow: 0 0 0 3px var(--lms-primary-soft);
+  background: #eff6ff;
+  border-color: #2563eb;
+  box-shadow: 0 2px 10px rgba(37, 99, 235, 0.12);
 }
 
 .ll-card.done .ll-card-num {
-  background: var(--lms-success-soft);
-  color: var(--lms-success);
+  background: #f0fdf4;
+  color: #16a34a;
 }
 
 .ll-card-num {
-  flex: 0 0 32px;
-  height: 32px;
-  border-radius: 999px;
-  background: var(--lms-neutral-chip);
-  color: var(--lms-muted);
+  flex-shrink: 0;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 13px;
+  background: #e2e8f0;
+  color: #475569;
+  font-size: 12.5px;
   font-weight: 700;
 }
 
@@ -62,18 +90,18 @@
 }
 
 .ll-card-title {
-  font-size: 14.5px;
+  font-size: 13.5px;
   font-weight: 600;
-  margin: 0 0 2px;
-  color: var(--lms-text);
+  color: #0f172a;
+  margin: 0 0 3px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
 .ll-card-desc {
-  font-size: 12.5px;
-  color: var(--lms-muted);
+  font-size: 12px;
+  color: #94a3b8;
   margin: 0;
   white-space: nowrap;
   overflow: hidden;
@@ -81,35 +109,50 @@
 }
 
 .ll-card-right {
-  flex: 0 0 auto;
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 10px;
+  flex-shrink: 0;
 }
 
 .ll-card-duration {
   display: flex;
   align-items: center;
   gap: 4px;
-  font-size: 12px;
-  color: var(--lms-muted);
+  font-size: 11.5px;
+  color: #94a3b8;
   white-space: nowrap;
 }
 
 .ll-check {
-  font-size: 18px;
+  font-size: 17px;
+  flex-shrink: 0;
 }
 
-.ll-check.watched {
-  color: var(--lms-success);
+.ll-check.watched { color: #16a34a; }
+.ll-check.pending { color: #cbd5e1; }
+
+/* ─── Responsive ──────────────────────────────────────────────────────────── */
+
+@media (max-width: 768px) {
+  .ll-list {
+    border-radius: 14px;
+    padding: 14px;
+  }
+
+  /* Keep rows compact once stacked full-width under the video */
+  .ll-card-desc { display: none; }
 }
 
-.ll-check.pending {
-  color: var(--lms-muted-soft);
-}
+@media (max-width: 480px) {
+  .ll-card {
+    padding: 10px;
+    gap: 10px;
+  }
 
-@media (max-width: 640px) {
-  .ll-card-desc {
-    display: none;
+  .ll-card-num {
+    width: 26px;
+    height: 26px;
+    font-size: 11.5px;
   }
 }

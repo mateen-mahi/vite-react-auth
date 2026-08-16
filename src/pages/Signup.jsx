@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import api from "../services/api";
 import "../styles/Signup.css";
+import appConfig from "../config/appConfig";
 
 const Signup = () => {
   const navigate = useNavigate();
@@ -115,26 +116,37 @@ const Signup = () => {
       {/* Left decorative panel */}
       <div className="signup-panel">
         <div className="panel-content">
-          <div className="panel-logo">⬡</div>
-          <h1 className="panel-title">Join the platform.</h1>
-          <p className="panel-subtitle">
-            Create your account and start your journey with a secure, modern
-            authentication experience.
-          </p>
-          <ul className="panel-features">
-            <li>
-              <span className="feature-icon">✦</span> JWT-secured sessions
-            </li>
-            <li>
-              <span className="feature-icon">✦</span> Email OTP verification
-            </li>
-            <li>
-              <span className="feature-icon">✦</span> Password reset flow
-            </li>
-            <li>
-              <span className="feature-icon">✦</span> Role-based access control
-            </li>
-          </ul>
+          <div className="panel-logo"><img src={appConfig.whiteLogo} alt={appConfig.appName} />
+            </div>
+<h1 className="panel-title">
+  Learn today. Build tomorrow.
+</h1>
+
+<p className="panel-subtitle">
+  Create your Learnix account and build practical skills in programming,
+  web development, computer science, IT, networking, and more.
+</p>
+     <ul className="panel-features">
+  <li>
+    <span className="feature-icon">✦</span>
+    Learn programming &amp; web development
+  </li>
+
+  <li>
+    <span className="feature-icon">✦</span>
+    Explore IT &amp; computer science
+  </li>
+
+  <li>
+    <span className="feature-icon">✦</span>
+    Build practical technical skills
+  </li>
+
+  <li>
+    <span className="feature-icon">✦</span>
+    Learn networking &amp; modern technologies
+  </li>
+</ul>
         </div>
         <div className="panel-circles">
           <div className="circle c1" />

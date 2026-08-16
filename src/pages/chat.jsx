@@ -4,6 +4,7 @@ import api from "../services/api";
 import {
   FiSend, FiSearch, FiGlobe, FiMessageCircle, FiPlus,
   FiX, FiAlertCircle, FiRefreshCw, FiChevronsUp, FiCheckCircle,
+  FiMoreVertical, FiTrash2, FiSlash,
 } from "react-icons/fi";
 import { formatTime, formatDay, groupByDay, getLastMessagePreview, sortContactsByRecency, DELETED_TEXT } from "../utils/chatHelpers";
 import { Avatar, AvatarWithPresence } from "../components/chat/ChatAvatar";
@@ -14,15 +15,63 @@ import "../styles/chat.css";
 // SHARED UI COMPONENTS
 // ═══════════════════════════════════════════════════════════════════════════
 
-function MessageBubble({ message, currentUserId, showName = true, showSeen = false }) {
+function MessageBubble({ message, currentUserId, showName = true, showSeen = false, onDeleteMessage }) {
   const isOwn = message.senderId === currentUserId;
+  const isDeleted = Boolean(message.deletedForEveryone);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const rowRef = useRef(null);
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    const handleClickOutside = (e) => {
+      if (rowRef.current && !rowRef.current.contains(e.target)) setMenuOpen(false);
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [menuOpen]);
+
+  const handleDelete = (scope) => {
+    setMenuOpen(false);
+    onDeleteMessage?.(message.id, scope);
+  };
 
   return (
     <div className={`chat-message ${isOwn ? "own" : "other"}`}>
       {!isOwn && <Avatar src={message.senderImageUrl} name={message.sender} className="chat-msg-avatar" />}
       <div className="chat-bubble-wrap">
-        {!isOwn && showName && <p className="chat-sender-name">{message.sender}</p>}
-        <div className={`chat-bubble ${isOwn ? "own" : "other"}`}>{message.text}</div>
+        {!isOwn && showName && !isDeleted && <p className="chat-sender-name">{message.sender}</p>}
+
+        <div className={`msg-row ${isOwn ? "own" : "other"}`} ref={rowRef}>
+          {!isDeleted && onDeleteMessage && (
+            <button
+              className="msg-actions-trigger"
+              onClick={() => setMenuOpen((v) => !v)}
+              title="Message options"
+              aria-label="Message options"
+            >
+              <FiMoreVertical />
+            </button>
+          )}
+
+          <div className={`chat-bubble ${isOwn ? "own" : "other"} ${isDeleted ? "deleted" : ""}`}>
+            {isDeleted && <FiSlash className="msg-deleted-icon" />}
+            {message.text}
+          </div>
+
+          {menuOpen && (
+            <div className={`msg-actions-menu ${isOwn ? "own" : "other"}`}>
+              <button onClick={() => handleDelete("me")}>
+                <FiTrash2 /> Delete for me
+              </button>
+              {isOwn && (
+                <button className="danger" onClick={() => handleDelete("everyone")}>
+                  <FiTrash2 /> Delete for everyone
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+
         <p className={`chat-timestamp ${isOwn ? "own" : ""}`}>{formatTime(message.timestamp)}</p>
         {showSeen && <p className="chat-seen-label"><FiCheckCircle /> Seen</p>}
       </div>
@@ -61,8 +110,25 @@ function LoadingState({ text = "Loading…" }) {
   );
 }
 
+function ConfirmModal({ title, body, confirmLabel = "Confirm", onConfirm, onCancel, danger = true }) {
+  return (
+    <div className="chat-modal-overlay" onClick={onCancel}>
+      <div className="chat-confirm-box" onClick={(e) => e.stopPropagation()}>
+        <h3 className="chat-confirm-title">{title}</h3>
+        <p className="chat-confirm-body">{body}</p>
+        <div className="chat-confirm-actions">
+          <button className="chat-confirm-btn cancel" onClick={onCancel}>Cancel</button>
+          <button className={`chat-confirm-btn ${danger ? "danger" : "primary"}`} onClick={onConfirm}>
+            {confirmLabel}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ═══════════════════════════════════════════════════════════════════════════
-// GLOBAL CHAT (unchanged from before)
+// GLOBAL CHAT
 // ═══════════════════════════════════════════════════════════════════════════
 
 function GlobalChat({ user, emitEvent, onEvent, isConnected }) {
@@ -134,6 +200,21 @@ function GlobalChat({ user, emitEvent, onEvent, isConnected }) {
     return cleanup;
   }, [onEvent]);
 
+  // Real-time sync for message deletion. "everyone" broadcasts to all
+  // users; "me" only reaches this same user's other tabs/devices (server
+  // enforces that scoping) — see socket handler.
+  useEffect(() => {
+    const cleanup = onEvent("message-deleted", ({ chatType, messageId, scope }) => {
+      if (chatType !== "global") return;
+      setMessages((prev) =>
+        scope === "me"
+          ? prev.filter((m) => m.id !== messageId)
+          : prev.map((m) => (m.id === messageId ? { ...m, deletedForEveryone: true, text: DELETED_TEXT } : m))
+      );
+    });
+    return cleanup;
+  }, [onEvent]);
+
   const sendMessage = useCallback(() => {
     if (!input.trim() || !isConnected) return;
     const id = `global-${Date.now()}-${messageCounter.current++}`;
@@ -150,6 +231,21 @@ function GlobalChat({ user, emitEvent, onEvent, isConnected }) {
     setMessages((prev) => [...prev, message]);
     setInput("");
   }, [input, isConnected, user, emitEvent]);
+
+  const deleteMessage = useCallback(async (messageId, scope) => {
+    setMessages((prev) =>
+      scope === "me"
+        ? prev.filter((m) => m.id !== messageId)
+        : prev.map((m) => (m.id === messageId ? { ...m, deletedForEveryone: true, text: DELETED_TEXT } : m))
+    );
+    try {
+      await api.delete(`/messages/global/${messageId}`, { data: { scope } });
+      emitEvent("delete-message", { chatType: "global", messageId, scope });
+    } catch (error) {
+      console.error("Failed to delete message:", error);
+      loadHistory(); // resync on failure
+    }
+  }, [emitEvent, loadHistory]);
 
   const handleLoadMore = async () => {
     if (!oldestTimestamp.current || isLoadingMore) return;
@@ -182,7 +278,13 @@ function GlobalChat({ user, emitEvent, onEvent, isConnected }) {
             item.type === "separator" ? (
               <DaySeparator key={item.key} label={item.label} />
             ) : (
-              <MessageBubble key={item.key} message={item.data} currentUserId={user._id} showName />
+              <MessageBubble
+                key={item.key}
+                message={item.data}
+                currentUserId={user._id}
+                showName
+                onDeleteMessage={deleteMessage}
+              />
             )
           )
         )}
@@ -209,7 +311,6 @@ function DirectChat({ user, emitEvent, onEvent, isConnected, onlineUserIds, isAc
   const [conversations, setConversations] = useState({});
   const [selectedContactId, setSelectedContactId] = useState(null);
 
-  // Sidebar search now just FILTERS existing recent chats — no API call
   const [sidebarFilter, setSidebarFilter] = useState("");
   const [showNewConvModal, setShowNewConvModal] = useState(false);
 
@@ -223,6 +324,10 @@ function DirectChat({ user, emitEvent, onEvent, isConnected, onlineUserIds, isAc
   const [conversationMeta, setConversationMeta] = useState({});
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+
+  const [headerMenuOpen, setHeaderMenuOpen] = useState(false);
+  const [showClearConfirm, setShowClearConfirm] = useState(false);
+  const headerMenuRef = useRef(null);
 
   const historyLoadedFor = useRef(new Set());
   const processedIds = useRef(new Set());
@@ -239,8 +344,21 @@ function DirectChat({ user, emitEvent, onEvent, isConnected, onlineUserIds, isAc
   const isActiveRef = useRef(isActive);
   useEffect(() => { isActiveRef.current = isActive; }, [isActive]);
 
-  // ── NEW: load recent conversations on mount — this is what fixes
-  // "messages I got while offline don't show up" ──
+  // Close the header "…" menu whenever the selected conversation changes.
+  useEffect(() => {
+    setHeaderMenuOpen(false);
+    setShowClearConfirm(false);
+  }, [selectedContactId]);
+
+  useEffect(() => {
+    if (!headerMenuOpen) return;
+    const handleClickOutside = (e) => {
+      if (headerMenuRef.current && !headerMenuRef.current.contains(e.target)) setHeaderMenuOpen(false);
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [headerMenuOpen]);
+
   useEffect(() => {
     const fetchRecentConversations = async () => {
       setLoadingConversations(true);
@@ -325,8 +443,6 @@ function DirectChat({ user, emitEvent, onEvent, isConnected, onlineUserIds, isAc
         [conversationKey]: {
           ...(prev[conversationKey] || newContactInfo),
           imageUrl: newContactInfo.imageUrl ?? prev[conversationKey]?.imageUrl ?? null,
-          // Keep the sidebar preview fresh even for a conversation that
-          // hasn't been opened yet (so conversations[] isn't populated)
           lastMessageText: msg.text,
           lastMessageAt: msg.timestamp,
           lastMessageIsOwn: isOwn,
@@ -407,7 +523,6 @@ function DirectChat({ user, emitEvent, onEvent, isConnected, onlineUserIds, isAc
     return cleanup;
   }, [onEvent]);
 
-  // ── NEW: sidebar search is now a pure local filter, no API call ──
   const filteredContacts = sortContactsByRecency(contacts, conversations, user._id).filter(
     (c) => !sidebarFilter.trim() || c.username.toLowerCase().includes(sidebarFilter.toLowerCase())
   );
@@ -462,6 +577,45 @@ function DirectChat({ user, emitEvent, onEvent, isConnected, onlineUserIds, isAc
     }));
     setInput("");
   }, [input, selectedContactId, isConnected, user, contacts, emitEvent]);
+
+  const deleteMessage = useCallback(async (messageId, scope) => {
+    if (!selectedContactId) return;
+    const contactId = selectedContactId;
+
+    setConversations((prev) => ({
+      ...prev,
+      [contactId]: scope === "me"
+        ? (prev[contactId] || []).filter((m) => m.id !== messageId)
+        : (prev[contactId] || []).map((m) => (m.id === messageId ? { ...m, deletedForEveryone: true, text: DELETED_TEXT } : m)),
+    }));
+
+    try {
+      await api.delete(`/messages/dm/${messageId}`, { data: { scope } });
+      emitEvent("delete-message", { chatType: "dm", messageId, scope, toUserId: contactId });
+    } catch (error) {
+      console.error("Failed to delete message:", error);
+      historyLoadedFor.current.delete(contactId);
+      loadDMHistory(contactId); // resync on failure
+    }
+  }, [selectedContactId, emitEvent, loadDMHistory]);
+
+  const clearConversation = useCallback(async () => {
+    if (!selectedContactId) return;
+    const contactId = selectedContactId;
+    setShowClearConfirm(false);
+
+    setConversations((prev) => ({ ...prev, [contactId]: [] }));
+    setConversationMeta((prev) => ({ ...prev, [contactId]: { hasMore: false, oldestTimestamp: null } }));
+
+    try {
+      await api.delete(`/messages/dm/conversation/${contactId}`);
+      emitEvent("clear-conversation", { otherUserId: contactId });
+    } catch (error) {
+      console.error("Failed to clear conversation:", error);
+      historyLoadedFor.current.delete(contactId);
+      loadDMHistory(contactId); // resync on failure
+    }
+  }, [selectedContactId, emitEvent, loadDMHistory]);
 
   const handleLoadMore = async () => {
     const meta = conversationMeta[selectedContactId];
@@ -567,12 +721,33 @@ function DirectChat({ user, emitEvent, onEvent, isConnected, onlineUserIds, isAc
                 className="dm-chat-avatar"
                 online={onlineUserIds.has(selectedContact._id)}
               />
-              <div>
+              <div className="dm-chat-header-info">
                 <p className="dm-chat-name">{selectedContact.username}</p>
                 {isContactTyping ? (
                   <p className="dm-typing-indicator">typing…</p>
                 ) : (
                   <p className="dm-chat-role">{onlineUserIds.has(selectedContact._id) ? "Online" : "Offline"}</p>
+                )}
+              </div>
+
+              <div className="dm-header-menu-wrap" ref={headerMenuRef}>
+                <button
+                  className="dm-header-menu-trigger"
+                  onClick={() => setHeaderMenuOpen((v) => !v)}
+                  title="Conversation options"
+                  aria-label="Conversation options"
+                >
+                  <FiMoreVertical />
+                </button>
+                {headerMenuOpen && (
+                  <div className="dm-header-menu">
+                    <button
+                      className="danger"
+                      onClick={() => { setHeaderMenuOpen(false); setShowClearConfirm(true); }}
+                    >
+                      <FiTrash2 /> Clear chat
+                    </button>
+                  </div>
                 )}
               </div>
             </div>
@@ -602,6 +777,7 @@ function DirectChat({ user, emitEvent, onEvent, isConnected, onlineUserIds, isAc
                       currentUserId={user._id}
                       showName={false}
                       showSeen={lastMessageIsSeen && item.data.id === lastMessage?.id}
+                      onDeleteMessage={deleteMessage}
                     />
                   )
                 )
@@ -626,6 +802,16 @@ function DirectChat({ user, emitEvent, onEvent, isConnected, onlineUserIds, isAc
           onlineUserIds={onlineUserIds}
           onSelect={selectContact}
           onClose={() => setShowNewConvModal(false)}
+        />
+      )}
+
+      {showClearConfirm && selectedContact && (
+        <ConfirmModal
+          title="Clear this chat?"
+          body={`This removes all messages with ${selectedContact.username} from your view. They'll still see their own copy.`}
+          confirmLabel="Clear chat"
+          onConfirm={clearConversation}
+          onCancel={() => setShowClearConfirm(false)}
         />
       )}
     </div>

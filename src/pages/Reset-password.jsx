@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate, useParams, Link } from "react-router-dom";
 import api from "../services/api";
 import "../styles/Reset-password.css";
+import appConfig from "../config/appConfig";
 
 const ResetPassword = () => {
   const navigate = useNavigate();
@@ -109,8 +110,8 @@ const ResetPassword = () => {
       <div className="rp-wrapper">
         {/* Brand */}
         <div className="rp-brand">
-          <span className="brand-hex">⬡</span>
-          <span className="brand-name">AuthSystem</span>
+         <img src={appConfig.whiteLogo}  alt={appConfig.appName} className="logo" />
+
         </div>
 
         <div className="rp-card">

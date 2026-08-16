@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { useNavigate, Link, useLocation } from "react-router-dom";
 import api from "../services/api";
 import "../styles/OtpVerification.css";
+import appConfig from "../config/appConfig";
 
 const OTP_LENGTH = 6;
 
@@ -176,10 +177,15 @@ const OtpVerification = () => {
 
       <div className="otp-wrapper">
         {/* Brand */}
-        <div className="otp-brand">
-          <span className="brand-hex">⬡</span>
-          <span className="brand-name">AuthSystem</span>
-        </div>
+      <div className="otp-brand">
+  <span className="brand-hex">
+    <img
+      src={appConfig.whiteLogo}
+      alt={appConfig.appName}
+      className="logo"
+    />
+  </span>
+</div>
 
         <div className="otp-card">
           {/* Top bar */}

@@ -4,6 +4,7 @@ import { useAuth } from "../context/AuthContext";
 import api from "../services/api";
 import { FiBell, FiUser, FiLock, FiClock, FiLogOut } from "react-icons/fi";
 import "../styles/Navbar.css";
+import appConfig from "../config/appConfig";
 
 export default function Navbar({ isOpen, isMobile }) {
   const [dropdownOpen, setDropdownOpen] = useState(false);
@@ -60,10 +61,13 @@ export default function Navbar({ isOpen, isMobile }) {
     <header
       className={`navbar ${sidebarExpanded ? "sidebar-expanded" : "sidebar-collapsed"}`}
     >
-      <div className="navbar-logo">
-        <span className="navbar-logo-icon">🎓</span>
-        <span className="navbar-logo-text">Academy</span>
-      </div>
+<div className="navbar-logo">
+  <img
+    src={appConfig.darkLogo}
+    alt={appConfig.appName}
+    className="navbar-logo-img"
+  />
+</div>
 
       <div className="navbar-actions">
         <button

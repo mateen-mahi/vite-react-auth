@@ -38,51 +38,65 @@ export default function Dashboard() {
 
   return (
     <div className="admin-dash-page">
-      <div className="admin-dash-header">
-        <div>
-          <h1 className="admin-dash-title">Admin Dashboard</h1>
-          <p className="admin-dash-sub">
-            Live data — Users, Courses, and Complaints tables plus the KPI cards update in
-            real time as things happen. Charts below still use sample data (see chat notes).
-          </p>
+      <div className="admin-dash-inner">
+
+        <div className="admin-dash-header">
+          <div>
+            <h1 className="admin-dash-title">Admin Dashboard</h1>
+
+            <p className="admin-dash-sub">
+              Live data — Users, Courses, and Complaints tables plus the KPI
+              cards update in real time as things happen. Charts below still
+              use sample data (see chat notes).
+            </p>
+          </div>
         </div>
-      </div>
 
-      <div className="admin-tabs">
-        {TABS.map(({ id, label, icon: Icon }) => (
-          <button
-            key={id}
-            className={`admin-tab ${activeTab === id ? "active" : ""} ${id === "danger" ? "admin-tab-danger" : ""}`}
-            onClick={() => setActiveTab(id)}
-          >
-            <Icon /> <span>{label}</span>
-          </button>
-        ))}
-      </div>
+        <div className="admin-tabs">
+          {TABS.map(({ id, label, icon: Icon }) => (
+            <button
+              key={id}
+              type="button"
+              className={`admin-tab ${
+                activeTab === id ? "active" : ""
+              } ${
+                id === "danger" ? "admin-tab-danger" : ""
+              }`}
+              onClick={() => setActiveTab(id)}
+            >
+              <Icon />
+              <span>{label}</span>
+            </button>
+          ))}
+        </div>
 
-      <div className="admin-dash-content">
-        {activeTab === "overview" && (
-          <>
-            <KpiCards />
-            <ProgressAnalyticsCards />
-            <ManagementShortcuts />
-            <div className="admin-charts-grid">
-              <SignupTrendChart />
-              <RoleDistributionChart />
-              <CategoryDistributionChart />
-              <ComplaintStatusChart />
-            </div>
-          </>
-        )}
-        {activeTab === "users"         && <UserTable />}
-        {activeTab === "courses"       && <CourseTable />}
-        {activeTab === "lectures"      && <LectureTable />}
-        {activeTab === "quizzes"       && <QuizTable />}
-        {activeTab === "complaints"    && <ComplaintQueue />}
-        {activeTab === "activity"      && <LiveActivityPanel />}
-        {activeTab === "notifications" && <NotificationsPage />}
-        {activeTab === "system"        && <SystemUsagePanel />}
-        {activeTab === "danger"        && <DangerZonePanel />}
+        <div className="admin-dash-content">
+          {activeTab === "overview" && (
+            <>
+              <KpiCards />
+              <ProgressAnalyticsCards />
+              <ManagementShortcuts />
+
+              <div className="admin-charts-grid">
+                <SignupTrendChart />
+                <RoleDistributionChart />
+                <CategoryDistributionChart />
+                <ComplaintStatusChart />
+              </div>
+            </>
+          )}
+
+          {activeTab === "users" && <UserTable />}
+          {activeTab === "courses" && <CourseTable />}
+          {activeTab === "lectures" && <LectureTable />}
+          {activeTab === "quizzes" && <QuizTable />}
+          {activeTab === "complaints" && <ComplaintQueue />}
+          {activeTab === "activity" && <LiveActivityPanel />}
+          {activeTab === "notifications" && <NotificationsPage />}
+          {activeTab === "system" && <SystemUsagePanel />}
+          {activeTab === "danger" && <DangerZonePanel />}
+        </div>
+
       </div>
     </div>
   );

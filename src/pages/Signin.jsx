@@ -3,7 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import api from "../services/api";
 import { useAuth } from "../context/AuthContext";
 import "../styles/Signin.css";
-
+import appConfig from "../config/appConfig.js"
 const Signin = () => {
   const navigate = useNavigate();
   const { refreshAuth } = useAuth();
@@ -71,13 +71,34 @@ const Signin = () => {
       await refreshAuth();
 
       setTimeout(() => navigate("/profile"), 1500);
-    } catch (err) {
-      const msg =
-        err.response?.data?.message ||
-        err.response?.data?.error ||
-        "Invalid credentials. Please try again.";
-      setApiError(msg);
-    } finally {
+    }
+    catch (err) {
+  if (
+    err.response?.status === 403 &&
+    err.response?.data?.redirectToVerification
+  ) {
+    const email = err.response.data.email || formData.email;
+
+    sessionStorage.setItem("pending_verification_email", email);
+
+    navigate("/verify-otp", {
+      state: {
+        email,
+        from: "signin",
+      },
+    });
+
+    return;
+  }
+
+  const msg =
+    err.response?.data?.message ||
+    err.response?.data?.error ||
+    "Invalid credentials. Please try again.";
+
+  setApiError(msg);
+}
+     finally {
       setLoading(false);
     }
   };
@@ -93,9 +114,9 @@ const Signin = () => {
       <div className="signin-wrapper">
         {/* Brand mark */}
         <div className="signin-brand">
-          <span className="brand-hex">⬡</span>
-          <span className="brand-name">AuthSystem</span>
-        </div>
+          <span className="brand-hex">      <img src={appConfig.whiteLogo} alt={appConfig.appName} className="logo" />
+        </span>
+             </div>
 
         {/* Card */}
         <div className="signin-card">

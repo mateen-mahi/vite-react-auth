@@ -1,0 +1,443 @@
+/* ════════════════════════════════════════════════════════════
+   Chat Widget — floating support-chat UI
+════════════════════════════════════════════════════════════ */
+
+/* ── Floating launcher button ── */
+.cw-bubble {
+  box-sizing: border-box;
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  width: 58px;
+  height: 58px;
+  border-radius: 50%;
+  border: none;
+  background: linear-gradient(135deg, #2563eb, #4f8cff);
+  color: #fff;
+  font-size: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 10px 28px rgba(37, 99, 235, 0.38), 0 2px 6px rgba(0,0,0,0.08);
+  z-index: 1000;
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+
+.cw-bubble::after {
+  content: "";
+  position: absolute;
+  bottom: 3px;
+  right: 3px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #22c55e;
+  border: 2px solid #fff;
+}
+
+.cw-bubble:hover {
+  transform: translateY(-3px) scale(1.03);
+  box-shadow: 0 14px 34px rgba(37, 99, 235, 0.45), 0 3px 8px rgba(0,0,0,0.1);
+}
+
+.cw-bubble:active {
+  transform: translateY(-1px) scale(0.98);
+}
+
+/* ── Panel ── */
+.cw-panel {
+  box-sizing: border-box;
+  position: fixed;
+  bottom: 96px;
+  right: 24px;
+  width: 400px;
+  max-width: calc(100vw - 32px);
+  height: min(560px, calc(100vh - 140px));
+  background: #fff;
+  border-radius: 20px;
+  box-shadow: 0 24px 64px rgba(15, 23, 42, 0.2), 0 4px 16px rgba(15, 23, 42, 0.08);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  z-index: 1000;
+  animation: cw-panel-in 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  transform-origin: bottom right;
+}
+
+@keyframes cw-panel-in {
+  from { opacity: 0; transform: translateY(16px) scale(0.96); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* ── Header ── */
+.cw-header {
+  box-sizing: border-box;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 18px 16px 18px 20px;
+  background: linear-gradient(135deg, #2563eb, #4f8cff);
+  color: #fff;
+  flex-shrink: 0;
+  position: relative;
+}
+
+.cw-header-title {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 15.5px;
+  font-weight: 700;
+  letter-spacing: -0.1px;
+}
+
+.cw-header-title::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #4ade80;
+  box-shadow: 0 0 0 3px rgba(74, 222, 128, 0.35);
+  flex-shrink: 0;
+}
+
+.cw-header-sub {
+  display: block;
+  font-size: 12px;
+  color: rgba(255,255,255,0.82);
+  margin-top: 4px;
+  font-weight: 500;
+}
+
+.cw-clear-btn {
+  box-sizing: border-box;
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  border-radius: 9px;
+  border: none;
+  background: rgba(255,255,255,0.14);
+  color: #fff;
+  font-size: 15px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.15s, transform 0.15s;
+}
+
+.cw-clear-btn:hover:not(:disabled) {
+  background: rgba(255,255,255,0.26);
+  transform: scale(1.06);
+}
+
+.cw-clear-btn:active:not(:disabled) {
+  transform: scale(0.94);
+}
+
+.cw-clear-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* ── Message list ──
+   flex-direction: column here is what makes messages stack top-to-bottom
+   in order. The overlap bug came from children not having flex-shrink: 0
+   (see .cw-bubble-msg below) — without it, flex tries to compress items
+   to fit instead of letting this container scroll, and long conversations
+   visually collapse into each other instead of stacking cleanly. */
+.cw-messages {
+  flex: 1;
+  min-height: 0; /* required for overflow-y:auto to actually work inside a flex column */
+  overflow-y: auto;
+  padding: 18px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  background:
+    radial-gradient(circle at 100% 0%, rgba(37,99,235,0.04), transparent 40%),
+    #f8fafc;
+  scroll-behavior: smooth;
+}
+
+.cw-messages::-webkit-scrollbar {
+  width: 6px;
+}
+.cw-messages::-webkit-scrollbar-track {
+  background: transparent;
+}
+.cw-messages::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 99px;
+}
+.cw-messages::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+.cw-messages {
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 transparent;
+}
+
+/* ── Message bubbles ── */
+.cw-bubble-msg {
+  box-sizing: border-box;
+  flex-shrink: 0; /* ← the actual overlap fix — see comment on .cw-messages above */
+  align-self: flex-start;
+  max-width: 86%;
+  padding: 10px 14px;
+  border-radius: 16px;
+  font-size: 13.5px;
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  animation: cw-msg-in 0.2s ease;
+}
+
+@keyframes cw-msg-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.cw-bubble-msg.user {
+  align-self: flex-end;
+  background: linear-gradient(135deg, #2563eb, #4f8cff);
+  color: #fff;
+  border-bottom-right-radius: 5px;
+  box-shadow: 0 3px 10px rgba(37, 99, 235, 0.22);
+  white-space: pre-wrap; /* preserve the user's own manual line breaks (Shift+Enter) */
+}
+
+.cw-bubble-msg.assistant {
+  background: #fff;
+  border: 1px solid #e8edf3;
+  color: #1e293b;
+  border-bottom-left-radius: 5px;
+  min-height: 22px;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+  /* no white-space: pre-wrap here — markdown handles its own line breaks
+     via real <p>/<br> elements (remark-breaks), so preserving raw
+     whitespace on top of that would double up spacing */
+}
+
+/* ── Markdown content inside assistant bubbles ── */
+.cw-bubble-msg.assistant > *:first-child { margin-top: 0; }
+.cw-bubble-msg.assistant > *:last-child  { margin-bottom: 0; }
+
+.cw-bubble-msg.assistant p {
+  margin: 0 0 8px;
+}
+
+.cw-bubble-msg.assistant ul,
+.cw-bubble-msg.assistant ol {
+  margin: 4px 0 8px;
+  padding-left: 20px;
+}
+
+.cw-bubble-msg.assistant li {
+  margin-bottom: 3px;
+}
+
+.cw-bubble-msg.assistant strong {
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.cw-bubble-msg.assistant a {
+  color: #2563eb;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.cw-bubble-msg.assistant code {
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+  font-size: 12px;
+  background: rgba(15, 23, 42, 0.06);
+  padding: 1px 5px;
+  border-radius: 4px;
+}
+
+.cw-bubble-msg.assistant pre {
+  background: #0f172a;
+  color: #e2e8f0;
+  padding: 10px 12px;
+  border-radius: 10px;
+  overflow-x: auto;
+  margin: 6px 0;
+}
+
+.cw-bubble-msg.assistant pre code {
+  background: none;
+  padding: 0;
+  color: inherit;
+  font-size: 12px;
+}
+
+.cw-bubble-msg.assistant blockquote {
+  margin: 6px 0;
+  padding-left: 10px;
+  border-left: 3px solid #cbd5e1;
+  color: #64748b;
+}
+
+.cw-bubble-msg.assistant table {
+  border-collapse: collapse;
+  margin: 6px 0;
+  font-size: 12px;
+  width: 100%;
+}
+
+.cw-bubble-msg.assistant th,
+.cw-bubble-msg.assistant td {
+  border: 1px solid #e2e8f0;
+  padding: 4px 8px;
+  text-align: left;
+}
+
+.cw-bubble-msg.assistant hr {
+  border: none;
+  border-top: 1px solid #e2e8f0;
+  margin: 8px 0;
+}
+
+/* "typing" indicator */
+.cw-typing {
+  display: inline-block;
+  color: #94a3b8;
+  letter-spacing: 3px;
+  font-weight: 700;
+  animation: cw-typing-pulse 1.1s ease-in-out infinite;
+}
+
+@keyframes cw-typing-pulse {
+  0%, 100% { opacity: 0.3; transform: translateY(0); }
+  50%      { opacity: 1;   transform: translateY(-2px); }
+}
+
+/* ── Error banner ── */
+.cw-error {
+  flex-shrink: 0;
+  align-self: center;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: #b91c1c;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  padding: 8px 14px;
+  border-radius: 10px;
+  animation: cw-msg-in 0.2s ease;
+}
+
+/* ── Input row ── */
+.cw-input-row {
+  box-sizing: border-box;
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  padding: 12px 14px;
+  border-top: 1px solid #eef1f5;
+  background: #fff;
+  flex-shrink: 0;
+}
+
+.cw-input {
+  box-sizing: border-box;
+  flex: 1;
+  min-width: 0;
+  padding: 10px 15px;
+  border-radius: 20px;
+  border: 1.5px solid #e2e8f0;
+  background: #f8fafc;
+  font-size: 13.5px;
+  font-family: inherit;
+  color: #0f172a;
+  outline: none;
+  resize: none;
+  max-height: 96px;
+  overflow-y: auto;
+  line-height: 1.4;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.cw-input::placeholder {
+  color: #94a3b8;
+}
+
+.cw-input:focus {
+  border-color: #93c5fd;
+  background: #fff;
+}
+
+.cw-input:disabled {
+  background: #f1f5f9;
+  color: #94a3b8;
+  cursor: not-allowed;
+}
+
+.cw-send-btn {
+  box-sizing: border-box;
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  border: none;
+  background: linear-gradient(135deg, #2563eb, #4f8cff);
+  color: #fff;
+  font-size: 15px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 3px 10px rgba(37, 99, 235, 0.3);
+  transition: transform 0.15s, opacity 0.15s, box-shadow 0.15s;
+}
+
+.cw-send-btn:hover:not(:disabled) {
+  transform: scale(1.06);
+}
+
+.cw-send-btn:active:not(:disabled) {
+  transform: scale(0.94);
+}
+
+.cw-send-btn:disabled {
+  opacity: 0.45;
+  box-shadow: none;
+  cursor: not-allowed;
+}
+
+/* ── Responsive ── */
+@media (max-width: 480px) {
+  .cw-panel {
+    right: 12px;
+    left: 12px;
+    bottom: 88px;
+    width: auto;
+    max-width: none;
+    height: min(72vh, calc(100vh - 120px));
+    border-radius: 18px;
+  }
+
+  .cw-bubble {
+    right: 16px;
+    bottom: 16px;
+    width: 54px;
+    height: 54px;
+  }
+
+  .cw-bubble-msg {
+    max-width: 90%;
+  }
+}
+
+@media (max-width: 360px) {
+  .cw-panel {
+    right: 8px;
+    left: 8px;
+    bottom: 80px;
+  }
+}
