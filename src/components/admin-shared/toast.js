@@ -1,6 +1,4 @@
-// Minimal pub/sub toast utility. Doesn't require wrapping the app in a
-// Provider — each page just renders <ToastContainer /> once and calls
-// showToast() from anywhere (including inside async handlers).
+
 
 let listeners = [];
 let idCounter = 0;

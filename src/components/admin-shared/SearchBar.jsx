@@ -1,5 +1,5 @@
 import { FiSearch, FiX } from "react-icons/fi";
-import "./SearchBar.css";
+import "./adminShared/SearchBar.css";
 
 const SearchBar = ({ value, onChange, placeholder = "Search…" }) => {
   return (

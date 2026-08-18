@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { FiSearch, FiCheckCircle, FiXCircle } from "react-icons/fi";
 import api from "../../../services/api";
-import Modal from "../../../components/admin-shared/Modal/Modal";
-import Spinner from "../../../components/admin-shared/Spinner/Spinner";
+import Modal from "../../../components/admin-shared/Modal";
+import Spinner from "../../../components/admin-shared/Spinner";
 
 const VerifyCertificateModal = ({ onClose }) => {
   const [certificateNumber, setCertificateNumber] = useState("");

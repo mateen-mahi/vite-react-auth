@@ -41,13 +41,13 @@
   min-height: 50vh;
   padding: 40px 20px;
   text-align: center;
-  color: #64748b;
+  color: var(--slate-500);
   font-size: 14.5px;
 }
 
 .lw-state svg {
   font-size: 30px;
-  color: #94a3b8;
+  color: var(--slate-400);
 }
 
 .lw-spin {
@@ -59,11 +59,11 @@
 }
 
 .lw-state-error svg {
-  color: #ef4444;
+  color: var(--red-500);
 }
 
 .lw-state-error p {
-  color: #ef4444;
+  color: var(--red-500);
   font-weight: 500;
   max-width: 420px;
 }
@@ -75,12 +75,12 @@
   padding: 10px 20px;
   border: none;
   border-radius: 10px;
-  background: linear-gradient(135deg, #2563eb, #3b82f6);
-  color: #fff;
+  background: linear-gradient(135deg, var(--blue-600), var(--blue-500));
+  color: var(--white);
   font-size: 13.5px;
   font-weight: 600;
   cursor: pointer;
-  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.28);
+  box-shadow: 0 4px 14px rgba(var(--blue-600-rgb), 0.28);
   transition: opacity 0.15s, transform 0.1s;
 }
 
@@ -91,9 +91,9 @@
 
 .lw-sync-error {
   grid-area: error;
-  background: #fff5f5;
-  border: 1px solid #fecaca;
-  color: #ef4444;
+  background: var(--red-50-b);
+  border: 1px solid var(--red-200);
+  color: var(--red-500);
   border-radius: 12px;
   padding: 12px 16px;
   font-size: 13.5px;

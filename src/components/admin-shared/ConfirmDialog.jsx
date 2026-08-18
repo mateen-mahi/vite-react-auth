@@ -1,6 +1,6 @@
 import { FiAlertTriangle } from "react-icons/fi";
-import Modal from "../Modal/Modal";
-import "./ConfirmDialog.css";
+import Modal from "./Modal";
+import "./adminShared/ConfirmDialog.css";
 
 /**
  * Generic confirmation dialog for delete / destructive actions.

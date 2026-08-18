@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { FiUserPlus, FiUserMinus, FiSearch } from "react-icons/fi";
 import api from "../../../services/api";
-import Modal from "../../../components/admin-shared/Modal/Modal";
-import Spinner from "../../../components/admin-shared/Spinner/Spinner";
-import { showToast } from "../../../components/admin-shared/Toast/toast";
+import Modal from "../../../components/admin-shared/Modal";
+import Spinner from "../../../components/admin-shared/Spinner";
+import { showToast } from "../../../components/admin-shared/toast";
 
 const EnrollmentModal = ({ course, onClose, onSuccess }) => {
   const [users, setUsers] = useState([]);

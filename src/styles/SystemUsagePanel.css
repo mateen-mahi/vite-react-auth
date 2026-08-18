@@ -10,7 +10,7 @@
 }
 
 .sys-error {
-  color: #ef4444;
+  color: var(--red-500);
 }
 
 /* ---- summary card grid ---- */
@@ -25,11 +25,11 @@
 }
 
 .sys-card {
-  background: #fff;
-  border: 1px solid #e2e8f0;
+  background: var(--white);
+  border: 1px solid var(--slate-200);
   border-radius: 14px;
   padding: 16px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  box-shadow: 0 2px 8px rgba(var(--black-rgb), 0.04);
 }
 
 .sys-card-top {
@@ -49,15 +49,15 @@
   font-size: 18px;
   flex-shrink: 0;
 }
-.sys-card-icon.good { background: #f0fdf4; color: #16a34a; }
-.sys-card-icon.warning { background: #fffbeb; color: #d97706; }
-.sys-card-icon.critical { background: #fff5f5; color: #ef4444; }
-.sys-card-icon.unknown { background: #f8fafc; color: #94a3b8; }
+.sys-card-icon.good { background: var(--green-50); color: var(--green-600); }
+.sys-card-icon.warning { background: var(--amber-50); color: var(--amber-600); }
+.sys-card-icon.critical { background: var(--red-50-b); color: var(--red-500); }
+.sys-card-icon.unknown { background: var(--slate-50); color: var(--slate-400); }
 
 .sys-card-label {
   font-size: 11.5px;
   font-weight: 600;
-  color: #64748b;
+  color: var(--slate-500);
   text-transform: uppercase;
   letter-spacing: 0.4px;
   margin: 0 0 2px;
@@ -66,7 +66,7 @@
 .sys-card-value {
   font-size: 20px;
   font-weight: 700;
-  color: #0f172a;
+  color: var(--slate-900);
   margin: 0;
 }
 
@@ -74,7 +74,7 @@
   width: 100%;
   height: 7px;
   border-radius: 99px;
-  background: #f1f5f9;
+  background: var(--slate-100);
   overflow: hidden;
 }
 .sys-bar-track-sm {
@@ -86,14 +86,14 @@
   border-radius: 99px;
   transition: width 0.5s ease;
 }
-.sys-bar-fill.good { background: #16a34a; }
-.sys-bar-fill.warning { background: #d97706; }
-.sys-bar-fill.critical { background: #ef4444; }
-.sys-bar-fill.unknown { background: #cbd5e1; }
+.sys-bar-fill.good { background: var(--green-600); }
+.sys-bar-fill.warning { background: var(--amber-600); }
+.sys-bar-fill.critical { background: var(--red-500); }
+.sys-bar-fill.unknown { background: var(--slate-300); }
 
 .sys-card-detail {
   font-size: 12px;
-  color: #64748b;
+  color: var(--slate-500);
   margin: 10px 0 0;
 }
 
@@ -109,20 +109,20 @@
   align-items: center;
   gap: 2px;
   padding: 10px;
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
+  background: var(--slate-50);
+  border: 1px solid var(--slate-200);
   border-radius: 10px;
 }
 .sys-loadavg-label {
   font-size: 11px;
-  color: #94a3b8;
+  color: var(--slate-400);
   font-weight: 600;
   text-transform: uppercase;
 }
 .sys-loadavg-value {
   font-size: 16px;
   font-weight: 700;
-  color: #0f172a;
+  color: var(--slate-900);
 }
 
 /* ---- mini bars (cores, swap) ---- */
@@ -135,14 +135,14 @@
   display: flex;
   justify-content: space-between;
   font-size: 11.5px;
-  color: #64748b;
+  color: var(--slate-500);
   font-weight: 600;
 }
 
 /* ---- collapsible section ---- */
 .sys-section {
-  background: #fff;
-  border: 1px solid #e2e8f0;
+  background: var(--white);
+  border: 1px solid var(--slate-200);
   border-radius: 14px;
   margin-bottom: 14px;
   overflow: hidden;
@@ -158,10 +158,10 @@
   cursor: pointer;
   font-size: 13.5px;
   font-weight: 700;
-  color: #0f172a;
+  color: var(--slate-900);
 }
 .sys-section-head:hover {
-  background: #f8fafc;
+  background: var(--slate-50);
 }
 .sys-section-title {
   display: flex;
@@ -170,11 +170,11 @@
 }
 .sys-section-count {
   font-weight: 500;
-  color: #94a3b8;
+  color: var(--slate-400);
 }
 .sys-section-body {
   padding: 4px 16px 16px;
-  border-top: 1px solid #f1f5f9;
+  border-top: 1px solid var(--slate-100);
 }
 
 /* ---- CPU cores grid ---- */
@@ -205,15 +205,15 @@
 .sys-partition-mount {
   font-size: 13px;
   font-weight: 700;
-  color: #0f172a;
+  color: var(--slate-900);
 }
 .sys-partition-fs {
   font-size: 11px;
-  color: #94a3b8;
+  color: var(--slate-400);
 }
 .sys-partition-detail {
   font-size: 12px;
-  color: #64748b;
+  color: var(--slate-500);
   text-align: right;
   white-space: nowrap;
 }
@@ -235,15 +235,15 @@
   padding-top: 10px;
 }
 .sys-net-card {
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
+  background: var(--slate-50);
+  border: 1px solid var(--slate-200);
   border-radius: 10px;
   padding: 12px;
 }
 .sys-net-name {
   font-size: 12.5px;
   font-weight: 700;
-  color: #0f172a;
+  color: var(--slate-900);
   margin: 0 0 8px;
 }
 .sys-net-row {
@@ -258,8 +258,8 @@
   font-size: 12.5px;
   font-weight: 600;
 }
-.sys-net-rate.down { color: #0891b2; }
-.sys-net-rate.up { color: #be185d; }
+.sys-net-rate.down { color: var(--cyan-600); }
+.sys-net-rate.up { color: var(--pink-700); }
 
 /* ---- Node process ---- */
 .sys-process-grid {
@@ -272,21 +272,21 @@
   display: flex;
   flex-direction: column;
   gap: 3px;
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
+  background: var(--slate-50);
+  border: 1px solid var(--slate-200);
   border-radius: 10px;
   padding: 10px 12px;
 }
 .sys-process-label {
   font-size: 11px;
-  color: #94a3b8;
+  color: var(--slate-400);
   font-weight: 600;
   text-transform: uppercase;
 }
 .sys-process-value {
   font-size: 14px;
   font-weight: 700;
-  color: #0f172a;
+  color: var(--slate-900);
 }
 
 /* ---- top processes table ---- */
@@ -310,7 +310,7 @@
 .sys-chart-empty {
   text-align: center;
   font-size: 12.5px;
-  color: #94a3b8;
+  color: var(--slate-400);
   margin-top: -8px;
 }
 

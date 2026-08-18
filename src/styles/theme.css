@@ -2,47 +2,55 @@
    Academy — Shared Design Tokens
    Import once (or rely on it already being imported globally).
    All admin-shared components and pages reference these vars.
+
+   This file is the SEMANTIC layer: it names raw palette colors
+   (defined once in index.css) by the role they play in the admin
+   UI — --pri, --danger, --success, etc. Change the look of the
+   admin area by re-pointing these at different index.css colors;
+   change the actual colors themselves in index.css.
    ========================================================== */
+@import "./index.css";
+
 :root {
   /* Brand */
-  --pri: #2563eb;
-  --pri-grad: linear-gradient(135deg, #2563eb, #3b82f6);
-  --pri-grad-light: linear-gradient(135deg, #2563eb, #60a5fa);
-  --pri-deep: #1d4ed8;
-  --pri-tint: #eff6ff;
-  --pri-border: #bfdbfe;
+  --pri: var(--blue-600);
+  --pri-grad: linear-gradient(135deg, var(--blue-600), var(--blue-500));
+  --pri-grad-light: linear-gradient(135deg, var(--blue-600), var(--blue-400));
+  --pri-deep: var(--blue-700);
+  --pri-tint: var(--blue-50);
+  --pri-border: var(--blue-200);
 
-  --accent-2: #7c3aed;
-  --accent-2-grad: linear-gradient(135deg, #7c3aed, #a78bfa);
+  --accent-2: var(--violet-600);
+  --accent-2-grad: linear-gradient(135deg, var(--violet-600), var(--violet-400));
 
   /* Status */
-  --success: #16a34a;
-  --success-bg: #f0fdf4;
-  --success-border: #bbf7d0;
+  --success: var(--green-600);
+  --success-bg: var(--green-50);
+  --success-border: var(--green-200);
 
-  --warning: #d97706;
-  --warning-bg: #fffbeb;
-  --warning-border: #fde68a;
+  --warning: var(--amber-600);
+  --warning-bg: var(--amber-50);
+  --warning-border: var(--amber-200);
 
-  --danger: #ef4444;
-  --danger-bg: #fff5f5;
-  --danger-border: #fecaca;
+  --danger: var(--red-500);
+  --danger-bg: var(--red-50-b);
+  --danger-border: var(--red-200);
 
-  --info: #2563eb;
-  --info-bg: #eff6ff;
-  --info-border: #bfdbfe;
+  --info: var(--blue-600);
+  --info-bg: var(--blue-50);
+  --info-border: var(--blue-200);
 
   /* Neutrals */
-  --text-heading: #0f172a;
-  --text-body-med: #334155;
-  --text-body: #374151;
-  --text-muted: #64748b;
-  --text-placeholder: #94a3b8;
-  --icon-faint: #cbd5e1;
-  --border: #e2e8f0;
-  --divider: #f1f5f9;
-  --bg-subtle: #f8fafc;
-  --surface: #ffffff;
+  --text-heading: var(--slate-900);
+  --text-body-med: var(--slate-700);
+  --text-body: var(--gray-700);
+  --text-muted: var(--slate-500);
+  --text-placeholder: var(--slate-400);
+  --icon-faint: var(--slate-300);
+  --border: var(--slate-200);
+  --divider: var(--slate-100);
+  --bg-subtle: var(--slate-50);
+  --surface: var(--white);
 
   /* Radius */
   --r-sm: 10px;
@@ -52,18 +60,13 @@
   --r-pill: 99px;
 
   /* Shadows */
-  --shadow-card: 0 2px 8px rgba(0, 0, 0, 0.04);
-  --shadow-standard: 0 4px 24px rgba(0, 0, 0, 0.07);
-  --shadow-elevated: 0 12px 32px rgba(0, 0, 0, 0.12);
-  --shadow-modal: 0 20px 50px rgba(0, 0, 0, 0.25);
-  --shadow-glow: 0 4px 14px rgba(37, 99, 235, 0.28);
+  --shadow-card: 0 2px 8px rgba(var(--black-rgb), 0.04);
+  --shadow-standard: 0 4px 24px rgba(var(--black-rgb), 0.07);
+  --shadow-elevated: 0 12px 32px rgba(var(--black-rgb), 0.12);
+  --shadow-modal: 0 20px 50px rgba(var(--black-rgb), 0.25);
+  --shadow-glow: 0 4px 14px rgba(var(--blue-600-rgb), 0.28);
 }
 
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
 .cp-spin {
   animation: spin 0.8s linear infinite;
 }

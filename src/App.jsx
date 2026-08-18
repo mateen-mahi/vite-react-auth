@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext";
 import { GuestRoute, ProtectedRoute, RoleRoute } from "./routes/RouteGuards";
+import "./styles/App.css"
 import Layout from "./components/Layout";
 // Pages
 import Signup          from "./pages/Signup";
@@ -11,7 +12,6 @@ import ResetPassword   from "./pages/Reset-password";
 import VerifyUserMail  from "./pages/VerifyUserMail";
 import Dashboard       from "./pages/superAdmin/Dashboard";
 import LectureWatching from "./pages/LectureWatching";
-import Admin           from "./pages/Admin";
 import PaymentGateway  from "./pages/PaymentGateway";
 import LectureAndQuizContainer from './pages/LectureAndQuizContainer';
 import Unauthorized    from "./pages/Unauthorized";
@@ -80,7 +80,6 @@ function App() {
 <Route path="/admin/notes" element={<NotesManagement />} />
 <Route path="/admin/certificates" element={<CertificateManagement />} />
 <Route path="/admin/danger-zone" element={<DangerZone />} />
-      <Route path="/admin" element={<Admin />} />
     </Route>
 
     {/* <Route element={<RoleRoute allowedRoles={["super-admin"]} />}>

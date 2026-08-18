@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { FiPlus, FiTrash2 } from "react-icons/fi";
 import api from "../../../services/api";
-import Modal from "../../../components/admin-shared/Modal/Modal";
-import { showToast } from "../../../components/admin-shared/Toast/toast";
+import Modal from "../../../components/admin-shared/Modal";
+import { showToast } from "../../../components/admin-shared/toast.js";
 
 // IMPORTANT: your real Quiz schema stores `correctAnswer` as a zero-based
 // NUMBER INDEX into `options`, not the answer text. Every question here

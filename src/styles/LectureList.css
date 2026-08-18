@@ -9,8 +9,8 @@
   display: flex;
   flex-direction: column;
   gap: 10px;
-  background: #fff;
-  border: 1px solid #e2e8f0;
+  background: var(--white);
+  border: 1px solid var(--slate-200);
   border-radius: 16px;
   padding: 16px;
   min-width: 0;
@@ -26,13 +26,13 @@
 
   .ll-list::-webkit-scrollbar { width: 5px; }
   .ll-list::-webkit-scrollbar-track { background: transparent; }
-  .ll-list::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 99px; }
+  .ll-list::-webkit-scrollbar-thumb { background: var(--slate-200); border-radius: 99px; }
 }
 
 .ll-heading {
   font-size: 14px;
   font-weight: 700;
-  color: #0f172a;
+  color: var(--slate-900);
   margin: 2px 4px 4px;
 }
 
@@ -42,17 +42,17 @@
   gap: 12px;
   width: 100%;
   padding: 12px;
-  border: 1.5px solid #f1f5f9;
+  border: 1.5px solid var(--slate-100);
   border-radius: 12px;
-  background: #f8fafc;
+  background: var(--slate-50);
   cursor: pointer;
   text-align: left;
   transition: background 0.15s, border-color 0.15s, transform 0.1s;
 }
 
 .ll-card:hover {
-  background: #eff6ff;
-  border-color: #bfdbfe;
+  background: var(--blue-50);
+  border-color: var(--blue-200);
 }
 
 .ll-card:active {
@@ -60,14 +60,14 @@
 }
 
 .ll-card.active {
-  background: #eff6ff;
-  border-color: #2563eb;
-  box-shadow: 0 2px 10px rgba(37, 99, 235, 0.12);
+  background: var(--blue-50);
+  border-color: var(--blue-600);
+  box-shadow: 0 2px 10px rgba(var(--blue-600-rgb), 0.12);
 }
 
 .ll-card.done .ll-card-num {
-  background: #f0fdf4;
-  color: #16a34a;
+  background: var(--green-50);
+  color: var(--green-600);
 }
 
 .ll-card-num {
@@ -78,8 +78,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #e2e8f0;
-  color: #475569;
+  background: var(--slate-200);
+  color: var(--slate-600);
   font-size: 12.5px;
   font-weight: 700;
 }
@@ -92,7 +92,7 @@
 .ll-card-title {
   font-size: 13.5px;
   font-weight: 600;
-  color: #0f172a;
+  color: var(--slate-900);
   margin: 0 0 3px;
   white-space: nowrap;
   overflow: hidden;
@@ -101,7 +101,7 @@
 
 .ll-card-desc {
   font-size: 12px;
-  color: #94a3b8;
+  color: var(--slate-400);
   margin: 0;
   white-space: nowrap;
   overflow: hidden;
@@ -120,7 +120,7 @@
   align-items: center;
   gap: 4px;
   font-size: 11.5px;
-  color: #94a3b8;
+  color: var(--slate-400);
   white-space: nowrap;
 }
 
@@ -129,8 +129,8 @@
   flex-shrink: 0;
 }
 
-.ll-check.watched { color: #16a34a; }
-.ll-check.pending { color: #cbd5e1; }
+.ll-check.watched { color: var(--green-600); }
+.ll-check.pending { color: var(--slate-300); }
 
 /* ─── Responsive ──────────────────────────────────────────────────────────── */
 

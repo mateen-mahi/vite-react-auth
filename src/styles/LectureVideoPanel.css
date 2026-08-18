@@ -17,10 +17,10 @@
   position: relative;
   width: 100%;
   aspect-ratio: 16 / 9;
-  background: #0f172a;
+  background: var(--slate-900);
   border-radius: 18px;
   overflow: hidden;
-  box-shadow: 0 8px 28px rgba(15, 23, 42, 0.12);
+  box-shadow: 0 8px 28px rgba(var(--slate-900-rgb), 0.12);
 }
 
 /* The YT IFrame API swaps the target div for an <iframe id="yt-player">,
@@ -42,8 +42,8 @@
   align-items: center;
   justify-content: center;
   gap: 10px;
-  background: rgba(15, 23, 42, 0.92);
-  color: #cbd5e1;
+  background: rgba(var(--slate-900-rgb), 0.92);
+  color: var(--slate-300);
   font-size: 13.5px;
   z-index: 2;
   padding: 0 24px;
@@ -52,7 +52,7 @@
 
 .lvp-overlay svg {
   font-size: 26px;
-  color: #60a5fa;
+  color: var(--blue-400);
 }
 
 .lvp-spin {
@@ -64,7 +64,7 @@
 }
 
 .lvp-overlay-error {
-  color: #fca5a5;
+  color: var(--red-300);
 }
 
 /* ─── Watch progress bar ──────────────────────────────────────────────────── */
@@ -73,19 +73,19 @@
   width: 100%;
   height: 6px;
   border-radius: 99px;
-  background: #e2e8f0;
+  background: var(--slate-200);
   overflow: hidden;
 }
 
 .lvp-bar-fill {
   height: 100%;
   border-radius: 99px;
-  background: linear-gradient(90deg, #2563eb, #60a5fa);
+  background: linear-gradient(90deg, var(--blue-600), var(--blue-400));
   transition: width 0.3s linear;
 }
 
 .lvp-bar-fill.watched {
-  background: linear-gradient(90deg, #16a34a, #4ade80);
+  background: linear-gradient(90deg, var(--green-600), var(--green-400));
 }
 
 /* ─── Meta row (title/desc + status + next button) ───────────────────────── */
@@ -96,8 +96,8 @@
   align-items: flex-start;
   justify-content: space-between;
   gap: 16px;
-  background: #fff;
-  border: 1px solid #e2e8f0;
+  background: var(--white);
+  border: 1px solid var(--slate-200);
   border-radius: 16px;
   padding: 18px 22px;
 }
@@ -110,13 +110,13 @@
 .lvp-active-title {
   font-size: 17px;
   font-weight: 700;
-  color: #0f172a;
+  color: var(--slate-900);
   margin: 0 0 6px;
 }
 
 .lvp-active-desc {
   font-size: 13.5px;
-  color: #64748b;
+  color: var(--slate-500);
   line-height: 1.55;
   margin: 0;
 }
@@ -141,15 +141,15 @@
 }
 
 .lvp-status-badge.watched {
-  background: #f0fdf4;
-  color: #16a34a;
-  border: 1px solid #bbf7d0;
+  background: var(--green-50);
+  color: var(--green-600);
+  border: 1px solid var(--green-200);
 }
 
 .lvp-status-badge.pending {
-  background: #eff6ff;
-  color: #2563eb;
-  border: 1px solid #bfdbfe;
+  background: var(--blue-50);
+  color: var(--blue-600);
+  border: 1px solid var(--blue-200);
 }
 
 .lvp-status-badge .lvp-spin {
@@ -163,12 +163,12 @@
   padding: 9px 18px;
   border: none;
   border-radius: 10px;
-  background: linear-gradient(135deg, #2563eb, #3b82f6);
-  color: #fff;
+  background: linear-gradient(135deg, var(--blue-600), var(--blue-500));
+  color: var(--white);
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
-  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.28);
+  box-shadow: 0 4px 14px rgba(var(--blue-600-rgb), 0.28);
   transition: opacity 0.15s, transform 0.1s;
   white-space: nowrap;
 }

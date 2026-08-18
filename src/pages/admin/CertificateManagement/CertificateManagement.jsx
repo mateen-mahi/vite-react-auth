@@ -1,11 +1,11 @@
 import { useEffect, useState, useCallback } from "react";
 import { FiTrash2, FiEye, FiAward, FiPlus, FiSlash, FiSearch } from "react-icons/fi";
 import api from "../../../services/api";
-import DataTable from "../../../components/admin-shared/DataTable/DataTable";
-import Pagination from "../../../components/admin-shared/Pagination/Pagination";
-import ConfirmDialog from "../../../components/admin-shared/ConfirmDialog/ConfirmDialog";
-import ToastContainer from "../../../components/admin-shared/Toast/ToastContainer";
-import { showToast } from "../../../components/admin-shared/Toast/toast";
+import DataTable from "../../../components/admin-shared/DataTable";
+import Pagination from "../../../components/admin-shared/Pagination";
+import ConfirmDialog from "../../../components/admin-shared/ConfirmDialog";
+import ToastContainer from "../../../components/admin-shared/ToastContainer";
+import { showToast } from "../../../components/admin-shared/toast";
 import CertificateDetailsModal from "./CertificateDetailsModal";
 import IssueCertificateModal from "./IssueCertificateModal";
 import VerifyCertificateModal from "./VerifyCertificateModal";

@@ -34,7 +34,7 @@
 
 .lqc-nav button.active {
   background: var(--lms-primary);
-  color: #fff;
+  color: var(--white);
 }
 
 .lqc-content {

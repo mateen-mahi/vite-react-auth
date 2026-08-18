@@ -1,4 +1,4 @@
-import "./Spinner.css";
+import "./adminShared/Spinner.css";
 
 const Spinner = ({ label = "Loading…", size = 28 }) => {
   return (

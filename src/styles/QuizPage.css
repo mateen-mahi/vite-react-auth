@@ -38,7 +38,7 @@
   gap: 8px;
   margin-top: 6px;
   background: var(--lms-primary);
-  color: #fff;
+  color: var(--white);
   border: none;
   border-radius: var(--lms-radius-sm);
   padding: 10px 18px;
@@ -144,7 +144,7 @@
 
 .qp-btn-nav.primary {
   background: var(--lms-primary);
-  color: #fff;
+  color: var(--white);
 }
 
 .qp-btn-nav.primary:disabled {
@@ -159,7 +159,7 @@
   gap: 8px;
   width: 100%;
   background: var(--lms-success);
-  color: #fff;
+  color: var(--white);
   border: none;
   border-radius: var(--lms-radius-sm);
   padding: 13px;
@@ -170,7 +170,7 @@
 }
 
 .qp-btn-submit-persistent:hover {
-  background: #128a3e;
+  background: var(--green-800-b);
 }
 
 @media (max-width: 560px) {

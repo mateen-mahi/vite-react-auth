@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { FiUploadCloud } from "react-icons/fi";
-import Modal from "../Modal/Modal";
-import "./BulkJsonUploadModal.css";
+import Modal from "../Modal";
+import "./adminShared/BulkJsonUploadModal.css";
 
 /**
  * Generic "paste JSON array" bulk upload modal.

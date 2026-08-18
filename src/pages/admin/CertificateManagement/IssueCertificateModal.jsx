@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { FiUploadCloud, FiFile, FiSearch } from "react-icons/fi";
 import api from "../../../services/api";
-import Modal from "../../../components/admin-shared/Modal/Modal";
-import { showToast } from "../../../components/admin-shared/Toast/toast";
+import Modal from "../../../components/admin-shared/Modal";
+import { showToast } from "../../../components/admin-shared/toast.js";
 
 const ACCEPT_ATTR = ".pdf,.doc,.docx,.png,.jpg,.jpeg";
 

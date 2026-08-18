@@ -1,6 +1,6 @@
-import Spinner from "../Spinner/Spinner";
-import EmptyState from "../EmptyState/EmptyState";
-import "./DataTable.css";
+import Spinner from "./Spinner";
+import EmptyState from "./EmptyState";
+import "./adminShared/DataTable.css";
 
 /**
  * Generic table.

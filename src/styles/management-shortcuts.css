@@ -12,8 +12,8 @@
   justify-content: center;
   gap: 10px;
   padding: 24px 16px;
-  background: #fff;
-  border: 1px solid #e5e7eb;
+  background: var(--white);
+  border: 1px solid var(--gray-200);
   border-radius: 12px;
   cursor: pointer;
   transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
@@ -22,8 +22,8 @@
 
 .shortcut-card:hover {
   transform: translateY(-3px);
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
-  border-color: #c7d2fe;
+  box-shadow: 0 6px 16px rgba(var(--black-rgb), 0.08);
+  border-color: var(--blue-300-b);
 }
 
 .shortcut-card:active {
@@ -37,15 +37,15 @@
   width: 48px;
   height: 48px;
   border-radius: 50%;
-  background: #eef2ff;
-  color: #4f46e5;
+  background: var(--blue-100-e);
+  color: var(--indigo-600);
   font-size: 22px;
 }
 
 .shortcut-label {
   font-size: 14px;
   font-weight: 600;
-  color: #1f2937;
+  color: var(--gray-800);
 }
 
 @media (max-width: 480px) {

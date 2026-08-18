@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import api from "../../../services/api";
-import Modal from "../../../components/admin-shared/Modal/Modal";
-import Spinner from "../../../components/admin-shared/Spinner/Spinner";
-import { showToast } from "../../../components/admin-shared/Toast/toast";
+import Modal from "../../../components/admin-shared/Modal";
+import Spinner from "../../../components/admin-shared/Spinner";
+import { showToast } from "../../../components/admin-shared/toast.js";
 
 const UserDetailsModal = ({ user, onClose }) => {
   const [details, setDetails] = useState(null);

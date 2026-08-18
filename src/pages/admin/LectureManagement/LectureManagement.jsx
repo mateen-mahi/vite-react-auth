@@ -1,12 +1,12 @@
 import { useEffect, useMemo, useState, useCallback } from "react";
 import { FiPlus, FiTrash2, FiEdit2, FiPlayCircle } from "react-icons/fi";
 import api from "../../../services/api";
-import DataTable from "../../../components/admin-shared/DataTable/DataTable";
-import SearchBar from "../../../components/admin-shared/SearchBar/SearchBar";
-import Pagination from "../../../components/admin-shared/Pagination/Pagination";
-import ConfirmDialog from "../../../components/admin-shared/ConfirmDialog/ConfirmDialog";
-import ToastContainer from "../../../components/admin-shared/Toast/ToastContainer";
-import { showToast } from "../../../components/admin-shared/Toast/toast";
+import DataTable from "../../../components/admin-shared/DataTable";
+import SearchBar from "../../../components/admin-shared/SearchBar";
+import Pagination from "../../../components/admin-shared/Pagination";
+import ConfirmDialog from "../../../components/admin-shared/ConfirmDialog";
+import ToastContainer from "../../../components/admin-shared/ToastContainer";
+import { showToast } from "../../../components/admin-shared/toast";
 import LectureFormModal from "./LectureFormModal";
 import "./LectureManagement.css";
 

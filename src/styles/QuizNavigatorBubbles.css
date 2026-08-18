@@ -67,7 +67,7 @@
 .qnb-bubble.answered {
   background: var(--lms-primary);
   border-color: var(--lms-primary);
-  color: #fff;
+  color: var(--white);
 }
 
 /* Flagged overrides answered/unanswered coloring — comes after them in the
@@ -87,7 +87,7 @@
   height: 13px;
   padding: 2px;
   background: var(--lms-amber);
-  color: #fff;
+  color: var(--white);
   border-radius: 999px;
   box-sizing: content-box;
 }

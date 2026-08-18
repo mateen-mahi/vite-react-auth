@@ -1,5 +1,5 @@
 import { FiChevronLeft, FiChevronRight } from "react-icons/fi";
-import "./Pagination.css";
+import "./adminShared/Pagination.css";
 
 /**
  * page: current page (1-indexed)

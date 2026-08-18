@@ -140,7 +140,7 @@
   align-items: center;
   gap: 8px;
   background: var(--lms-primary);
-  color: #fff;
+  color: var(--white);
   border: none;
   border-radius: var(--lms-radius-sm);
   padding: 13px 26px;

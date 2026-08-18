@@ -12,9 +12,9 @@ import {
   FiRefreshCw,
 } from "react-icons/fi";
 import api from "../../../services/api";
-import DangerConfirmDialog from "../../../components/admin-shared/DangerConfirmDialog/DangerConfirmDialog";
-import ToastContainer from "../../../components/admin-shared/Toast/ToastContainer";
-import { showToast } from "../../../components/admin-shared/Toast/toast";
+import DangerConfirmDialog from "../../../components/admin-shared/DangerConfirmDialog";
+import ToastContainer from "../../../components/admin-shared/ToastContainer";
+import { showToast } from "../../../components/admin-shared/toast.js";
 import "./DangerZone.css";
 
 // ---------------------------------------------------------------

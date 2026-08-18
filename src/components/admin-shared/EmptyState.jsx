@@ -1,4 +1,4 @@
-import "./EmptyState.css";
+import "./adminShared/EmptyState.css";
 
 const EmptyState = ({ icon, title, subtitle, action }) => {
   return (

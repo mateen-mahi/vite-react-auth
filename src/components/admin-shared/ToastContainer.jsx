@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { FiCheckCircle, FiXCircle, FiInfo, FiX } from "react-icons/fi";
 import { subscribeToast } from "./toast";
-import "./Toast.css";
+import "./adminShared/Toast.css";
 
 const ICONS = {
   success: <FiCheckCircle />,

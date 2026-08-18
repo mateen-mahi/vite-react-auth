@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { FiAlertOctagon } from "react-icons/fi";
-import Modal from "../Modal/Modal";
-import "./DangerConfirmDialog.css";
+import Modal from "./Modal";
+import "./adminShared/DangerConfirmDialog.css";
 
 /**
  * Type-to-confirm dialog for irreversible, wide-blast-radius actions

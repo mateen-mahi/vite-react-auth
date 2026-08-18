@@ -72,7 +72,7 @@
 }
 
 .qqc-option:hover {
-  border-color: #93c5fd;
+  border-color: var(--blue-300);
   background: var(--lms-primary-soft);
 }
 
@@ -96,7 +96,7 @@
 
 .qqc-option.selected .qqc-option-letter {
   background: var(--lms-primary);
-  color: #fff;
+  color: var(--white);
 }
 
 .qqc-option-text {

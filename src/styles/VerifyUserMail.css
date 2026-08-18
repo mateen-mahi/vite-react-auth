@@ -2,20 +2,20 @@
    Tokens
 ─────────────────────────────────────────── */
 .otp-page {
-  --bg: #0a1628;
-  --bg-deep: #060d1a;
-  --card-bg: #0f1f38;
-  --card-border: rgba(110, 168, 255, 0.14);
-  --accent: #22d3ee;
-  --accent-soft: rgba(34, 211, 238, 0.16);
-  --accent-glow: rgba(34, 211, 238, 0.35);
-  --text-primary: #f1f6fb;
-  --text-secondary: #8ea3bf;
-  --text-faint: #5c7088;
-  --error: #fb7185;
-  --error-soft: rgba(251, 113, 133, 0.12);
-  --success: #34d399;
-  --success-soft: rgba(52, 211, 153, 0.1);
+  --bg: var(--blue-950-d);
+  --bg-deep: var(--blue-950-f);
+  --card-bg: var(--blue-950-b);
+  --card-border: rgba(var(--blue-400-b-rgb), 0.14);
+  --accent: var(--cyan-400);
+  --accent-soft: rgba(var(--cyan-400-rgb), 0.16);
+  --accent-glow: rgba(var(--cyan-400-rgb), 0.35);
+  --text-primary: var(--blue-100-h);
+  --text-secondary: var(--blue-500-d);
+  --text-faint: var(--blue-700-b);
+  --error: var(--rose-400);
+  --error-soft: rgba(var(--rose-400-rgb), 0.12);
+  --success: var(--emerald-400);
+  --success-soft: rgba(var(--emerald-400-rgb), 0.1);
 
   min-height: 100vh;
   width: 100%;
@@ -26,8 +26,8 @@
   gap: 1.75rem;
   padding: 2rem 1.25rem;
   background:
-    radial-gradient(ellipse 800px 500px at 50% -10%, rgba(34, 211, 238, 0.10), transparent 60%),
-    radial-gradient(ellipse 600px 400px at 90% 90%, rgba(59, 130, 246, 0.08), transparent 60%),
+    radial-gradient(ellipse 800px 500px at 50% -10%, rgba(var(--cyan-400-rgb), 0.10), transparent 60%),
+    radial-gradient(ellipse 600px 400px at 90% 90%, rgba(var(--blue-500-rgb), 0.08), transparent 60%),
     var(--bg-deep);
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   box-sizing: border-box;
@@ -69,19 +69,19 @@
 .otp-card {
   width: 100%;
   max-width: 440px;
-  background: linear-gradient(180deg, var(--card-bg) 0%, #0c1a30 100%);
+  background: linear-gradient(180deg, var(--card-bg) 0%, var(--blue-950-c) 100%);
   border: 1px solid var(--card-border);
   border-radius: 18px;
   overflow: hidden;
   box-shadow:
-    0 20px 60px -20px rgba(0, 0, 0, 0.6),
-    0 0 0 1px rgba(255, 255, 255, 0.02) inset;
+    0 20px 60px -20px rgba(var(--black-rgb), 0.6),
+    0 0 0 1px rgba(var(--white-rgb), 0.02) inset;
 }
 
 .otp-card__topbar {
   height: 3px;
   width: 100%;
-  background: linear-gradient(90deg, var(--accent) 0%, #818cf8 100%);
+  background: linear-gradient(90deg, var(--accent) 0%, var(--indigo-400) 100%);
   box-shadow: 0 0 16px 0 var(--accent-glow);
 }
 
@@ -126,7 +126,7 @@
   height: 56px;
   border-radius: 50%;
   background: var(--accent-soft);
-  border: 1px solid rgba(34, 211, 238, 0.3);
+  border: 1px solid rgba(var(--cyan-400-rgb), 0.3);
   color: var(--accent);
   display: flex;
   align-items: center;
@@ -180,8 +180,8 @@
   display: flex;
   align-items: center;
   gap: 0.65rem;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(var(--white-rgb), 0.03);
+  border: 1px solid rgba(var(--white-rgb), 0.08);
   border-radius: 10px;
   padding: 0 0.9rem;
   transition: border-color 0.15s, box-shadow 0.15s;
@@ -234,8 +234,8 @@
   padding: 0.9rem 1rem;
   border: none;
   border-radius: 10px;
-  background: linear-gradient(135deg, #22d3ee 0%, #3b82f6 100%);
-  color: #04141f;
+  background: linear-gradient(135deg, var(--cyan-400) 0%, var(--blue-500) 100%);
+  color: var(--cyan-950);
   font-size: 0.95rem;
   font-weight: 700;
   letter-spacing: 0.01em;
@@ -270,8 +270,8 @@
 .otp-form__spinner {
   width: 16px;
   height: 16px;
-  border: 2px solid rgba(4, 20, 31, 0.3);
-  border-top-color: #04141f;
+  border: 2px solid rgba(var(--cyan-950-rgb), 0.3);
+  border-top-color: var(--cyan-950);
   border-radius: 50%;
   animation: otp-spin 0.7s linear infinite;
 }
@@ -289,7 +289,7 @@
   align-items: flex-start;
   gap: 0.75rem;
   background: var(--success-soft);
-  border: 1px solid rgba(52, 211, 153, 0.25);
+  border: 1px solid rgba(var(--emerald-400-rgb), 0.25);
   border-radius: 10px;
   padding: 1rem 1.1rem;
   text-align: left;

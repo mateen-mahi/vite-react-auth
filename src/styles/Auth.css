@@ -5,7 +5,7 @@
 body {
   margin: 0;
   font-family: Arial, sans-serif;
-  background: #f5f7fb;
+  background: var(--blue-100-b);
 }
 
 .auth-container {
@@ -15,8 +15,8 @@ body {
   align-items: center;
   background: linear-gradient(
     135deg,
-    #4f46e5,
-    #7c3aed
+    var(--indigo-600),
+    var(--violet-600)
   );
 }
 
@@ -26,7 +26,7 @@ body {
   background: white;
   padding: 35px;
   border-radius: 16px;
-  box-shadow: 0 10px 30px rgba(0,0,0,.15);
+  box-shadow: 0 10px 30px rgba(var(--black-rgb), .15);
 }
 
 .auth-card h1 {
@@ -34,7 +34,7 @@ body {
 }
 
 .auth-card p {
-  color: #666;
+  color: var(--neutral-700);
   margin-bottom: 25px;
 }
 
@@ -52,14 +52,14 @@ body {
   width: 100%;
   padding: 12px;
   border-radius: 8px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--neutral-300);
 }
 
 .btn {
   width: 100%;
   padding: 12px;
   border: none;
-  background: #4f46e5;
+  background: var(--indigo-600);
   color: white;
   font-size: 16px;
   border-radius: 8px;
@@ -67,5 +67,5 @@ body {
 }
 
 .btn:hover {
-  background: #4338ca;
+  background: var(--indigo-700);
 }
