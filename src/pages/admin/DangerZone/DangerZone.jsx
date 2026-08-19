@@ -12,17 +12,35 @@ import {
   FiRefreshCw,
 } from "react-icons/fi";
 import api from "../../../services/api";
-import DangerConfirmDialog from "../../../components/admin-shared/DangerConfirmDialog";
-import ToastContainer from "../../../components/admin-shared/ToastContainer";
+import DangerConfirmDialog from "../../../components/admin-shared/DangerConfirmDialog.jsx";
+import ToastContainer from "../../../components/admin-shared/ToastContainer.jsx";
 import { showToast } from "../../../components/admin-shared/toast.js";
 import "./DangerZone.css";
 
+// A large-enough page size to mean "everything" for the resources that
+// don't have a dedicated clear-all endpoint — every list endpoint is now
+// paginated (some default to as few as 10), so a plain `api.get(endpoint)`
+// with no params only returns one page, not the full collection. Passing
+// a high `limit` is the correct way to opt into "give me everything" per
+// the pagination reference.
+const FETCH_ALL_LIMIT = 10000;
+
 // ---------------------------------------------------------------
-// Resource registry. `clearAllEndpoint` is used directly when the
-// backend has a dedicated bulk-delete route. When it doesn't,
-// `listEndpoint` + `deleteOne(id)` are used to fetch every record
-// and delete them one by one (Promise.all), same pattern used on
-// each individual management page.
+// Resource registry, updated for the new paginated list endpoints.
+//
+// - `listEndpoint` is used ONLY to read the real total count, via
+//   `?limit=1` (cheap — we just need the `totalKey` field off the
+//   response, not the records themselves).
+// - `totalKey` is which field on that response holds the true total —
+//   these differ per endpoint (see the pagination reference), so getting
+//   this right matters: `.data.length` would have silently reported the
+//   page size instead of the real count once these endpoints started
+//   paginating.
+// - `clearAllEndpoint` is used directly when the backend has a dedicated
+//   bulk-delete route (unaffected by the pagination changes).
+// - Without a `clearAllEndpoint`, `deleteOne(id)` + a `limit=<FETCH_ALL_LIMIT>`
+//   fetch are used to pull every record and delete them one by one —
+//   same pattern used on each individual management page's "Delete all".
 // ---------------------------------------------------------------
 const RESOURCES = [
   {
@@ -30,7 +48,8 @@ const RESOURCES = [
     label: "Users",
     icon: <FiUsers />,
     description: "Every registered user account, including admins and instructors.",
-    listEndpoint: "/users/all-users",
+    listEndpoint: "/admin/users",
+    totalKey: "totalUsers",
     clearAllEndpoint: "/users/clear-all-users",
     confirmPhrase: "DELETE ALL USERS",
   },
@@ -39,7 +58,8 @@ const RESOURCES = [
     label: "Courses",
     icon: <FiBookOpen />,
     description: "Every course, along with its association to lectures and quizzes.",
-    listEndpoint: "/courses/",
+    listEndpoint: "/courses",
+    totalKey: "total",
     deleteOne: (id) => `/courses/${id}`,
     confirmPhrase: "DELETE ALL COURSES",
   },
@@ -48,7 +68,8 @@ const RESOURCES = [
     label: "Lectures",
     icon: <FiPlayCircle />,
     description: "Every lecture across every course.",
-    listEndpoint: "/lectures/",
+    listEndpoint: "/lectures",
+    totalKey: "total",
     deleteOne: (id) => `/lectures/${id}`,
     confirmPhrase: "DELETE ALL LECTURES",
   },
@@ -57,7 +78,8 @@ const RESOURCES = [
     label: "Quizzes",
     icon: <FiHelpCircle />,
     description: "Every quiz and all of its questions.",
-    listEndpoint: "/quizzes/",
+    listEndpoint: "/quizzes",
+    totalKey: "total",
     deleteOne: (id) => `/quizzes/${id}`,
     confirmPhrase: "DELETE ALL QUIZZES",
   },
@@ -66,7 +88,8 @@ const RESOURCES = [
     label: "Books",
     icon: <FiFileText />,
     description: "Every uploaded book/document and its file in storage.",
-    listEndpoint: "/books/",
+    listEndpoint: "/books",
+    totalKey: "total",
     deleteOne: (id) => `/books/${id}`,
     confirmPhrase: "DELETE ALL BOOKS",
   },
@@ -75,7 +98,10 @@ const RESOURCES = [
     label: "Certificates",
     icon: <FiAward />,
     description: "Every issued certificate and its generated file.",
-    listEndpoint: "/certificates",
+    // Was "/certificates" — the admin-scoped, paginated route is
+    // /admin/certificates per the pagination reference.
+    listEndpoint: "/admin/certificates",
+    totalKey: "totalCertificates",
     deleteOne: (id) => `/certificates/${id}`,
     confirmPhrase: "DELETE ALL CERTIFICATES",
   },
@@ -84,12 +110,18 @@ const RESOURCES = [
     label: "Complaints",
     icon: <FiMessageSquare />,
     description: "Every user complaint, including replies and status history.",
-    listEndpoint: "/complaints/all-complaints",
+    // Was "/complaints/all-complaints" — the admin-scoped, paginated
+    // route is /admin/complaints.
+    listEndpoint: "/admin/complaints",
+    totalKey: "totalComplaints",
     clearAllEndpoint: "/complaints/clear-all-complaints",
     confirmPhrase: "DELETE ALL COMPLAINTS",
   },
 ];
 
+// For resources without a clearAllEndpoint, this pulls the full
+// collection (unfiltered, unpaginated in effect) so every record can be
+// deleted one by one.
 const extractArray = (data) =>
   data?.data || data?.users || data?.courses || data?.lectures ||
   data?.quizzes || data?.books || data?.certificates || data?.complaints || [];
@@ -106,8 +138,11 @@ const DangerZone = () => {
     await Promise.all(
       RESOURCES.map(async (r) => {
         try {
-          const res = await api.get(r.listEndpoint);
-          next[r.key] = extractArray(res.data).length;
+          // limit=1 — we only need the response's total field, not the
+          // record(s) themselves, so this stays cheap regardless of how
+          // large the collection actually is.
+          const res = await api.get(r.listEndpoint, { params: { limit: 1 } });
+          next[r.key] = res.data[r.totalKey] ?? 0;
         } catch {
           next[r.key] = null; // null = couldn't load count, not necessarily zero
         }
@@ -127,7 +162,7 @@ const DangerZone = () => {
       if (resource.clearAllEndpoint) {
         await api.delete(resource.clearAllEndpoint);
       } else {
-        const res = await api.get(resource.listEndpoint);
+        const res = await api.get(resource.listEndpoint, { params: { limit: FETCH_ALL_LIMIT } });
         const items = extractArray(res.data);
         await Promise.all(items.map((item) => api.delete(resource.deleteOne(item._id))));
       }
@@ -196,7 +231,7 @@ const DangerZone = () => {
               <button
                 className="btn btn-danger-outline btn-sm"
                 onClick={() => setTarget(resource)}
-                disabled={countsLoading || counts[resource.key] === 0}
+                disabled={countsLoading || !counts[resource.key]}
               >
                 <FiTrash2 /> Delete All
               </button>

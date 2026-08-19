@@ -958,6 +958,198 @@
 
 
 /* ============================================================
+   OVERVIEW PANELS — KPI trend badges, revenue panel, leaderboard,
+   complaints insight card, and the two-column overview row layout
+   (merged in)
+   ============================================================ */
+
+/* ---------- KPI card upgrades ---------- */
+.admin-kpi-card {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+}
+
+.admin-kpi-card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  margin-bottom: 6px;
+}
+
+.admin-kpi-card-loading {
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  color: var(--admin-text-muted, #64748b);
+}
+
+.admin-kpi-sub {
+  font-size: 11.5px;
+  color: var(--admin-text-muted, #64748b);
+  margin: 2px 0 0;
+}
+
+.admin-kpi-trend {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 7px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.admin-kpi-trend.up { background: #dcfce7; color: #16a34a; }
+.admin-kpi-trend.down { background: #fee2e2; color: #ef4444; }
+.admin-kpi-trend.flat { background: #f1f5f9; color: #64748b; }
+
+/* ---------- Overview two-column row ---------- */
+.admin-overview-row {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr;
+  gap: 16px;
+  align-items: start;
+}
+
+@media (max-width: 900px) {
+  .admin-overview-row { grid-template-columns: 1fr; }
+}
+
+/* ---------- Revenue panel ---------- */
+.admin-revenue-grid {
+  display: grid;
+  grid-template-columns: 1.6fr 1fr;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+@media (max-width: 640px) {
+  .admin-revenue-grid { grid-template-columns: 1fr; }
+}
+
+.admin-revenue-side {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.admin-revenue-stat {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--admin-border, #e2e8f0);
+  border-radius: 10px;
+}
+
+.admin-revenue-stat svg { font-size: 18px; color: #059669; flex-shrink: 0; }
+.admin-revenue-stat-value { font-size: 15px; font-weight: 700; margin: 0; }
+.admin-revenue-stat-label { font-size: 11.5px; color: var(--admin-text-muted, #64748b); margin: 1px 0 0; }
+
+.admin-revenue-orders {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.admin-gateway-list { display: flex; flex-direction: column; gap: 10px; }
+.admin-gateway-list-header {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 12.5px; font-weight: 600; color: var(--admin-text-muted, #64748b);
+  margin-bottom: 4px;
+}
+.admin-gateway-row {
+  display: grid;
+  grid-template-columns: 90px 1fr auto;
+  align-items: center;
+  gap: 10px;
+  font-size: 12.5px;
+}
+.admin-gateway-name { font-weight: 600; }
+.admin-gateway-bar-track {
+  height: 8px;
+  border-radius: 4px;
+  background: #f1f5f9;
+  overflow: hidden;
+}
+.admin-gateway-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #059669, #34d399);
+  border-radius: 4px;
+}
+.admin-gateway-value { color: var(--admin-text-muted, #64748b); white-space: nowrap; }
+
+/* ---------- Top courses leaderboard ---------- */
+.admin-leaderboard { display: flex; flex-direction: column; gap: 12px; }
+
+.admin-leaderboard-row {
+  display: grid;
+  grid-template-columns: 28px 1fr auto;
+  align-items: center;
+  gap: 12px;
+}
+
+.admin-leaderboard-rank {
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.admin-leaderboard-info { min-width: 0; }
+.admin-leaderboard-title {
+  font-size: 13.5px; font-weight: 600; margin: 0;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.admin-leaderboard-sub {
+  font-size: 11.5px; color: var(--admin-text-muted, #64748b);
+  margin: 2px 0 6px;
+}
+.admin-leaderboard-bar-track {
+  height: 6px; border-radius: 3px; background: #f1f5f9; overflow: hidden;
+}
+.admin-leaderboard-bar-fill {
+  height: 100%; border-radius: 3px;
+  background: linear-gradient(90deg, #2563eb, #60a5fa);
+}
+.admin-leaderboard-count {
+  font-size: 14px; font-weight: 700; color: var(--admin-text, #0f172a);
+}
+
+/* ---------- Complaints insight card ---------- */
+.admin-complaints-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  align-items: center;
+}
+
+@media (max-width: 480px) {
+  .admin-complaints-grid { grid-template-columns: 1fr; }
+}
+
+.admin-complaints-legend { display: flex; flex-direction: column; gap: 8px; }
+.admin-complaints-legend-row {
+  display: flex; align-items: center; gap: 8px; font-size: 12.5px;
+}
+.admin-legend-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.admin-legend-label { flex: 1; text-transform: capitalize; color: var(--admin-text-muted, #64748b); }
+.admin-legend-value { font-weight: 700; }
+
+.admin-complaints-resolution {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
+  padding-top: 10px;
+  border-top: 1px solid var(--admin-border, #e2e8f0);
+  font-size: 12px;
+  color: var(--admin-text-muted, #64748b);
+}
+
+
+/* ============================================================
    LIVE DOT
    ============================================================ */
 

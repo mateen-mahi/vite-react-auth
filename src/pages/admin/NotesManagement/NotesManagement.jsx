@@ -1,60 +1,46 @@
-import { useEffect, useMemo, useState, useCallback } from "react";
+import { useState } from "react";
 import { FiTrash2, FiFileText, FiStar } from "react-icons/fi";
 import api from "../../../services/api";
+import useListQuery from "../../../components/admin-shared/useListQuery";
 import DataTable from "../../../components/admin-shared/DataTable";
 import SearchBar from "../../../components/admin-shared/SearchBar";
+import FilterBar from "../../../components/admin-shared/FilterBar";
 import Pagination from "../../../components/admin-shared/Pagination";
 import ConfirmDialog from "../../../components/admin-shared/ConfirmDialog";
 import ToastContainer from "../../../components/admin-shared/ToastContainer";
 import { showToast } from "../../../components/admin-shared/toast.js";
 import "./NotesManagement.css";
 
-const PAGE_SIZE = 10;
+// GET /api/notes — sortable: title|createdAt|updatedAt.
+// Default sort: isPinned desc, then updatedAt desc.
+// Filters: isPinned, search (title only — the API does not search by
+// owner, so owner name/email can no longer be part of the free-text
+// search like the old client-side filter did; the Owner column is still
+// shown, just not searchable).
+const FILTER_CONFIG = [
+  {
+    key: "isPinned",
+    label: "Pinned",
+    options: [
+      { value: "true", label: "Pinned" },
+      { value: "false", label: "Not pinned" },
+    ],
+  },
+];
 
 const NotesManagement = () => {
-  const [notes, setNotes] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState("");
-  const [page, setPage] = useState(1);
+  const list = useListQuery({
+    endpoint: "/notes",
+    defaultSortBy: "updatedAt",
+    defaultOrder: "desc",
+    limit: 10,
+    initialFilters: { isPinned: "" },
+    parseResponse: (data) => ({ items: data.data, total: data.total, pages: data.pages }),
+  });
 
   const [selectedIds, setSelectedIds] = useState(new Set());
   const [confirmState, setConfirmState] = useState(null);
   const [actionLoading, setActionLoading] = useState(false);
-
-  const fetchNotes = useCallback(async () => {
-    setLoading(true);
-    try {
-      const res = await api.get("/notes/");
-      setNotes(res.data.data || res.data.notes || []);
-    } catch (err) {
-      showToast(err.response?.data?.message || "Failed to load notes", "error");
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchNotes();
-  }, [fetchNotes]);
-
-  const filtered = useMemo(() => {
-    if (!search.trim()) return notes;
-    const q = search.trim().toLowerCase();
-    return notes.filter(
-      (n) =>
-        n.title?.toLowerCase().includes(q) ||
-        n.owner?.username?.toLowerCase().includes(q) ||
-        n.owner?.email?.toLowerCase().includes(q)
-    );
-  }, [notes, search]);
-
-  const pages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
-  const pageSafe = Math.min(page, pages);
-  const paginated = filtered.slice((pageSafe - 1) * PAGE_SIZE, pageSafe * PAGE_SIZE);
-
-  useEffect(() => {
-    setPage(1);
-  }, [search]);
 
   const toggleRow = (id) => {
     setSelectedIds((prev) => {
@@ -63,13 +49,12 @@ const NotesManagement = () => {
       return next;
     });
   };
-  const allOnPageSelected =
-    paginated.length > 0 && paginated.every((n) => selectedIds.has(n._id));
+  const allOnPageSelected = list.items.length > 0 && list.items.every((n) => selectedIds.has(n._id));
   const toggleAllOnPage = () => {
     setSelectedIds((prev) => {
       const next = new Set(prev);
-      if (allOnPageSelected) paginated.forEach((n) => next.delete(n._id));
-      else paginated.forEach((n) => next.add(n._id));
+      if (allOnPageSelected) list.items.forEach((n) => next.delete(n._id));
+      else list.items.forEach((n) => next.add(n._id));
       return next;
     });
   };
@@ -90,12 +75,14 @@ const NotesManagement = () => {
         showToast(`${ids.length} note(s) deleted`, "success");
         setSelectedIds(new Set());
       } else if (confirmState.type === "all") {
-        await Promise.all(notes.map((n) => api.delete(`/notes/${n._id}`)));
+        const res = await api.get("/notes", { params: { page: 1, limit: 10000 } });
+        const all = res.data.data || [];
+        await Promise.all(all.map((n) => api.delete(`/notes/${n._id}`)));
         showToast("All notes deleted", "success");
         setSelectedIds(new Set());
       }
       setConfirmState(null);
-      fetchNotes();
+      list.refetch();
     } catch (err) {
       showToast(err.response?.data?.message || "Delete failed", "error");
     } finally {
@@ -104,7 +91,7 @@ const NotesManagement = () => {
   };
 
   const columns = [
-    { key: "title", label: "Title" },
+    { key: "title", label: "Title", sortable: true },
     {
       key: "owner",
       label: "Owner",
@@ -115,9 +102,7 @@ const NotesManagement = () => {
       label: "Pinned",
       render: (row) =>
         row.pinned ? (
-          <span className="status-badge status-warning">
-            <FiStar /> Pinned
-          </span>
+          <span className="status-badge status-warning"><FiStar /> Pinned</span>
         ) : (
           <span className="status-badge status-info">Not pinned</span>
         ),
@@ -125,9 +110,12 @@ const NotesManagement = () => {
     {
       key: "createdAt",
       label: "Created",
+      sortable: true,
       render: (row) => (row.createdAt ? new Date(row.createdAt).toLocaleDateString() : "—"),
     },
   ];
+
+  const hasActiveQuery = !!list.search || !!list.filters.isPinned;
 
   return (
     <div className="admin-page">
@@ -141,7 +129,8 @@ const NotesManagement = () => {
       </div>
 
       <div className="admin-toolbar">
-        <SearchBar value={search} onChange={setSearch} placeholder="Search by title or owner…" />
+        <SearchBar value={list.search} onChange={list.setSearch} placeholder="Search by title…" />
+        <FilterBar filters={list.filters} onChange={list.setFilter} onReset={list.resetFilters} config={FILTER_CONFIG} />
         {selectedIds.size > 0 && (
           <div className="admin-toolbar-selected">
             {selectedIds.size} selected
@@ -151,10 +140,9 @@ const NotesManagement = () => {
           </div>
         )}
         <button
-          className="btn btn-danger-outline btn-sm"
-          style={{ marginLeft: "auto" }}
+          className="btn btn-danger-outline btn-sm admin-toolbar-spacer"
           onClick={handleDeleteAll}
-          disabled={notes.length === 0}
+          disabled={list.total === 0}
         >
           <FiTrash2 /> Delete all
         </button>
@@ -163,48 +151,50 @@ const NotesManagement = () => {
       <div className="admin-card">
         <DataTable
           columns={columns}
-          data={paginated}
-          loading={loading}
+          data={list.items}
+          loading={list.loading}
           selectable
           selectedIds={selectedIds}
           onToggleRow={toggleRow}
           onToggleAll={toggleAllOnPage}
           allSelected={allOnPageSelected}
+          sortBy={list.sortBy}
+          order={list.order}
+          onSort={list.toggleSort}
           emptyProps={{
             icon: <FiFileText />,
-            title: search ? "No matching notes" : "No notes yet",
-            subtitle: search ? "Try a different search term." : "User notes will show up here.",
+            title: hasActiveQuery ? "No matching notes" : "No notes yet",
+            subtitle: hasActiveQuery ? "Try a different search term or filter." : "User notes will show up here.",
           }}
           actions={(row) => (
             <div className="dt-row-actions">
-              <button
-                className="btn-icon danger"
-                title="Delete note"
-                onClick={() => handleDeleteSingle(row)}
-              >
+              <button className="btn-icon danger" title="Delete note" onClick={() => handleDeleteSingle(row)}>
                 <FiTrash2 />
               </button>
             </div>
           )}
         />
-        <Pagination page={pageSafe} pages={pages} total={filtered.length} onPageChange={setPage} />
+        <Pagination
+          page={list.page}
+          pages={list.pages}
+          total={list.total}
+          limit={list.limit}
+          onPageChange={list.setPage}
+          onLimitChange={list.setLimit}
+        />
       </div>
 
       {confirmState && (
         <ConfirmDialog
           title={
-            confirmState.type === "all"
-              ? "Delete all notes?"
-              : confirmState.type === "multi"
-              ? `Delete ${selectedIds.size} notes?`
-              : "Delete this note?"
+            confirmState.type === "all" ? "Delete all notes?" :
+            confirmState.type === "multi" ? `Delete ${selectedIds.size} notes?` :
+            "Delete this note?"
           }
           message={
-            confirmState.type === "all"
-              ? "This permanently deletes every note. This cannot be undone."
-              : confirmState.type === "multi"
-              ? "This permanently deletes all selected notes. This cannot be undone."
-              : `This permanently deletes "${confirmState.target?.title}". This cannot be undone.`
+            confirmState.type === "all" ? "This permanently deletes every note. This cannot be undone." :
+            confirmState.type === "multi" ? "This permanently deletes all selected notes. This cannot be undone." :
+            `This permanently deletes "${confirmState.target?.title}". This cannot be undone.`
           }
           loading={actionLoading}
           onConfirm={runConfirmedDelete}

@@ -1,16 +1,3 @@
-/* ==========================================================================
-   INDEX.CSS
-   Global color palette — single source of truth for every color used across
-   the app. Import this file once, globally (in index.js). All other stylesheets
-   (including theme.css / tokens.css, which layer semantic names on top of this
-   file, and every page/component file) reference colors ONLY via these
-   variables — no hardcoded hex/rgb values should appear anywhere else.
-
-   Each color also has a matching `-rgb` variable holding the raw "r, g, b"
-   channel triplet, so translucent colors can be composed like:
-     box-shadow: 0 4px 14px rgba(var(--blue-600-rgb), 0.28);
-   instead of hardcoding a new rgba() literal.
-   ========================================================================== */
 
 :root {
   /* ---- Base — White / Black ---- */

@@ -1,0 +1,105 @@
+/* ==========================================================================
+   ADMIN-SHARED / layout.css
+   Page-level scaffolding shared by every management page: the header block,
+   the toolbar row (search + filters + bulk actions), and the card that
+   wraps the table + pagination.
+   ========================================================================== */
+
+.admin-page {
+  padding: 24px;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.admin-page-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+
+.admin-page-title {
+  margin: 0 0 4px;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--admin-text);
+}
+
+.admin-page-subtitle {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--admin-text-muted);
+}
+
+.admin-page-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+/* ── Toolbar: search + filters + bulk actions ─────────────────────────── */
+.admin-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
+.admin-toolbar-selected {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--admin-text);
+  background: var(--admin-primary-bg);
+  border: 1px solid var(--admin-primary-ring);
+  padding: 6px 10px 6px 14px;
+  border-radius: 999px;
+}
+
+.admin-toolbar-spacer {
+  margin-left: auto;
+}
+
+/* ── Card wrapper around table + pagination ───────────────────────────── */
+.admin-card {
+  background: var(--admin-surface);
+  border: 1px solid var(--admin-border);
+  border-radius: var(--admin-radius-lg);
+  box-shadow: var(--admin-shadow-sm);
+  overflow: hidden;
+}
+
+/* ── Responsive ────────────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .admin-page {
+    padding: 16px;
+  }
+  .admin-page-header {
+    flex-direction: column;
+  }
+  .admin-page-actions {
+    width: 100%;
+  }
+  .admin-page-actions .btn {
+    flex: 1;
+    justify-content: center;
+  }
+  .admin-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .admin-toolbar-spacer {
+    margin-left: 0;
+  }
+}
+
+@media (max-width: 480px) {
+  .admin-page-title {
+    font-size: 1.25rem;
+  }
+}

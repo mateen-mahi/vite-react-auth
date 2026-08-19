@@ -1,0 +1,328 @@
+/* ==========================================================================
+   BOOKS.CSS
+   Styles for the Books browsing page. Same visual language as courses.css
+   (card radius, spacing, hover behavior) so it feels native to the rest of
+   the app. Colors come from index.css tokens — var(--slate-500) etc — so
+   the palette stays centralized in one file.
+   ========================================================================== */
+
+.books-page {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 24px;
+}
+
+/* ─── Header ──────────────────────────────────────────────── */
+
+.books-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+
+.books-title {
+  margin: 0 0 4px;
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--slate-900);
+}
+
+.books-subtitle {
+  margin: 0;
+  font-size: 14px;
+  color: var(--slate-500);
+}
+
+/* ─── Filters ─────────────────────────────────────────────── */
+
+.books-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.books-search-wrap {
+  position: relative;
+  flex: 1;
+  min-width: 220px;
+}
+
+.books-search-icon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--slate-400);
+  font-size: 15px;
+  pointer-events: none;
+}
+
+.books-search-spinner {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--blue-500);
+  font-size: 14px;
+  pointer-events: none;
+}
+
+.books-search {
+  width: 100%;
+  padding: 10px 34px 10px 36px;
+  border: 1.5px solid var(--slate-200);
+  border-radius: 10px;
+  background: var(--white);
+  font-size: 13.5px;
+  color: var(--slate-900);
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.books-search:focus {
+  border-color: var(--blue-600);
+  box-shadow: 0 0 0 3px rgba(var(--blue-600-rgb), 0.08);
+}
+
+.books-selects {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.books-select {
+  padding: 9px 14px;
+  border: 1.5px solid var(--slate-200);
+  border-radius: 10px;
+  background: var(--white);
+  font-size: 13px;
+  color: var(--slate-600);
+  outline: none;
+  cursor: pointer;
+  transition: border-color 0.2s;
+  min-width: 160px;
+}
+
+.books-select:focus {
+  border-color: var(--blue-600);
+}
+
+/* ─── Results count ───────────────────────────────────────── */
+
+.books-count {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--slate-400);
+  margin-bottom: 16px;
+  font-weight: 500;
+}
+
+/* ─── Grid ────────────────────────────────────────────────── */
+
+.books-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 18px;
+}
+
+/* ─── Book card ───────────────────────────────────────────── */
+
+.book-card {
+  background: var(--white);
+  border: 1px solid var(--slate-200);
+  border-radius: 16px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.book-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 12px 28px rgba(var(--slate-900-rgb), 0.08);
+  border-color: var(--slate-300);
+}
+
+.book-card-thumb {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 96px;
+  background: linear-gradient(135deg, var(--blue-50), var(--blue-100));
+  border-bottom: 3px solid var(--blue-300);
+}
+
+.book-card-icon {
+  font-size: 34px;
+  color: var(--blue-600);
+}
+
+.book-card-body {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+}
+
+.book-card-course {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--blue-600);
+}
+
+.book-card-title {
+  margin: 2px 0 0;
+  font-size: 15.5px;
+  font-weight: 700;
+  color: var(--slate-900);
+  line-height: 1.35;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.book-card-desc {
+  margin: 0;
+  font-size: 13px;
+  color: var(--slate-500);
+  line-height: 1.5;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.book-card-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--slate-400);
+  margin-top: auto;
+  padding-top: 6px;
+}
+.book-card-meta span {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.book-card-footer {
+  padding: 12px 16px;
+  border-top: 1px solid var(--slate-100);
+}
+
+.book-card-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 9px 0;
+  border: none;
+  border-radius: 10px;
+  background: var(--blue-600);
+  color: var(--white);
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background 0.15s;
+}
+
+.book-card-btn:hover {
+  background: var(--blue-700);
+}
+
+.book-card-btn.disabled {
+  background: var(--slate-100);
+  color: var(--slate-400);
+  cursor: not-allowed;
+}
+
+/* ─── Empty state ─────────────────────────────────────────── */
+
+.books-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 64px 20px;
+  color: var(--slate-500);
+  background: var(--white);
+  border: 1px dashed var(--slate-200);
+  border-radius: 16px;
+}
+
+.books-empty-icon {
+  font-size: 32px;
+  color: var(--slate-300);
+  margin-bottom: 12px;
+}
+
+.books-empty-title {
+  margin: 0 0 4px;
+  font-weight: 700;
+  color: var(--slate-700);
+  font-size: 15px;
+}
+
+.books-empty-sub {
+  margin: 0;
+  font-size: 13px;
+}
+
+/* ─── Responsive ──────────────────────────────────────────── */
+
+@media (max-width: 1024px) {
+  .books-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .books-page {
+    padding: 16px;
+  }
+  .books-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 14px;
+  }
+  .books-filters {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .books-select {
+    flex: 1;
+  }
+}
+
+@media (max-width: 480px) {
+  .books-title {
+    font-size: 20px;
+  }
+  .books-grid {
+    grid-template-columns: 1fr;
+  }
+  .books-selects {
+    flex-direction: column;
+  }
+  .books-select {
+    width: 100%;
+  }
+}

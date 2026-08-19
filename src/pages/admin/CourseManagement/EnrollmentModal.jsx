@@ -21,7 +21,7 @@ const EnrollmentModal = ({ course, onClose, onSuccess }) => {
     (async () => {
       setLoadingUsers(true);
       try {
-        const res = await api.get("/users/all-users");
+        const res = await api.get("/admin/users");
         setUsers(res.data.users || res.data.data || []);
       } catch (err) {
         showToast(err.response?.data?.message || "Failed to load users", "error");

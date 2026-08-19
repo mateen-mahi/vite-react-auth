@@ -1,4 +1,4 @@
-@import "../../../styles/common.css";
+@import "../../../components/admin-shared/css/index.css";
 
 .lecture-title {
   font-weight: 600;

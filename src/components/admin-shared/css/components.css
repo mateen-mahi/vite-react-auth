@@ -1,0 +1,387 @@
+/* ==========================================================================
+   ADMIN-SHARED / components.css
+   Buttons, badges, form fields, modal, toast, spinner, empty state — the
+   small reusable pieces every management page and every modal is built
+   from.
+   ========================================================================== */
+
+/* ── Buttons ───────────────────────────────────────────────────────────── */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  padding: 9px 16px;
+  border-radius: var(--admin-radius-sm);
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: background var(--admin-transition), border-color var(--admin-transition),
+    color var(--admin-transition), opacity var(--admin-transition);
+  white-space: nowrap;
+}
+.btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.btn-sm {
+  padding: 6px 12px;
+  font-size: 0.8rem;
+}
+
+.btn-primary {
+  background: var(--admin-primary);
+  color: var(--admin-text-on-primary);
+}
+.btn-primary:hover:not(:disabled) {
+  background: var(--admin-primary-hover);
+}
+
+.btn-ghost {
+  background: transparent;
+  color: var(--admin-text);
+  border-color: var(--admin-border-strong);
+}
+.btn-ghost:hover:not(:disabled) {
+  background: var(--admin-surface-muted);
+}
+
+.btn-danger {
+  background: var(--admin-danger);
+  color: var(--white);
+}
+.btn-danger:hover:not(:disabled) {
+  background: var(--admin-danger-hover);
+}
+
+.btn-danger-outline {
+  background: var(--admin-danger-bg);
+  color: var(--admin-danger);
+  border-color: var(--admin-danger-border);
+}
+.btn-danger-outline:hover:not(:disabled) {
+  background: var(--red-100);
+}
+
+.btn-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--admin-radius-sm);
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--admin-text-muted);
+  cursor: pointer;
+  transition: background var(--admin-transition), color var(--admin-transition);
+}
+.btn-icon:hover {
+  background: var(--admin-surface-muted);
+  color: var(--admin-text);
+}
+.btn-icon.danger:hover {
+  background: var(--admin-danger-bg);
+  color: var(--admin-danger);
+}
+
+/* ── Status badges ─────────────────────────────────────────────────────── */
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 999px;
+  text-transform: capitalize;
+  line-height: 1.4;
+}
+.status-success {
+  background: var(--admin-success-bg);
+  color: var(--admin-success);
+  border: 1px solid var(--admin-success-border);
+}
+.status-warning {
+  background: var(--admin-warning-bg);
+  color: var(--admin-warning);
+  border: 1px solid var(--admin-warning-border);
+}
+.status-danger {
+  background: var(--admin-danger-bg);
+  color: var(--admin-danger);
+  border: 1px solid var(--admin-danger-border);
+}
+.status-info {
+  background: var(--admin-info-bg);
+  color: var(--admin-info);
+  border: 1px solid var(--admin-info-border);
+}
+
+/* ── Form fields (used inside modals) ─────────────────────────────────── */
+.field-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 14px;
+}
+.field-label {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--admin-text);
+}
+.field-label .required {
+  color: var(--admin-danger);
+  margin-left: 2px;
+}
+.field-input,
+.field-select {
+  font-size: 0.9rem;
+  padding: 9px 12px;
+  border-radius: var(--admin-radius-sm);
+  border: 1px solid var(--admin-border-strong);
+  background: var(--admin-surface);
+  color: var(--admin-text);
+  outline: none;
+  transition: border-color var(--admin-transition), box-shadow var(--admin-transition);
+}
+.field-input:focus,
+.field-select:focus {
+  border-color: var(--admin-primary-ring);
+  box-shadow: 0 0 0 3px rgba(var(--blue-500-rgb), 0.15);
+}
+.field-error {
+  font-size: 0.78rem;
+  color: var(--admin-danger);
+}
+.field-hint {
+  font-size: 0.78rem;
+  color: var(--admin-text-muted);
+}
+.checkbox {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--admin-primary);
+  cursor: pointer;
+}
+
+/* ── Modal ─────────────────────────────────────────────────────────────── */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(var(--slate-900-rgb), 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  z-index: 1000;
+  animation: fadeIn 0.15s ease;
+}
+.modal-box {
+  width: 100%;
+  background: var(--admin-surface);
+  border-radius: var(--admin-radius-lg);
+  box-shadow: var(--admin-shadow-md);
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  animation: popIn 0.16s ease;
+}
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--admin-border);
+}
+.modal-header h3 {
+  margin: 0;
+  font-size: 1.05rem;
+  color: var(--admin-text);
+}
+.modal-close-btn {
+  background: transparent;
+  border: none;
+  color: var(--admin-text-muted);
+  cursor: pointer;
+  display: flex;
+  padding: 4px;
+  border-radius: var(--admin-radius-sm);
+}
+.modal-close-btn:hover {
+  background: var(--admin-surface-muted);
+  color: var(--admin-text);
+}
+.modal-body {
+  padding: 20px;
+  overflow-y: auto;
+}
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 14px 20px;
+  border-top: 1px solid var(--admin-border);
+}
+
+.confirm-body {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+}
+.confirm-icon {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--admin-surface-muted);
+  color: var(--admin-text-muted);
+  font-size: 1.1rem;
+}
+.confirm-icon.danger {
+  background: var(--admin-danger-bg);
+  color: var(--admin-danger);
+}
+.confirm-body p {
+  margin: 0;
+  color: var(--admin-text);
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.detail-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.detail-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--admin-border);
+  font-size: 0.88rem;
+}
+.detail-row:last-child {
+  border-bottom: none;
+}
+.detail-label {
+  color: var(--admin-text-muted);
+}
+.detail-value {
+  color: var(--admin-text);
+  font-weight: 600;
+  text-align: right;
+}
+
+/* ── Toast ─────────────────────────────────────────────────────────────── */
+.toast-stack {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  z-index: 1100;
+  max-width: 360px;
+}
+.toast-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--admin-surface);
+  border: 1px solid var(--admin-border);
+  border-left: 4px solid var(--admin-border-strong);
+  border-radius: var(--admin-radius-sm);
+  box-shadow: var(--admin-shadow-md);
+  padding: 12px 14px;
+  font-size: 0.85rem;
+  color: var(--admin-text);
+  animation: fadeIn 0.18s ease;
+}
+.toast-success {
+  border-left-color: var(--admin-success);
+}
+.toast-success .toast-icon {
+  color: var(--admin-success);
+}
+.toast-error {
+  border-left-color: var(--admin-danger);
+}
+.toast-error .toast-icon {
+  color: var(--admin-danger);
+}
+.toast-info .toast-icon {
+  color: var(--admin-info);
+}
+.toast-msg {
+  flex: 1;
+}
+.toast-close {
+  background: transparent;
+  border: none;
+  color: var(--admin-text-faint);
+  cursor: pointer;
+  display: flex;
+}
+
+@media (max-width: 480px) {
+  .toast-stack {
+    left: 12px;
+    right: 12px;
+    top: 12px;
+    max-width: none;
+  }
+}
+
+/* ── Spinner / loading ─────────────────────────────────────────────────── */
+.spinner-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 48px 16px;
+  color: var(--admin-text-muted);
+}
+.cp-spin.spinner-ring {
+  border: 3px solid var(--admin-border);
+  border-top-color: var(--admin-primary);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+.spinner-label {
+  font-size: 0.85rem;
+  margin: 0;
+}
+
+/* ── Empty state ───────────────────────────────────────────────────────── */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 56px 20px;
+  color: var(--admin-text-muted);
+}
+.empty-state-icon {
+  font-size: 2rem;
+  color: var(--admin-text-faint);
+  margin-bottom: 12px;
+}
+.empty-state-title {
+  margin: 0 0 4px;
+  font-weight: 600;
+  color: var(--admin-text);
+  font-size: 0.95rem;
+}
+.empty-state-subtitle {
+  margin: 0;
+  font-size: 0.85rem;
+}
+.empty-state-action {
+  margin-top: 14px;
+}

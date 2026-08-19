@@ -1,0 +1,93 @@
+/* ==========================================================================
+   ADMIN-SHARED / variables.css
+   Semantic aliases for the admin management UI. Every value here points at
+   a color already defined in index.css — nothing new is introduced. This
+   file exists so the table/filter/modal/button CSS below never hardcodes a
+   hex value; if the palette in index.css changes, the whole admin kit
+   re-themes automatically.
+   ========================================================================== */
+
+:root {
+  /* Surfaces */
+  --admin-bg: var(--slate-50);
+  --admin-surface: var(--white);
+  --admin-surface-muted: var(--slate-100);
+  --admin-border: var(--slate-200);
+  --admin-border-strong: var(--slate-300);
+
+  /* Text */
+  --admin-text: var(--slate-900);
+  --admin-text-muted: var(--slate-500);
+  --admin-text-faint: var(--slate-400);
+  --admin-text-on-primary: var(--white);
+
+  /* Brand / primary actions */
+  --admin-primary: var(--blue-600);
+  --admin-primary-hover: var(--blue-700);
+  --admin-primary-bg: var(--blue-50);
+  --admin-primary-ring: var(--blue-500);
+
+  /* Status */
+  --admin-success: var(--green-700);
+  --admin-success-bg: var(--green-50);
+  --admin-success-border: var(--green-200);
+
+  --admin-warning: var(--amber-700);
+  --admin-warning-bg: var(--amber-50);
+  --admin-warning-border: var(--amber-200);
+
+  --admin-danger: var(--red-600);
+  --admin-danger-hover: var(--red-700);
+  --admin-danger-bg: var(--red-50);
+  --admin-danger-border: var(--red-200);
+
+  --admin-info: var(--blue-700);
+  --admin-info-bg: var(--blue-50);
+  --admin-info-border: var(--blue-200);
+
+  /* Shape / motion */
+  --admin-radius-sm: 6px;
+  --admin-radius-md: 10px;
+  --admin-radius-lg: 14px;
+  --admin-shadow-sm: 0 1px 2px rgba(var(--slate-900-rgb), 0.06);
+  --admin-shadow-md: 0 4px 14px rgba(var(--slate-900-rgb), 0.08);
+  --admin-transition: 150ms ease;
+
+  /* ── Legacy aliases ──────────────────────────────────────────────────
+     The original per-page stylesheets (CourseManagement.css, BookManagement.css,
+     etc.) were written against a `styles/common.css` that wasn't included
+     in what was uploaded, using names like --pri / --text-heading / --r-md.
+     Rather than guess at that file's values, these names are aliased here
+     to the same index.css-derived tokens above, so every existing rule
+     that references them (e.g. `.course-cell-title { color: var(--text-heading) }`)
+     keeps working instead of silently resolving to nothing. If the real
+     common.css turns up, these aliases can be deleted in one place. */
+  --pri: var(--admin-primary);
+  --pri-hover: var(--admin-primary-hover);
+  --pri-tint: var(--admin-primary-bg);
+  --pri-border: var(--admin-primary-ring);
+
+  --text-heading: var(--admin-text);
+  --text-body: var(--slate-700);
+  --text-body-med: var(--slate-600);
+  --text-muted: var(--admin-text-muted);
+  --text-placeholder: var(--admin-text-faint);
+
+  --surface: var(--admin-surface);
+  --bg-subtle: var(--admin-surface-muted);
+  --border: var(--admin-border);
+  --divider: var(--admin-border);
+
+  --success: var(--admin-success);
+  --success-bg: var(--admin-success-bg);
+  --success-border: var(--admin-success-border);
+  --danger: var(--admin-danger);
+  --danger-bg: var(--admin-danger-bg);
+  --danger-border: var(--admin-danger-border);
+
+  --r-sm: var(--admin-radius-sm);
+  --r-md: var(--admin-radius-md);
+  --r-lg: var(--admin-radius-lg);
+  --shadow-card: var(--admin-shadow-sm);
+  --shadow-standard: var(--admin-shadow-md);
+}

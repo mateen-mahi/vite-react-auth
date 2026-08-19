@@ -1,0 +1,83 @@
+/* ==========================================================================
+   ADMIN-SHARED / pagination.css
+   ========================================================================== */
+
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 14px 16px;
+  border-top: 1px solid var(--admin-border);
+}
+
+.pagination-total {
+  font-size: 0.8rem;
+  color: var(--admin-text-muted);
+}
+
+.pagination-controls {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+}
+
+.pagination-btn {
+  min-width: 32px;
+  height: 32px;
+  padding: 0 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--admin-radius-sm);
+  border: 1px solid var(--admin-border);
+  background: var(--admin-surface);
+  color: var(--admin-text);
+  font-size: 0.82rem;
+  cursor: pointer;
+  transition: background var(--admin-transition), color var(--admin-transition),
+    border-color var(--admin-transition);
+}
+.pagination-btn:hover:not(:disabled) {
+  background: var(--admin-surface-muted);
+}
+.pagination-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.pagination-btn.active {
+  background: var(--admin-primary);
+  border-color: var(--admin-primary);
+  color: var(--white);
+}
+.pagination-ellipsis {
+  color: var(--admin-text-faint);
+  padding: 0 4px;
+  font-size: 0.82rem;
+}
+
+.pagination-size-select {
+  font-size: 0.8rem;
+  color: var(--admin-text-muted);
+  border: 1px solid var(--admin-border);
+  border-radius: var(--admin-radius-sm);
+  padding: 5px 8px;
+  background: var(--admin-surface);
+}
+
+@media (max-width: 560px) {
+  .pagination {
+    justify-content: center;
+  }
+  .pagination-controls {
+    margin-left: 0;
+    width: 100%;
+    justify-content: center;
+  }
+  .pagination-total {
+    width: 100%;
+    text-align: center;
+  }
+}

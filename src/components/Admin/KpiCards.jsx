@@ -1,106 +1,120 @@
-import { useState, useEffect } from "react";
+// src/components/admin/KpiCards.jsx
 import {
-  FiUsers, FiCheckCircle, FiBookOpen, FiPlayCircle, FiHelpCircle,
-  FiDollarSign, FiAlertCircle, FiActivity, FiWifi, FiRefreshCw,
+  FiUsers, FiCheckCircle, FiBookOpen, FiAward,
+  FiDollarSign, FiAlertCircle, FiActivity, FiWifi, FiRefreshCw, FiTrendingUp, FiTrendingDown,
 } from "react-icons/fi";
-import api from "../../services/api";
-import { useAdminSocket } from "../../custom-hooks/useAdminSocket";
 
-const EMPTY_STATS = {
-  totalUsers: 0, verifiedUsers: 0, totalCourses: 0, totalLectures: 0,
-  totalQuizzes: 0, pendingComplaints: 0, revenue: 0, dau: 0, wau: 0, mau: 0,
-};
+// Renders a signed "+12%" / "-4%" badge, or nothing for metrics with no
+// meaningful comparison period (change === null).
+function TrendBadge({ change }) {
+  if (change === null || change === undefined) return null;
+  const isUp = change.startsWith("+");
+  const isFlat = change === "0%";
+  return (
+    <span className={`admin-kpi-trend ${isFlat ? "flat" : isUp ? "up" : "down"}`}>
+      {!isFlat && (isUp ? <FiTrendingUp /> : <FiTrendingDown />)}
+      {change}
+    </span>
+  );
+}
 
-export default function KpiCards() {
-  const [stats, setStats] = useState(EMPTY_STATS);
-  const [loading, setLoading] = useState(true);
-  const { onlineAdmins, subscribe } = useAdminSocket();
-
-
-  useEffect(() => {
-    const fetchStats = async () => {
-      try {
-        const res = await api.get("/admin/dashboard-stats");
-        const s = res.data.stats;
-        setStats({
-          totalUsers: s.totalUsers.value,
-          verifiedUsers: s.verifiedUsers.value,
-          totalCourses: s.totalCourses.value,
-          totalLectures: s.totalLectures.value,
-          totalQuizzes: s.totalQuizzes.value,
-          pendingComplaints: s.pendingComplaints.value,
-          revenue: s.revenue.value,
-          dau: s.dau.value,
-          wau: s.wau.value,
-          mau: s.mau.value,
-        });
-      } catch (err) {
-        console.error("Failed to load dashboard stats:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchStats();
-  }, []);
-
-  // Live bumps — one subscription per event that should move a specific number
-  useEffect(() => {
-    const cleanups = [
-      subscribe("user:registered", () => {
-        setStats((prev) => ({ ...prev, totalUsers: prev.totalUsers + 1 }));
-      }),
-      subscribe("course:created", () => {
-        setStats((prev) => ({ ...prev, totalCourses: prev.totalCourses + 1 }));
-      }),
-      subscribe("complaint:new", () => {
-        setStats((prev) => ({ ...prev, pendingComplaints: prev.pendingComplaints + 1 }));
-      }),
-      subscribe("complaint:statusChanged", (complaint) => {
-        // Only pending complaints count toward the KPI — a status change
-        // either adds or removes one from that count depending on direction.
-        setStats((prev) => {
-          if (complaint.status === "pending") return prev; // no-op, was already counted
-          return { ...prev, pendingComplaints: Math.max(0, prev.pendingComplaints - 1) };
-        });
-      }),
-    ];
-    return () => cleanups.forEach((c) => c());
-  }, [subscribe]);
-
-  if (loading) {
+export default function KpiCards({ stats, loading, onlineAdmins }) {
+  if (loading || !stats) {
     return (
       <div className="admin-kpi-grid">
-        <div className="admin-kpi-card"><FiRefreshCw className="cp-spin" /> Loading stats…</div>
+        <div className="admin-kpi-card admin-kpi-card-loading">
+          <FiRefreshCw className="cp-spin" /> Loading stats…
+        </div>
       </div>
     );
   }
 
+  const { users, courses, revenue, complaints, certificates, engagement } = stats;
+
   const cards = [
-    { label: "Total Users",        value: stats.totalUsers.toLocaleString(),          icon: FiUsers,       color: "#2563eb" },
-    { label: "Verified Users",     value: `${stats.verifiedUsers} / ${stats.totalUsers}`, icon: FiCheckCircle, color: "#16a34a" },
-    { label: "Total Courses",      value: stats.totalCourses,                          icon: FiBookOpen,    color: "#7c3aed" },
-    { label: "Total Lectures",     value: stats.totalLectures,                         icon: FiPlayCircle,  color: "#0891b2" },
-    { label: "Total Quizzes",      value: stats.totalQuizzes,                          icon: FiHelpCircle,  color: "#d97706" },
-    { label: "Est. Revenue",       value: `$${stats.revenue.toLocaleString()}`,        icon: FiDollarSign,  color: "#059669" },
-    { label: "Pending Complaints", value: stats.pendingComplaints,                     icon: FiAlertCircle, color: "#ef4444" },
-    { label: "Admins Online",      value: onlineAdmins, icon: FiWifi, color: "#16a34a", live: true },
-    { label: "DAU / WAU / MAU",    value: `${stats.dau} / ${stats.wau} / ${stats.mau}`, icon: FiActivity,    color: "#2563eb" },
+    {
+      label: "Total Users",
+      value: users.total.toLocaleString(),
+      sub: `${users.verified} verified`,
+      change: users.change,
+      icon: FiUsers,
+      color: "#2563eb",
+    },
+    {
+      label: "Total Revenue",
+      value: `$${revenue.total.toLocaleString()}`,
+      sub: `$${revenue.thisWeek.toLocaleString()} this week`,
+      change: revenue.change,
+      icon: FiDollarSign,
+      color: "#059669",
+    },
+    {
+      label: "Active Courses",
+      value: courses.total.toLocaleString(),
+      sub: `${courses.featured} featured`,
+      change: courses.change,
+      icon: FiBookOpen,
+      color: "#7c3aed",
+    },
+    {
+      label: "Completion Rate",
+      value: `${engagement.progress.completionRate}%`,
+      sub: `${engagement.progress.avgProgress}% avg. progress`,
+      change: null,
+      icon: FiCheckCircle,
+      color: "#0891b2",
+    },
+    {
+      label: "Pending Complaints",
+      value: complaints.pending.toLocaleString(),
+      sub: complaints.avgResolutionHours > 0 ? `~${complaints.avgResolutionHours}h to resolve` : "No resolved yet",
+      change: null,
+      icon: FiAlertCircle,
+      color: "#ef4444",
+    },
+    {
+      label: "Certificates Issued",
+      value: certificates.total.toLocaleString(),
+      sub: `${certificates.issuedThisWeek} this week`,
+      change: certificates.change,
+      icon: FiAward,
+      color: "#d97706",
+    },
+    {
+      label: "DAU / WAU / MAU",
+      value: `${engagement.dau} / ${engagement.wau} / ${engagement.mau}`,
+      sub: "active users",
+      change: null,
+      icon: FiActivity,
+      color: "#2563eb",
+    },
+    {
+      label: "Admins Online",
+      value: onlineAdmins,
+      sub: "watching this dashboard",
+      change: null,
+      icon: FiWifi,
+      color: "#16a34a",
+      live: true,
+    },
   ];
 
   return (
     <div className="admin-kpi-grid">
       {cards.map((c) => (
         <div key={c.label} className="admin-kpi-card">
-          <div className="admin-kpi-icon" style={{ background: c.color + "14", color: c.color }}>
-            <c.icon />
+          <div className="admin-kpi-card-top">
+            <div className="admin-kpi-icon" style={{ background: c.color + "14", color: c.color }}>
+              <c.icon />
+            </div>
+            <TrendBadge change={c.change} />
           </div>
-          <div>
-            <p className="admin-kpi-value">
-              {c.value}
-              {c.live && <span className="admin-live-dot" />}
-            </p>
-            <p className="admin-kpi-label">{c.label}</p>
-          </div>
+          <p className="admin-kpi-value">
+            {c.value}
+            {c.live && <span className="admin-live-dot" />}
+          </p>
+          <p className="admin-kpi-label">{c.label}</p>
+          {c.sub && <p className="admin-kpi-sub">{c.sub}</p>}
         </div>
       ))}
     </div>

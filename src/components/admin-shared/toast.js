@@ -1,5 +1,3 @@
-
-
 let listeners = [];
 let idCounter = 0;
 

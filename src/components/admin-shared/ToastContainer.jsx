@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { FiCheckCircle, FiXCircle, FiInfo, FiX } from "react-icons/fi";
 import { subscribeToast } from "./toast";
-import "./adminShared/Toast.css";
+import "./css/index.css";
 
 const ICONS = {
   success: <FiCheckCircle />,
@@ -22,9 +22,7 @@ const ToastContainer = () => {
   }, []);
 
   useEffect(() => {
-    const timers = toasts.map((t) =>
-      setTimeout(() => remove(t.id), t.duration)
-    );
+    const timers = toasts.map((t) => setTimeout(() => remove(t.id), t.duration));
     return () => timers.forEach(clearTimeout);
   }, [toasts, remove]);
 
@@ -36,11 +34,7 @@ const ToastContainer = () => {
         <div key={t.id} className={`toast-item toast-${t.type}`}>
           <span className="toast-icon">{ICONS[t.type] || ICONS.info}</span>
           <span className="toast-msg">{t.message}</span>
-          <button
-            className="toast-close"
-            onClick={() => remove(t.id)}
-            aria-label="Dismiss"
-          >
+          <button className="toast-close" onClick={() => remove(t.id)} aria-label="Dismiss">
             <FiX />
           </button>
         </div>

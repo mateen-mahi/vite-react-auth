@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useState, useCallback } from "react";
 import { FiPlus, FiTrash2, FiEdit2, FiHelpCircle } from "react-icons/fi";
 import api from "../../../services/api";
+import useListQuery from "../../../components/admin-shared/useListQuery";
 import DataTable from "../../../components/admin-shared/DataTable";
 import SearchBar from "../../../components/admin-shared/SearchBar";
+import FilterBar from "../../../components/admin-shared/FilterBar";
 import Pagination from "../../../components/admin-shared/Pagination";
 import ConfirmDialog from "../../../components/admin-shared/ConfirmDialog";
 import ToastContainer from "../../../components/admin-shared/ToastContainer";
@@ -10,40 +12,24 @@ import { showToast } from "../../../components/admin-shared/toast.js";
 import QuizFormModal from "./QuizFormModal";
 import "./QuizManagement.css";
 
-const PAGE_SIZE = 10;
-
+// GET /api/quizzes — sortable: title|subject|totalTime|createdAt.
+// Filters: courseId, subject (partial match), search (title).
 const QuizManagement = () => {
-  const [quizzes, setQuizzes] = useState([]);
+  const list = useListQuery({
+    endpoint: "/quizzes",
+    defaultSortBy: "createdAt",
+    defaultOrder: "desc",
+    limit: 10,
+    initialFilters: { courseId: "" },
+    parseResponse: (data) => ({ items: data.data, total: data.total, pages: data.pages }),
+  });
+
   const [courses, setCourses] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState("");
-  const [page, setPage] = useState(1);
-
-  const [selectedIds, setSelectedIds] = useState(new Set());
-  const [showAddModal, setShowAddModal] = useState(false);
-  const [editQuiz, setEditQuiz] = useState(null);
-  const [confirmState, setConfirmState] = useState(null);
-  const [actionLoading, setActionLoading] = useState(false);
-
-  const fetchAll = useCallback(async () => {
-    setLoading(true);
-    try {
-      const [quizzesRes, coursesRes] = await Promise.all([
-        api.get("/quizzes"),
-        api.get("/courses"),
-      ]);
-      setQuizzes(quizzesRes.data.data || quizzesRes.data.quizzes || []);
-      setCourses(coursesRes.data.data || coursesRes.data.courses || []);
-    } catch (err) {
-      showToast(err.response?.data?.message || "Failed to load quizzes", "error");
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
   useEffect(() => {
-    fetchAll();
-  }, [fetchAll]);
+    api.get("/courses", { params: { limit: 500 } })
+      .then((res) => setCourses(res.data.data || []))
+      .catch(() => {});
+  }, []);
 
   const courseTitleById = useMemo(() => {
     const map = {};
@@ -51,24 +37,28 @@ const QuizManagement = () => {
     return map;
   }, [courses]);
 
-  const filtered = useMemo(() => {
-    if (!search.trim()) return quizzes;
-    const q = search.trim().toLowerCase();
-    return quizzes.filter(
-      (item) =>
-        item.title?.toLowerCase().includes(q) ||
-        item.subject?.toLowerCase().includes(q) ||
-        (courseTitleById[item.courseId?._id || item.courseId] || "").toLowerCase().includes(q)
-    );
-  }, [quizzes, search, courseTitleById]);
+  const FILTER_CONFIG = [
+    { key: "courseId", label: "Course", options: courses.map((c) => ({ value: c._id, label: c.title })) },
+  ];
 
-  const pages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
-  const pageSafe = Math.min(page, pages);
-  const paginated = filtered.slice((pageSafe - 1) * PAGE_SIZE, pageSafe * PAGE_SIZE);
-
+  // "subject" is its own partial-match filter (separate from the title
+  // search box), so it gets its own small debounce rather than piggy-
+  // backing on useListQuery's built-in one.
+  const [subjectInput, setSubjectInput] = useState("");
+  const applySubjectFilter = useCallback((value) => {
+    list.setFilter("subject", value.trim());
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   useEffect(() => {
-    setPage(1);
-  }, [search]);
+    const t = setTimeout(() => applySubjectFilter(subjectInput), 400);
+    return () => clearTimeout(t);
+  }, [subjectInput, applySubjectFilter]);
+
+  const [selectedIds, setSelectedIds] = useState(new Set());
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [editQuiz, setEditQuiz] = useState(null);
+  const [confirmState, setConfirmState] = useState(null);
+  const [actionLoading, setActionLoading] = useState(false);
 
   const toggleRow = (id) => {
     setSelectedIds((prev) => {
@@ -77,13 +67,12 @@ const QuizManagement = () => {
       return next;
     });
   };
-  const allOnPageSelected =
-    paginated.length > 0 && paginated.every((q) => selectedIds.has(q._id));
+  const allOnPageSelected = list.items.length > 0 && list.items.every((q) => selectedIds.has(q._id));
   const toggleAllOnPage = () => {
     setSelectedIds((prev) => {
       const next = new Set(prev);
-      if (allOnPageSelected) paginated.forEach((q) => next.delete(q._id));
-      else paginated.forEach((q) => next.add(q._id));
+      if (allOnPageSelected) list.items.forEach((q) => next.delete(q._id));
+      else list.items.forEach((q) => next.add(q._id));
       return next;
     });
   };
@@ -104,12 +93,14 @@ const QuizManagement = () => {
         showToast(`${ids.length} quiz(zes) deleted`, "success");
         setSelectedIds(new Set());
       } else if (confirmState.type === "all") {
-        await Promise.all(quizzes.map((q) => api.delete(`/quizzes/${q._id}`)));
+        const res = await api.get("/quizzes", { params: { page: 1, limit: 10000 } });
+        const all = res.data.data || [];
+        await Promise.all(all.map((q) => api.delete(`/quizzes/${q._id}`)));
         showToast("All quizzes deleted", "success");
         setSelectedIds(new Set());
       }
       setConfirmState(null);
-      fetchAll();
+      list.refetch();
     } catch (err) {
       showToast(err.response?.data?.message || "Delete failed", "error");
     } finally {
@@ -118,16 +109,18 @@ const QuizManagement = () => {
   };
 
   const columns = [
-    { key: "title", label: "Quiz" },
-    { key: "subject", label: "Subject" },
+    { key: "title", label: "Quiz", sortable: true },
+    { key: "subject", label: "Subject", sortable: true },
     {
       key: "courseId",
       label: "Course",
       render: (row) => courseTitleById[row.courseId?._id || row.courseId] || "—",
     },
-    { key: "totalTime", label: "Time", render: (row) => `${row.totalTime} min` },
-    { key: "questions", label: "Questions", render: (row) => row.questions?.length || 0 },
+    { key: "totalTime", label: "Time", sortable: true, render: (row) => `${row.totalTime} min` },
+    { key: "questions", label: "Questions", render: (row) => row.questionCount|| 0 },
   ];
+
+  const hasActiveQuery = !!list.search || !!list.filters.courseId || !!subjectInput;
 
   return (
     <div className="admin-page">
@@ -148,7 +141,17 @@ const QuizManagement = () => {
       </div>
 
       <div className="admin-toolbar">
-        <SearchBar value={search} onChange={setSearch} placeholder="Search by title, subject, or course…" />
+        <SearchBar value={list.search} onChange={list.setSearch} placeholder="Search by title…" />
+        <div className="filter-select-wrap">
+          <input
+            className="field-input"
+            style={{ minWidth: 160 }}
+            placeholder="Filter by subject…"
+            value={subjectInput}
+            onChange={(e) => setSubjectInput(e.target.value)}
+          />
+        </div>
+        <FilterBar filters={list.filters} onChange={list.setFilter} onReset={list.resetFilters} config={FILTER_CONFIG} showReset={false} />
         {selectedIds.size > 0 && (
           <div className="admin-toolbar-selected">
             {selectedIds.size} selected
@@ -158,10 +161,9 @@ const QuizManagement = () => {
           </div>
         )}
         <button
-          className="btn btn-danger-outline btn-sm"
-          style={{ marginLeft: "auto" }}
+          className="btn btn-danger-outline btn-sm admin-toolbar-spacer"
           onClick={handleDeleteAll}
-          disabled={quizzes.length === 0}
+          disabled={list.total === 0}
         >
           <FiTrash2 /> Delete all
         </button>
@@ -170,34 +172,40 @@ const QuizManagement = () => {
       <div className="admin-card">
         <DataTable
           columns={columns}
-          data={paginated}
-          loading={loading}
+          data={list.items}
+          loading={list.loading}
           selectable
           selectedIds={selectedIds}
           onToggleRow={toggleRow}
           onToggleAll={toggleAllOnPage}
           allSelected={allOnPageSelected}
+          sortBy={list.sortBy}
+          order={list.order}
+          onSort={list.toggleSort}
           emptyProps={{
             icon: <FiHelpCircle />,
-            title: search ? "No matching quizzes" : "No quizzes yet",
-            subtitle: search ? "Try a different search term." : "Add your first quiz to get started.",
+            title: hasActiveQuery ? "No matching quizzes" : "No quizzes yet",
+            subtitle: hasActiveQuery ? "Try a different search term or filter." : "Add your first quiz to get started.",
           }}
           actions={(row) => (
             <div className="dt-row-actions">
               <button className="btn-icon" title="Edit quiz" onClick={() => setEditQuiz(row)}>
                 <FiEdit2 />
               </button>
-              <button
-                className="btn-icon danger"
-                title="Delete quiz"
-                onClick={() => handleDeleteSingle(row)}
-              >
+              <button className="btn-icon danger" title="Delete quiz" onClick={() => handleDeleteSingle(row)}>
                 <FiTrash2 />
               </button>
             </div>
           )}
         />
-        <Pagination page={pageSafe} pages={pages} total={filtered.length} onPageChange={setPage} />
+        <Pagination
+          page={list.page}
+          pages={list.pages}
+          total={list.total}
+          limit={list.limit}
+          onPageChange={list.setPage}
+          onLimitChange={list.setLimit}
+        />
       </div>
 
       {showAddModal && (
@@ -205,10 +213,7 @@ const QuizManagement = () => {
           mode="add"
           courses={courses}
           onClose={() => setShowAddModal(false)}
-          onSuccess={() => {
-            setShowAddModal(false);
-            fetchAll();
-          }}
+          onSuccess={() => { setShowAddModal(false); list.refetch(); }}
         />
       )}
 
@@ -218,28 +223,21 @@ const QuizManagement = () => {
           quiz={editQuiz}
           courses={courses}
           onClose={() => setEditQuiz(null)}
-          onSuccess={() => {
-            setEditQuiz(null);
-            fetchAll();
-          }}
+          onSuccess={() => { setEditQuiz(null); list.refetch(); }}
         />
       )}
 
       {confirmState && (
         <ConfirmDialog
           title={
-            confirmState.type === "all"
-              ? "Delete all quizzes?"
-              : confirmState.type === "multi"
-              ? `Delete ${selectedIds.size} quizzes?`
-              : "Delete this quiz?"
+            confirmState.type === "all" ? "Delete all quizzes?" :
+            confirmState.type === "multi" ? `Delete ${selectedIds.size} quizzes?` :
+            "Delete this quiz?"
           }
           message={
-            confirmState.type === "all"
-              ? "This permanently deletes every quiz. This cannot be undone."
-              : confirmState.type === "multi"
-              ? "This permanently deletes all selected quizzes. This cannot be undone."
-              : `This permanently deletes "${confirmState.target?.title}". This cannot be undone.`
+            confirmState.type === "all" ? "This permanently deletes every quiz. This cannot be undone." :
+            confirmState.type === "multi" ? "This permanently deletes all selected quizzes. This cannot be undone." :
+            `This permanently deletes "${confirmState.target?.title}". This cannot be undone.`
           }
           loading={actionLoading}
           onConfirm={runConfirmedDelete}

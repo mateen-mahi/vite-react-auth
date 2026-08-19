@@ -1,17 +1,16 @@
 import { FiAlertTriangle } from "react-icons/fi";
 import Modal from "./Modal";
-import "./adminShared/ConfirmDialog.css";
+import "./css/index.css";
 
 /**
  * Generic confirmation dialog for delete / destructive actions.
  *
  * Props:
- *  - title: string
- *  - message: string | node
+ *  - title, message
  *  - confirmLabel: string (default "Delete")
  *  - danger: bool (default true) — styles confirm button red vs blue
  *  - loading: bool — disables buttons + shows "Working..." label
- *  - onConfirm, onClose: fn
+ *  - onConfirm, onClose
  */
 const ConfirmDialog = ({
   title = "Are you sure?",

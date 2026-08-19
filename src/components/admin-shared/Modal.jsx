@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { FiX } from "react-icons/fi";
-import "./adminShared/Modal.css";
+import "./css/index.css";
 
 const Modal = ({ title, onClose, children, width = 480, footer }) => {
   useEffect(() => {

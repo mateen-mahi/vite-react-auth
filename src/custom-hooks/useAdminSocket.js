@@ -8,14 +8,16 @@ const MAX_FEED_ITEMS = 50;
 // Human-readable label for each event type — used by the live feed and
 // reused anywhere else you want to describe an admin event generically.
 const EVENT_LABELS = {
-  "user:registered":        (d) => `New user registered: ${d.username}`,
-  "course:created":         (d) => `New course created: ${d.title}`,
-  "course:updated":         (d) => `Course updated: ${d.title}`,
-  "enrollment:new":         (d) => `New enrollment: ${d.courseTitle}`,
-  "complaint:new":          (d) => `New complaint: ${d.subject}`,
+  "user:registered":         (d) => `New user registered: ${d.username}`,
+  "course:created":          (d) => `New course created: ${d.title}`,
+  "course:updated":          (d) => `Course updated: ${d.title}`,
+  "enrollment:new":          (d) => `New enrollment: ${d.courseTitle}`,
+  "complaint:new":           (d) => `New complaint: ${d.subject}`,
   "complaint:statusChanged": (d) => `Complaint status → ${d.status}`,
-  "login:new":              (d) => `${d.username} logged in`,
-  "login:failed":           (d) => `Failed login attempt: ${d.email}`,
+  "login:new":               (d) => `${d.username} logged in`,
+  "login:failed":            (d) => `Failed login attempt: ${d.email}`,
+  "order:completed":         (d) => `Order completed: $${d.amountPaid} via ${d.paymentGateway}`,
+  "certificate:issued":      (d) => `Certificate issued: ${d.certificateNumber}`,
 };
 
 /**

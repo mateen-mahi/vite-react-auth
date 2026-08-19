@@ -2,6 +2,7 @@ import { useNavigate } from "react-router-dom";
 import {
   FiUsers, FiBookOpen, FiMessageSquare, FiPlayCircle,
   FiHelpCircle, FiFileText, FiAward,
+  FiAlertTriangle,
 } from "react-icons/fi";
 import "../../styles/management-shortcuts.css";
 
@@ -13,6 +14,9 @@ const SHORTCUTS = [
   { label: "Quiz Management",        icon: FiHelpCircle,   path: "/admin/quizzes" },
   { label: "Notes Management",       icon: FiFileText,     path: "/admin/notes" },
   { label: "Certificate Management", icon: FiAward,        path: "/admin/certificates" },
+  { label: "Books Management",       icon:FiBookOpen,      path:  "/admin/books"},
+    { label: "Danger Zone",          icon:FiAlertTriangle,      path:  "/admin/danger-zone"},
+
 ];
 
 export default function ManagementShortcuts() {

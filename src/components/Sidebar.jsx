@@ -11,6 +11,7 @@ import {
   FiLayers,
   FiLogOut,
   FiAlertCircle,
+  FiBookOpen,
 } from "react-icons/fi";
 
 import "../styles/Sidebar.css";
@@ -355,6 +356,26 @@ export default function Sidebar({
             )}
 
           </NavLink>
+
+
+
+                    <NavLink
+            to="/books"
+            onClick={closeSidebar}
+            title="Books"
+            className="sidebar-nav-item"
+          >
+
+            <FiBookOpen className="sidebar-nav-icon" />
+
+            {isOpen && (
+              <span className="sidebar-nav-label">
+                Books
+              </span>
+            )}
+
+          </NavLink>
+
 
 
           {/* =================================================

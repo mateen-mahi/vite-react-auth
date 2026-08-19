@@ -20,7 +20,7 @@ const PasswordModal = ({ user, onClose }) => {
     }
     setSubmitting(true);
     try {
-      await api.put(`/users/update-password/${user._id}`, { password });
+      await api.put(`/admin/users/update-password/${user._id}`, { password });
       showToast("Password updated successfully", "success");
       onClose();
     } catch (err) {

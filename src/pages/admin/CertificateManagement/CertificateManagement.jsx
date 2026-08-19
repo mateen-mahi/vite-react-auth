@@ -1,6 +1,7 @@
-import { useEffect, useState, useCallback } from "react";
-import { FiTrash2, FiEye, FiAward, FiPlus, FiSlash, FiSearch } from "react-icons/fi";
+import { useEffect, useState } from "react";
+import { FiTrash2, FiEye, FiAward, FiPlus, FiSlash, FiSearch, FiChevronUp, FiChevronDown } from "react-icons/fi";
 import api from "../../../services/api";
+import useListQuery from "../../../components/admin-shared/useListQuery";
 import DataTable from "../../../components/admin-shared/DataTable";
 import Pagination from "../../../components/admin-shared/Pagination";
 import ConfirmDialog from "../../../components/admin-shared/ConfirmDialog";
@@ -11,69 +12,57 @@ import IssueCertificateModal from "./IssueCertificateModal";
 import VerifyCertificateModal from "./VerifyCertificateModal";
 import "./CertificateManagement.css";
 
-const PAGE_SIZE = 10;
-
 const STATUS_CLASS = {
   active: "status-success",
   revoked: "status-danger",
 };
 
-// Certificates use structured server-side filters (courseId, studentId,
-// status) + pagination — matches getAllCertificates exactly, so this page
-// doesn't do client-side filtering like the other pages.
+// GET /api/admin/certificates — sortable: status|grade|issuedAt|certificateNumber.
+// Filters: courseId, studentId, status. (Was calling /certificates/ before
+// — the reference doc documents the admin-scoped route as /admin/certificates.)
+const SORT_OPTIONS = [
+  { value: "issuedAt", label: "Issue Date" },
+  { value: "grade", label: "Grade" },
+  { value: "certificateNumber", label: "Certificate ID" },
+  { value: "status", label: "Status" },
+];
+
 const CertificateManagement = () => {
-  const [certificates, setCertificates] = useState([]);
+  const list = useListQuery({
+    endpoint: "/admin/certificates",
+    defaultSortBy: "issuedAt",
+    defaultOrder: "desc",
+    limit: 10,
+    initialFilters: { courseId: "", status: "", studentId: "" },
+    parseResponse: (data) => ({
+      items: data.data,
+      total: data.totalCertificates,
+      pages: data.totalPages,
+    }),
+  });
+
   const [courses, setCourses] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [page, setPage] = useState(1);
-  const [total, setTotal] = useState(0);
-  const [pages, setPages] = useState(1);
-
-  const [courseFilter, setCourseFilter] = useState("");
-  const [statusFilter, setStatusFilter] = useState("");
-  const [studentIdFilter, setStudentIdFilter] = useState("");
-
-  const [viewCertificate, setViewCertificate] = useState(null);
-  const [confirmTarget, setConfirmTarget] = useState(null); // delete target
-  const [revokeTarget, setRevokeTarget] = useState(null);
-  const [showIssueModal, setShowIssueModal] = useState(false);
-  const [showVerifyModal, setShowVerifyModal] = useState(false);
-  const [actionLoading, setActionLoading] = useState(false);
-
   useEffect(() => {
-    api
-      .get("/courses")
+    api.get("/courses", { params: { limit: 500 } })
       .then((res) => setCourses(res.data.data || []))
       .catch(() => {});
   }, []);
 
-  const fetchCertificates = useCallback(async () => {
-    setLoading(true);
-    try {
-      const params = { page, limit: PAGE_SIZE };
-      if (courseFilter) params.courseId = courseFilter;
-      if (statusFilter) params.status = statusFilter;
-      if (studentIdFilter.trim()) params.studentId = studentIdFilter.trim();
-
-      const res = await api.get("/certificates/", { params });
-      setCertificates(res.data.data || []);
-      setTotal(res.data.total || 0);
-      setPages(res.data.pages || 1);
-    } catch (err) {
-      showToast(err.response?.data?.message || "Failed to load certificates", "error");
-    } finally {
-      setLoading(false);
-    }
+  // studentId is a free-text ObjectId filter — debounce it locally rather
+  // than firing a request on every keystroke.
+  const [studentIdInput, setStudentIdInput] = useState("");
+  useEffect(() => {
+    const t = setTimeout(() => list.setFilter("studentId", studentIdInput.trim()), 400);
+    return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page, courseFilter, statusFilter, studentIdFilter]);
+  }, [studentIdInput]);
 
-  useEffect(() => {
-    fetchCertificates();
-  }, [fetchCertificates]);
-
-  useEffect(() => {
-    setPage(1);
-  }, [courseFilter, statusFilter, studentIdFilter]);
+  const [viewCertificate, setViewCertificate] = useState(null);
+  const [confirmTarget, setConfirmTarget] = useState(null);
+  const [revokeTarget, setRevokeTarget] = useState(null);
+  const [showIssueModal, setShowIssueModal] = useState(false);
+  const [showVerifyModal, setShowVerifyModal] = useState(false);
+  const [actionLoading, setActionLoading] = useState(false);
 
   const runDelete = async () => {
     setActionLoading(true);
@@ -81,7 +70,7 @@ const CertificateManagement = () => {
       await api.delete(`/certificates/${confirmTarget._id}`);
       showToast("Certificate deleted", "success");
       setConfirmTarget(null);
-      fetchCertificates();
+      list.refetch();
     } catch (err) {
       showToast(err.response?.data?.message || "Delete failed", "error");
     } finally {
@@ -95,7 +84,7 @@ const CertificateManagement = () => {
       await api.patch(`/certificates/${revokeTarget._id}/revoke`);
       showToast("Certificate revoked", "success");
       setRevokeTarget(null);
-      fetchCertificates();
+      list.refetch();
     } catch (err) {
       showToast(err.response?.data?.message || "Revoke failed", "error");
     } finally {
@@ -107,6 +96,7 @@ const CertificateManagement = () => {
     {
       key: "certificateNumber",
       label: "Certificate ID",
+      sortable: true,
       render: (row) => <span className="cert-number-cell">{row.certificateNumber}</span>,
     },
     {
@@ -123,14 +113,15 @@ const CertificateManagement = () => {
     {
       key: "issuedAt",
       label: "Issued",
+      sortable: true,
       render: (row) => (row.issuedAt ? new Date(row.issuedAt).toLocaleDateString() : "—"),
     },
+    { key: "grade", label: "Grade", sortable: true, render: (row) => row.grade || "—" },
     {
       key: "status",
       label: "Status",
-      render: (row) => (
-        <span className={`status-badge ${STATUS_CLASS[row.status] || "status-info"}`}>{row.status}</span>
-      ),
+      sortable: true,
+      render: (row) => <span className={`status-badge ${STATUS_CLASS[row.status] || "status-info"}`}>{row.status}</span>,
     },
   ];
 
@@ -154,32 +145,60 @@ const CertificateManagement = () => {
       </div>
 
       <div className="admin-toolbar">
-        <select className="field-select cert-filter-select" value={courseFilter} onChange={(e) => setCourseFilter(e.target.value)}>
+        <select
+          className="field-select cert-filter-select"
+          value={list.filters.courseId}
+          onChange={(e) => list.setFilter("courseId", e.target.value)}
+        >
           <option value="">All Courses</option>
           {courses.map((c) => (
-            <option key={c._id} value={c._id}>
-              {c.title}
-            </option>
+            <option key={c._id} value={c._id}>{c.title}</option>
           ))}
         </select>
-        <select className="field-select cert-filter-select" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
+
+        <select
+          className="field-select cert-filter-select"
+          value={list.filters.status}
+          onChange={(e) => list.setFilter("status", e.target.value)}
+        >
           <option value="">All Statuses</option>
           <option value="active">Active</option>
           <option value="revoked">Revoked</option>
         </select>
+
         <input
           className="field-input cert-filter-select"
           placeholder="Filter by student ID…"
-          value={studentIdFilter}
-          onChange={(e) => setStudentIdFilter(e.target.value)}
+          value={studentIdInput}
+          onChange={(e) => setStudentIdInput(e.target.value)}
         />
+
+        <div className="admin-toolbar-spacer" style={{ display: "flex", gap: 8 }}>
+          <select
+            className="field-select cert-filter-select"
+            value={list.sortBy}
+            onChange={(e) => list.toggleSort(e.target.value)}
+          >
+            {SORT_OPTIONS.map((o) => <option key={o.value} value={o.value}>Sort: {o.label}</option>)}
+          </select>
+          <button
+            className="btn-icon"
+            title={list.order === "asc" ? "Ascending" : "Descending"}
+            onClick={() => list.toggleSort(list.sortBy)}
+          >
+            {list.order === "asc" ? <FiChevronUp /> : <FiChevronDown />}
+          </button>
+        </div>
       </div>
 
       <div className="admin-card">
         <DataTable
           columns={columns}
-          data={certificates}
-          loading={loading}
+          data={list.items}
+          loading={list.loading}
+          sortBy={list.sortBy}
+          order={list.order}
+          onSort={list.toggleSort}
           emptyProps={{
             icon: <FiAward />,
             title: "No certificates found",
@@ -195,31 +214,29 @@ const CertificateManagement = () => {
                   <FiSlash />
                 </button>
               )}
-              <button
-                className="btn-icon danger"
-                title="Delete certificate"
-                onClick={() => setConfirmTarget(row)}
-              >
+              <button className="btn-icon danger" title="Delete certificate" onClick={() => setConfirmTarget(row)}>
                 <FiTrash2 />
               </button>
             </div>
           )}
         />
-        <Pagination page={page} pages={pages} total={total} onPageChange={setPage} />
+        <Pagination
+          page={list.page}
+          pages={list.pages}
+          total={list.total}
+          limit={list.limit}
+          onPageChange={list.setPage}
+          onLimitChange={list.setLimit}
+        />
       </div>
 
-      {viewCertificate && (
-        <CertificateDetailsModal certificate={viewCertificate} onClose={() => setViewCertificate(null)} />
-      )}
+      {viewCertificate && <CertificateDetailsModal certificate={viewCertificate} onClose={() => setViewCertificate(null)} />}
 
       {showIssueModal && (
         <IssueCertificateModal
           courses={courses}
           onClose={() => setShowIssueModal(false)}
-          onSuccess={() => {
-            setShowIssueModal(false);
-            fetchCertificates();
-          }}
+          onSuccess={() => { setShowIssueModal(false); list.refetch(); }}
         />
       )}
 

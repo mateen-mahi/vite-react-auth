@@ -31,6 +31,8 @@ import QuizManagement from "./pages/admin/QuizManagement/QuizManagement";
 import NotesManagement from "./pages/admin/NotesManagement/NotesManagement";
 import CertificateManagement from "./pages/admin/CertificateManagement/CertificateManagement";
 import DangerZone from "./pages/admin/DangerZone/DangerZone";
+import Books from "./pages/Books";
+import BookManagement from "./pages/admin/BookManagement/BookManagement";
 
 
 function App() {
@@ -67,6 +69,7 @@ function App() {
       <Route path="/courses" element={<Courses />} />
       <Route path="/certificate" element={<Certificate />} />
       <Route path="/complaints" element={<Complaints />} />
+      <Route path="/books" element={<Books/>}/>
       <Route path="/payment-gateway" element={<PaymentGateway />} />
 
 
@@ -79,6 +82,7 @@ function App() {
 <Route path="/admin/quizzes" element={<QuizManagement />} />
 <Route path="/admin/notes" element={<NotesManagement />} />
 <Route path="/admin/certificates" element={<CertificateManagement />} />
+<Route path="/admin/books" element={<BookManagement/>} />
 <Route path="/admin/danger-zone" element={<DangerZone />} />
     </Route>
 

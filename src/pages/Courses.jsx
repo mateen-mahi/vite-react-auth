@@ -2,6 +2,8 @@ import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../services/api";
 import { useAuth } from "../context/AuthContext";
+import useApiList from "../custom-hooks/useApiList.js";
+import Pagination from "../components/shared/Pagination";
 import {
   FiSearch, FiClock, FiBarChart2, FiUser,
   FiPlay, FiBookOpen, FiAward, FiCheckCircle,
@@ -11,11 +13,17 @@ import {
 import "../styles/courses.css";
 
 const LEVELS = ["All Levels", "Beginner", "Intermediate", "Advanced"];
+
+// UI sort labels -> real API sortBy/order pairs (GET /api/courses only
+// whitelists title|price|duration|level|category|createdAt for sortBy).
+// There's no "enrollment count" field in that whitelist, so "Most Popular"
+// falls back to the endpoint's own default (createdAt desc) rather than
+// silently pretending to sort by popularity.
 const SORT_OPTIONS = [
-  { value: "popular",     label: "Most Popular" },
-  { value: "newest",      label: "Newest" },
-  { value: "price-low",   label: "Price: Low to High" },
-  { value: "price-high",  label: "Price: High to Low" },
+  { value: "popular",     label: "Most Popular",      sortBy: "createdAt", order: "desc" },
+  { value: "newest",      label: "Newest",             sortBy: "createdAt", order: "desc" },
+  { value: "price-low",   label: "Price: Low to High", sortBy: "price",     order: "asc" },
+  { value: "price-high",  label: "Price: High to Low", sortBy: "price",     order: "desc" },
 ];
 
 const LEVEL_COLOR = {
@@ -25,6 +33,7 @@ const LEVEL_COLOR = {
 };
 
 const CART_STORAGE_KEY = "academy_course_cart";
+const PAGE_SIZE = 9;
 
 // ── Helpers ──────────────────────────────────────────────
 const formatPrice = (price) => (price === 0 ? "Free" : `$${price}`);
@@ -56,11 +65,6 @@ export default function Courses() {
   const isLoggedIn = Boolean(user);
   const userId = user?._id;
 
-  // ── Real data ──
-  const [courses, setCourses] = useState([]);
-  const [loadingCourses, setLoadingCourses] = useState(true);
-  const [coursesError, setCoursesError] = useState(null);
-
   const [enrolledCourses, setEnrolledCourses] = useState([]);
   const [loadingEnrolled, setLoadingEnrolled] = useState(false);
 
@@ -71,20 +75,6 @@ export default function Courses() {
   const showToast = (msg) => { setToast(msg); setTimeout(() => setToast(null), 3000); };
 
   useEffect(() => {
-    const fetchCourses = async () => {
-      setLoadingCourses(true);
-      setCoursesError(null);
-      try {
-        const res = await api.get("/courses");
-        setCourses(res.data.data);
-      } catch (err) {
-        console.log("Failed to fetch courses:", err);
-        setCoursesError("Couldn't load courses. Please try again.");
-      } finally {
-        setLoadingCourses(false);
-      }
-    };
-
     const fetchMyCourses = async () => {
       if (!userId) {
         setEnrolledCourses([]);
@@ -121,7 +111,6 @@ export default function Courses() {
       }
     };
 
-    fetchCourses();
     fetchMyCourses();
     fetchProgress();
   }, [userId]);
@@ -213,54 +202,74 @@ export default function Courses() {
     }
   };
 
-  // ── Filters (apply to the Explore grid only) ──
-  const [search,   setSearch]   = useState("");
-  const [category, setCategory] = useState("All");
-  const [level,    setLevel]    = useState("All Levels");
-  const [sort,     setSort]     = useState("popular");
+  // ── Explore grid — GET /api/courses, fully server-driven now ──
+  // Sortable: title | price | duration | level | category | createdAt
+  // Filters:  category, level, search
+  const list = useApiList({
+    endpoint: "/courses",
+    limit: PAGE_SIZE,
+    defaultSortBy: "createdAt",
+    defaultOrder: "desc",
+    initialFilters: { category: "", level: "" },
+    parseResponse: (data) => ({ items: data.data, total: data.total, pages: data.pages }),
+  });
 
-  const CATEGORIES = useMemo(() => {
-    const unique = [...new Set(courses.map((c) => c.category))];
-    return ["All", ...unique];
-  }, [courses]);
+  const [sort, setSort] = useState("popular");
+  useEffect(() => {
+    const opt = SORT_OPTIONS.find((o) => o.value === sort) || SORT_OPTIONS[0];
+    list.setSortBy(opt.sortBy);
+    list.setOrder(opt.order);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sort]);
+
+  // Category pills need the FULL set of categories, not just whatever's on
+  // the current filtered page — fetched once, independently of the main
+  // paginated list above.
+  const [categoryOptions, setCategoryOptions] = useState(["All"]);
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await api.get("/courses", { params: { limit: 100, sortBy: "category", order: "asc" } });
+        const unique = [...new Set((res.data.data || []).map((c) => c.category))].filter(Boolean);
+        setCategoryOptions(["All", ...unique]);
+      } catch (err) {
+        console.log("Failed to fetch categories:", err);
+      }
+    })();
+  }, []);
+
+  // Featured hero fallback (shown to guests / logged-in users with nothing
+  // enrolled yet) — GET /api/courses/featured, so it's correct regardless
+  // of what page the Explore grid happens to be on.
+  const [featuredFallback, setFeaturedFallback] = useState(null);
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await api.get("/courses/featured", { params: { limit: 1 } });
+        setFeaturedFallback((res.data.data || [])[0] || null);
+      } catch (err) {
+        console.log("Failed to fetch featured course:", err);
+      }
+    })();
+  }, []);
 
   const enrolledIds = useMemo(() => new Set(enrolledCourses.map((c) => c._id)), [enrolledCourses]);
 
-  // Explore grid: guests see everything, logged-in users see everything MINUS what they're enrolled in
-  const browsablePool = useMemo(
-    () => (isLoggedIn ? courses.filter((c) => !enrolledIds.has(c._id)) : courses),
-    [courses, isLoggedIn, enrolledIds]
+  // Explore grid: guests see everything, logged-in users see everything
+  // MINUS what they're already enrolled in. This exclusion is applied to
+  // the current server-fetched page (the API has no "excludeEnrolled"
+  // filter), so a page can occasionally render slightly fewer than
+  // PAGE_SIZE cards for a student enrolled in many courses — a fair
+  // trade-off for real server-side pagination on the catalog.
+  const filtered = useMemo(
+    () => (isLoggedIn ? list.items.filter((c) => !enrolledIds.has(c._id)) : list.items),
+    [list.items, isLoggedIn, enrolledIds]
   );
-
-  const filtered = useMemo(() => {
-    let list = browsablePool;
-
-    if (search) {
-      list = list.filter(
-        (c) =>
-          c.title.toLowerCase().includes(search.toLowerCase()) ||
-          (typeof c.instructor === "object" && c.instructor?.username?.toLowerCase().includes(search.toLowerCase()))
-      );
-    }
-    if (category !== "All") list = list.filter((c) => c.category === category);
-    if (level !== "All Levels") list = list.filter((c) => c.level === level);
-
-    list = [...list].sort((a, b) => {
-      if (sort === "popular")    return (b.studentsEnrolledCount || b.studentsEnrolled?.length || 0) - (a.studentsEnrolledCount || a.studentsEnrolled?.length || 0);
-      if (sort === "price-low")  return a.price - b.price;
-      if (sort === "price-high") return b.price - a.price;
-      return new Date(b.createdAt) - new Date(a.createdAt); // newest
-    });
-
-    return list;
-  }, [browsablePool, search, category, level, sort]);
 
   // ── Hero: shuffles among enrolled courses when logged in; falls back to
   // the actual featured course otherwise ──
   const [spotlightIndex, setSpotlightIndex] = useState(0);
   const hasEnrolled = isLoggedIn && enrolledCourses.length > 0;
-
-  const featuredFallback = useMemo(() => courses.find((c) => c.featured), [courses]);
   const heroCourse = hasEnrolled ? enrolledCourses[spotlightIndex % enrolledCourses.length] : featuredFallback;
 
   const handleShuffleHero = () => {
@@ -452,17 +461,18 @@ export default function Courses() {
           <input
             className="courses-search"
             placeholder="Search courses or instructors…"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            value={list.search}
+            onChange={(e) => list.setSearch(e.target.value)}
           />
+          {list.loading && <FiRefreshCw className="courses-search-spinner cp-spin" />}
         </div>
 
         <div className="courses-category-pills">
-          {CATEGORIES.map((cat) => (
+          {categoryOptions.map((cat) => (
             <button
               key={cat}
-              className={`courses-pill ${category === cat ? "active" : ""}`}
-              onClick={() => setCategory(cat)}
+              className={`courses-pill ${(list.filters.category || "All") === cat ? "active" : ""}`}
+              onClick={() => list.setFilter("category", cat === "All" ? "" : cat)}
             >
               {cat}
             </button>
@@ -470,7 +480,11 @@ export default function Courses() {
         </div>
 
         <div className="courses-selects">
-          <select className="courses-select" value={level} onChange={(e) => setLevel(e.target.value)}>
+          <select
+            className="courses-select"
+            value={list.filters.level ? list.filters.level : "All Levels"}
+            onChange={(e) => list.setFilter("level", e.target.value === "All Levels" ? "" : e.target.value)}
+          >
             {LEVELS.map((l) => <option key={l}>{l}</option>)}
           </select>
           <select className="courses-select" value={sort} onChange={(e) => setSort(e.target.value)}>
@@ -484,20 +498,20 @@ export default function Courses() {
         {isLoggedIn ? "Explore More Courses" : "All Courses"}
       </h2>
 
-      {(loadingCourses || loadingEnrolled) && (
+      {(list.loading || loadingEnrolled) && (
         <p className="courses-count"><FiRefreshCw className="cp-spin" /> Loading courses…</p>
       )}
 
-      {!loadingCourses && coursesError && (
-        <p className="courses-count"><FiAlertCircle /> {coursesError}</p>
+      {!list.loading && list.error && (
+        <p className="courses-count"><FiAlertCircle /> {list.error}</p>
       )}
 
-      {!loadingCourses && !coursesError && (
+      {!list.loading && !list.error && (
         <>
           <p className="courses-count">
             {filtered.length === 0
               ? "No courses match your filters."
-              : `${filtered.length} course${filtered.length !== 1 ? "s" : ""}`}
+              : `${list.total} course${list.total !== 1 ? "s" : ""}`}
           </p>
 
           <div className="courses-grid">
@@ -512,6 +526,14 @@ export default function Courses() {
               />
             ))}
           </div>
+
+          <Pagination
+            page={list.page}
+            pages={list.pages}
+            total={list.total}
+            limit={list.limit}
+            onPageChange={list.setPage}
+          />
         </>
       )}
     </div>

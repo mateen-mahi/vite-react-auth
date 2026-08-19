@@ -1,9 +1,7 @@
-
-
 import { useEffect, useMemo, useState } from "react";
 import {
   FiBell, FiUserPlus, FiBookOpen, FiUserCheck, FiAlertCircle, FiRefreshCw,
-  FiLogIn, FiLogOut, FiCheck, FiWifi, FiWifiOff, FiInbox,
+  FiLogIn, FiLogOut, FiCheck, FiWifi, FiWifiOff, FiInbox, FiDollarSign, FiAward,
 } from "react-icons/fi";
 import { useAdminSocket } from "../../custom-hooks/useAdminSocket";
 import "../../styles/NotificationsPage.css"
@@ -21,6 +19,8 @@ const EVENT_META = {
   "complaint:statusChanged": { icon: FiRefreshCw,  tone: "blue",   group: "complaints" },
   "login:new":               { icon: FiLogIn,      tone: "green",  group: "users" },
   "login:failed":            { icon: FiLogOut,     tone: "red",    group: "users" },
+  "order:completed":         { icon: FiDollarSign, tone: "green",  group: "revenue" },
+  "certificate:issued":      { icon: FiAward,      tone: "purple", group: "certificates" },
 };
 
 const FILTERS = [
@@ -28,6 +28,8 @@ const FILTERS = [
   { key: "users", label: "Users & Logins" },
   { key: "courses", label: "Courses" },
   { key: "complaints", label: "Complaints" },
+  { key: "revenue", label: "Revenue" },
+  { key: "certificates", label: "Certificates" },
 ];
 
 const loadReadIds = () => {
@@ -136,7 +138,7 @@ export default function NotificationsPage() {
           <p className="notif-empty-title">All quiet here</p>
           <p className="notif-empty-sub">
             {activeFilter === "all"
-              ? "New signups, courses, enrollments, and complaints will show up here as they happen."
+              ? "New signups, courses, enrollments, complaints, orders, and certificates will show up here as they happen."
               : "No notifications in this category yet."}
           </p>
         </div>

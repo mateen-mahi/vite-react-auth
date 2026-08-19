@@ -1,18 +1,9 @@
-@import "../../../styles/common.css";
+/* ==========================================================================
+   UserManagement.css
+   All the real styling (layout, table, filters, pagination, modal, toast,
+   buttons, badges) lives in the shared kit at
+   src/components/admin-shared/css/. This file just pulls that in once and
+   holds anything truly specific to this one page — currently nothing.
+   ========================================================================== */
 
-.user-cell {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.user-cell-name {
-  font-weight: 600;
-  color: var(--text-heading);
-  font-size: 13.5px;
-}
-
-.user-cell-email {
-  font-size: 12px;
-  color: var(--text-muted);
-}
+@import "../../../components/admin-shared/css/index.css";

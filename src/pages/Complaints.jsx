@@ -1,7 +1,9 @@
 import "../styles/complaint.css";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import api from "../services/api";
 import { useAuth } from "../context/AuthContext";
+import useApiList from "../custom-hooks/useApiList.js";
+import Pagination from "../components/shared/Pagination";
 import {
   FiAlertCircle, FiCheckCircle, FiClock, FiPlus,
   FiX, FiSend, FiMessageSquare, FiSearch,
@@ -16,7 +18,10 @@ const STATUS_CONFIG = {
   resolved:       { label: "Resolved",    color: "#16a34a", bg: "#f0fdf4", border: "#bbf7d0", icon: FiCheckCircle },
 };
 const STATUS_ORDER = { pending: 0, "in progress": 1, resolved: 2 };
+// Values must match the API's whitelist exactly (status has a literal
+// space — "in progress", not "in-progress"/"inProgress").
 const STATUS_FILTERS = ["All", "pending", "in progress", "resolved"];
+const PAGE_SIZE = 8;
 
 // ─── Helpers ───────────────────────────────────────────────
 const formatRelative = (dateStr) => {
@@ -40,38 +45,56 @@ function Toast({ msg, onClose }) {
 export default function Complaint() {
   const { user } = useAuth();
 
-  const [complaints, setComplaints] = useState([]);
-  const [loadingComplaints, setLoadingComplaints] = useState(true);
-  const [fetchError, setFetchError] = useState(null);
-
   const [showForm,   setShowForm]   = useState(false);
   const [expandedId, setExpandedId] = useState(null);
-  const [search,     setSearch]     = useState("");
-  const [filterStatus, setFilterStatus] = useState("All");
   const [toast,      setToast]      = useState(null);
   const [deletingId, setDeletingId] = useState(null);
 
-  // ── Fetch this user's real complaints ────────────────────
-  useEffect(() => {
+  // ── History list — GET /api/complaints/mine, server-side paginated,
+  // sorted, filtered, and searched (status + free-text subject/description).
+  const list = useApiList({
+    endpoint: "/complaints/mine",
+    limit: PAGE_SIZE,
+    defaultSortBy: "createdAt",
+    defaultOrder: "desc",
+    initialFilters: { status: "" },
+    enabled: !!user?._id,
+    parseResponse: (data) => ({
+      items: data.complaints,
+      total: data.totalComplaints,
+      pages: data.totalPages,
+    }),
+  });
+  const complaints = list.items;
+
+  // ── Summary counts — independent of the current page/filter, so the
+  // cards at the top always reflect the student's FULL history. Each of
+  // these is a cheap limit=1 request; only totalComplaints is read off it.
+  const [counts, setCounts] = useState({ total: 0, pending: 0, inProgress: 0, resolved: 0 });
+  const fetchCounts = useCallback(async () => {
     if (!user?._id) return;
-
-    const fetchComplaints = async () => {
-      setLoadingComplaints(true);
-      setFetchError(null);
-      try {
-
-        const res = await api.get("/complaints/user-complaints", { params: { userId: user._id } });
-        setComplaints(res.data.complaints);
-      } catch (err) {
-        console.log("Failed to fetch complaints:", err);
-        setFetchError("Couldn't load your complaints. Please try again.");
-      } finally {
-        setLoadingComplaints(false);
-      }
-    };
-
-    fetchComplaints();
+    try {
+      const [all, pending, inProgress, resolved] = await Promise.all([
+        api.get("/complaints/mine", { params: { limit: 1 } }),
+        api.get("/complaints/mine", { params: { limit: 1, status: "pending" } }),
+        api.get("/complaints/mine", { params: { limit: 1, status: "in progress" } }),
+        api.get("/complaints/mine", { params: { limit: 1, status: "resolved" } }),
+      ]);
+      setCounts({
+        total: all.data.totalComplaints || 0,
+        pending: pending.data.totalComplaints || 0,
+        inProgress: inProgress.data.totalComplaints || 0,
+        resolved: resolved.data.totalComplaints || 0,
+      });
+    } catch (err) {
+      console.log("Failed to fetch complaint counts:", err);
+    }
   }, [user?._id]);
+
+  useEffect(() => {
+    fetchCounts();
+  }, [fetchCounts]);
+
   const EMPTY_FORM = { subject: "", description: "" };
   const [form,    setForm]    = useState(EMPTY_FORM);
   const [errors,  setErrors]  = useState({});
@@ -93,18 +116,23 @@ export default function Complaint() {
 
     setSubmitting(true);
     try {
-      const res = await api.post("/complaints/submit-complaint", {
+      await api.post("/complaints/submit-complaint", {
         subject: form.subject,
         description: form.description,
-        userId: user._id, 
+        userId: user._id,
       });
 
-      setComplaints((prev) => [res.data.complaint, ...prev]);
       setForm(EMPTY_FORM);
       setErrors({});
       setShowForm(false);
       setToast("Complaint submitted successfully.");
       setTimeout(() => setToast(null), 4000);
+
+      // New complaint always lands on page 1 of the (default) unfiltered,
+      // newest-first list — jump there so the user sees it immediately.
+      list.setPage(1);
+      list.refetch();
+      fetchCounts();
     } catch (err) {
       const msg = err.response?.data?.message || "Failed to submit complaint. Please try again.";
       setErrors({ submit: msg });
@@ -120,31 +148,17 @@ export default function Complaint() {
     setDeletingId(complaintId);
     try {
       await api.delete(`/complaints/delete-complaint/${complaintId}`);
-      setComplaints((prev) => prev.filter((c) => c._id !== complaintId));
       if (expandedId === complaintId) setExpandedId(null);
       setToast("Complaint deleted.");
       setTimeout(() => setToast(null), 3000);
+      list.refetch();
+      fetchCounts();
     } catch (err) {
       setToast(err.response?.data?.message || "Failed to delete complaint.");
       setTimeout(() => setToast(null), 3000);
     } finally {
       setDeletingId(null);
     }
-  };
-
-  const filtered = complaints.filter((c) => {
-    const matchSearch =
-      c.subject.toLowerCase().includes(search.toLowerCase()) ||
-      c.description.toLowerCase().includes(search.toLowerCase());
-    const matchStatus = filterStatus === "All" || c.status === filterStatus;
-    return matchSearch && matchStatus;
-  });
-
-  const counts = {
-    total:      complaints.length,
-    pending:    complaints.filter((c) => c.status === "pending").length,
-    inProgress: complaints.filter((c) => c.status === "in progress").length,
-    resolved:   complaints.filter((c) => c.status === "resolved").length,
   };
 
   return (
@@ -246,14 +260,14 @@ export default function Complaint() {
         <div className="cp-history-toolbar">
           <h2 className="cp-history-title">Complaint History</h2>
           <div className="cp-history-controls">
-            {/* Search */}
+            {/* Search (debounced ~400ms inside useApiList) */}
             <div className="cp-search-wrap">
               <FiSearch className="cp-search-icon" />
               <input
                 className="cp-search"
                 placeholder="Search…"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
+                value={list.search}
+                onChange={(e) => list.setSearch(e.target.value)}
               />
             </div>
             {/* Status filter */}
@@ -261,8 +275,8 @@ export default function Complaint() {
               {STATUS_FILTERS.map((s) => (
                 <button
                   key={s}
-                  className={`cp-status-pill ${filterStatus === s ? "active" : ""}`}
-                  onClick={() => setFilterStatus(s)}
+                  className={`cp-status-pill ${(list.filters.status || "All") === s ? "active" : ""}`}
+                  onClick={() => list.setFilter("status", s === "All" ? "" : s)}
                 >
                   {s === "All" ? "All" : STATUS_CONFIG[s].label}
                 </button>
@@ -272,7 +286,7 @@ export default function Complaint() {
         </div>
 
         {/* Loading */}
-        {loadingComplaints && (
+        {list.loading && (
           <div className="cp-empty">
             <FiRefreshCw className="cp-empty-icon cp-spin" />
             <p className="cp-empty-title">Loading your complaints…</p>
@@ -280,128 +294,138 @@ export default function Complaint() {
         )}
 
         {/* Fetch error */}
-        {!loadingComplaints && fetchError && (
+        {!list.loading && list.error && (
           <div className="cp-empty">
             <FiAlertCircle className="cp-empty-icon" />
-            <p className="cp-empty-title">{fetchError}</p>
+            <p className="cp-empty-title">{list.error}</p>
           </div>
         )}
 
         {/* Empty state */}
-        {!loadingComplaints && !fetchError && filtered.length === 0 && (
+        {!list.loading && !list.error && complaints.length === 0 && (
           <div className="cp-empty">
             <FiInbox className="cp-empty-icon" />
             <p className="cp-empty-title">No complaints found</p>
             <p className="cp-empty-sub">
-              {complaints.length === 0
+              {counts.total === 0
                 ? "You haven't submitted any complaints yet."
-                : "No complaints match your current filter."}
+                : "No complaints match your current search or filter."}
             </p>
           </div>
         )}
 
         {/* Complaint cards */}
-        {!loadingComplaints && !fetchError && (
-          <div className="cp-list">
-            {filtered.map((c) => {
-              const status = STATUS_CONFIG[c.status];
-              const StatusIcon = status.icon;
-              const isExpanded = expandedId === c._id;
-              const isDeleting = deletingId === c._id;
-              const wasUpdated = new Date(c.updatedAt).getTime() !== new Date(c.createdAt).getTime();
+        {!list.loading && !list.error && complaints.length > 0 && (
+          <>
+            <div className="cp-list">
+              {complaints.map((c) => {
+                const status = STATUS_CONFIG[c.status];
+                const StatusIcon = status.icon;
+                const isExpanded = expandedId === c._id;
+                const isDeleting = deletingId === c._id;
+                const wasUpdated = new Date(c.updatedAt).getTime() !== new Date(c.createdAt).getTime();
 
-              return (
-                <div key={c._id} className={`cp-card ${isExpanded ? "expanded" : ""}`}>
+                return (
+                  <div key={c._id} className={`cp-card ${isExpanded ? "expanded" : ""}`}>
 
-                  {/* Card header — always visible */}
-                  <div className="cp-card-header" onClick={() => setExpandedId(isExpanded ? null : c._id)}>
-                    <div className="cp-card-icon" style={{ background: "#2563eb14", color: "#2563eb" }}>
-                      <FiMessageSquare />
-                    </div>
+                    {/* Card header — always visible */}
+                    <div className="cp-card-header" onClick={() => setExpandedId(isExpanded ? null : c._id)}>
+                      <div className="cp-card-icon" style={{ background: "#2563eb14", color: "#2563eb" }}>
+                        <FiMessageSquare />
+                      </div>
 
-                    <div className="cp-card-meta">
-                      <div className="cp-card-title-row">
-                        <p className="cp-card-title">{c.subject}</p>
-                        <div className="cp-card-badges">
-                          <span className="cp-status-badge" style={{ background: status.bg, color: status.color, border: `1px solid ${status.border}` }}>
-                            <StatusIcon /> {status.label}
-                          </span>
+                      <div className="cp-card-meta">
+                        <div className="cp-card-title-row">
+                          <p className="cp-card-title">{c.subject}</p>
+                          <div className="cp-card-badges">
+                            <span className="cp-status-badge" style={{ background: status.bg, color: status.color, border: `1px solid ${status.border}` }}>
+                              <StatusIcon /> {status.label}
+                            </span>
+                          </div>
+                        </div>
+                        <div className="cp-card-info-row">
+                          <span className="cp-date">Submitted {formatRelative(c.createdAt)}</span>
+                          {wasUpdated && (
+                            <><span className="cp-dot" /><span className="cp-date">Updated {formatRelative(c.updatedAt)}</span></>
+                          )}
                         </div>
                       </div>
-                      <div className="cp-card-info-row">
-                        <span className="cp-date">Submitted {formatRelative(c.createdAt)}</span>
-                        {wasUpdated && (
-                          <><span className="cp-dot" /><span className="cp-date">Updated {formatRelative(c.updatedAt)}</span></>
+
+                      <button
+                        className="cp-expand-btn"
+                        aria-label="Delete complaint"
+                        title="Delete complaint"
+                        disabled={isDeleting}
+                        onClick={(e) => handleDelete(c._id, e)}
+                      >
+                        {isDeleting ? <FiRefreshCw className="cp-spin" /> : <FiTrash2 />}
+                      </button>
+
+                      <button className="cp-expand-btn" aria-label={isExpanded ? "Collapse" : "Expand"}>
+                        {isExpanded ? <FiChevronUp /> : <FiChevronDown />}
+                      </button>
+                    </div>
+
+                    {/* Expanded detail */}
+                    {isExpanded && (
+                      <div className="cp-card-body">
+
+                        {/* Status timeline */}
+                        <div className="cp-timeline">
+                          {["pending", "in progress", "resolved"].map((step, i) => {
+                            const stepCfg = STATUS_CONFIG[step];
+                            const StepIcon = stepCfg.icon;
+                            const currentOrder = STATUS_ORDER[c.status];
+                            const isDone    = STATUS_ORDER[step] <= currentOrder;
+                            const isCurrent = step === c.status;
+                            return (
+                              <div key={step} className={`cp-step ${isDone ? "done" : ""} ${isCurrent ? "current" : ""}`}>
+                                <div className="cp-step-icon" style={isDone ? { background: stepCfg.color, color: "#fff" } : {}}>
+                                  <StepIcon />
+                                </div>
+                                <span className="cp-step-label" style={isCurrent ? { color: stepCfg.color, fontWeight: 700 } : {}}>{stepCfg.label}</span>
+                                {i < 2 && <div className={`cp-step-line ${STATUS_ORDER[step] < currentOrder ? "done" : ""}`} />}
+                              </div>
+                            );
+                          })}
+                        </div>
+
+                        {/* Description */}
+                        <div className="cp-detail-block">
+                          <p className="cp-detail-label">Your complaint</p>
+                          <p className="cp-detail-text">{c.description}</p>
+                        </div>
+
+                        {/* Admin reply (schema field is "answer") */}
+                        {c.answer && c.answer.trim().length > 0 ? (
+                          <div className="cp-reply-block">
+                            <div className="cp-reply-header">
+                              <FiCheckCircle className="cp-reply-icon" />
+                              <p className="cp-reply-label">Admin Response</p>
+                            </div>
+                            <p className="cp-reply-text">{c.answer}</p>
+                          </div>
+                        ) : (
+                          <div className="cp-no-reply">
+                            <FiClock />
+                            <span>Awaiting admin response — we typically respond within 24–48 hours.</span>
+                          </div>
                         )}
                       </div>
-                    </div>
-
-                    <button
-                      className="cp-expand-btn"
-                      aria-label="Delete complaint"
-                      title="Delete complaint"
-                      disabled={isDeleting}
-                      onClick={(e) => handleDelete(c._id, e)}
-                    >
-                      {isDeleting ? <FiRefreshCw className="cp-spin" /> : <FiTrash2 />}
-                    </button>
-
-                    <button className="cp-expand-btn" aria-label={isExpanded ? "Collapse" : "Expand"}>
-                      {isExpanded ? <FiChevronUp /> : <FiChevronDown />}
-                    </button>
+                    )}
                   </div>
+                );
+              })}
+            </div>
 
-                  {/* Expanded detail */}
-                  {isExpanded && (
-                    <div className="cp-card-body">
-
-                      {/* Status timeline */}
-                      <div className="cp-timeline">
-                        {["pending", "in progress", "resolved"].map((step, i) => {
-                          const stepCfg = STATUS_CONFIG[step];
-                          const StepIcon = stepCfg.icon;
-                          const currentOrder = STATUS_ORDER[c.status];
-                          const isDone    = STATUS_ORDER[step] <= currentOrder;
-                          const isCurrent = step === c.status;
-                          return (
-                            <div key={step} className={`cp-step ${isDone ? "done" : ""} ${isCurrent ? "current" : ""}`}>
-                              <div className="cp-step-icon" style={isDone ? { background: stepCfg.color, color: "#fff" } : {}}>
-                                <StepIcon />
-                              </div>
-                              <span className="cp-step-label" style={isCurrent ? { color: stepCfg.color, fontWeight: 700 } : {}}>{stepCfg.label}</span>
-                              {i < 2 && <div className={`cp-step-line ${STATUS_ORDER[step] < currentOrder ? "done" : ""}`} />}
-                            </div>
-                          );
-                        })}
-                      </div>
-
-                      {/* Description */}
-                      <div className="cp-detail-block">
-                        <p className="cp-detail-label">Your complaint</p>
-                        <p className="cp-detail-text">{c.description}</p>
-                      </div>
-
-                      {/* Admin reply (schema field is "answer") */}
-                      {c.answer && c.answer.trim().length > 0 ? (
-                        <div className="cp-reply-block">
-                          <div className="cp-reply-header">
-                            <FiCheckCircle className="cp-reply-icon" />
-                            <p className="cp-reply-label">Admin Response</p>
-                          </div>
-                          <p className="cp-reply-text">{c.answer}</p>
-                        </div>
-                      ) : (
-                        <div className="cp-no-reply">
-                          <FiClock />
-                          <span>Awaiting admin response — we typically respond within 24–48 hours.</span>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
+            <Pagination
+              page={list.page}
+              pages={list.pages}
+              total={list.total}
+              limit={list.limit}
+              onPageChange={list.setPage}
+            />
+          </>
         )}
       </div>
     </div>

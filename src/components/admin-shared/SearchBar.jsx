@@ -1,6 +1,10 @@
 import { FiSearch, FiX } from "react-icons/fi";
-import "./adminShared/SearchBar.css";
+import "./css/index.css";
 
+/**
+ * Controlled search input. Debouncing lives in useListQuery — this
+ * component just reflects `value` and calls `onChange` on every keystroke.
+ */
 const SearchBar = ({ value, onChange, placeholder = "Search…" }) => {
   return (
     <div className="search-bar">
@@ -10,14 +14,10 @@ const SearchBar = ({ value, onChange, placeholder = "Search…" }) => {
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
+        aria-label={placeholder}
       />
       {value && (
-        <button
-          className="search-clear"
-          onClick={() => onChange("")}
-          aria-label="Clear search"
-          type="button"
-        >
+        <button className="search-clear" onClick={() => onChange("")} aria-label="Clear search">
           <FiX />
         </button>
       )}

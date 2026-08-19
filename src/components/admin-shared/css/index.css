@@ -1,0 +1,17 @@
+/* ==========================================================================
+   ADMIN-SHARED / index.css
+   Single entry point for the whole admin management CSS kit. Import this
+   ONCE — e.g. in your admin layout component or in App.js next to
+   App.css/index.css — and every management page can rely on these classes
+   without re-importing them per page.
+
+   Load order matters: variables first, then layout/components that consume
+   them.
+   ========================================================================== */
+
+@import "./variables.css";
+@import "./layout.css";
+@import "./components.css";
+@import "./table.css";
+@import "./filters.css";
+@import "./pagination.css";

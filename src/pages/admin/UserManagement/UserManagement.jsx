@@ -1,15 +1,10 @@
-import { useEffect, useMemo, useState, useCallback } from "react";
-import {
-  FiPlus,
-  FiTrash2,
-  FiEye,
-  FiEdit2,
-  FiKey,
-  FiUsers,
-} from "react-icons/fi";
+import { useState } from "react";
+import { FiPlus, FiTrash2, FiEye, FiEdit2, FiKey, FiUsers } from "react-icons/fi";
 import api from "../../../services/api";
+import useListQuery from "../../../components/admin-shared/useListQuery";
 import DataTable from "../../../components/admin-shared/DataTable";
 import SearchBar from "../../../components/admin-shared/SearchBar";
+import FilterBar from "../../../components/admin-shared/FilterBar";
 import Pagination from "../../../components/admin-shared/Pagination";
 import ConfirmDialog from "../../../components/admin-shared/ConfirmDialog";
 import ToastContainer from "../../../components/admin-shared/ToastContainer";
@@ -19,8 +14,6 @@ import UserDetailsModal from "./UserDetailsModal";
 import PasswordModal from "./PasswordModal";
 import "./UserManagement.css";
 
-const PAGE_SIZE = 10;
-
 const ROLE_STATUS = {
   "super-admin": "status-danger",
   admin: "status-danger",
@@ -29,65 +22,65 @@ const ROLE_STATUS = {
   user: "status-info",
 };
 
+// GET /api/admin/users — sortable: username, email, role, gender,
+// isVerified, createdAt, updatedAt. Default sort createdAt desc.
+// Filters: role, gender, isVerified, search.
+const FILTER_CONFIG = [
+  {
+    key: "role",
+    label: "Role",
+    options: [
+      { value: "student", label: "Student" },
+      { value: "instructor", label: "Instructor" },
+      { value: "admin", label: "Admin" },
+      { value: "super-admin", label: "Super Admin" },
+    ],
+  },
+  {
+    key: "gender",
+    label: "Gender",
+    options: [
+      { value: "male", label: "Male" },
+      { value: "female", label: "Female" },
+      { value: "other", label: "Other" },
+    ],
+  },
+  {
+    key: "isVerified",
+    label: "Verified",
+    options: [
+      { value: "true", label: "Verified" },
+      { value: "false", label: "Pending" },
+    ],
+  },
+];
+
+const initials = (name = "") =>
+  name.split(" ").map((p) => p[0]).join("").slice(0, 2).toUpperCase();
+
 const UserManagement = () => {
-  const [users, setUsers] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState("");
-  const [page, setPage] = useState(1);
+  const list = useListQuery({
+    endpoint: "/admin/users",
+    defaultSortBy: "createdAt",
+    defaultOrder: "desc",
+    limit: 10,
+    initialFilters: { role: "", gender: "", isVerified: "" },
+    parseResponse: (data) => ({
+      items: data.users,
+      total: data.totalUsers,
+      pages: data.totalPages,
+    }),
+  });
 
   const [selectedIds, setSelectedIds] = useState(new Set());
-
   const [showAddModal, setShowAddModal] = useState(false);
   const [editUser, setEditUser] = useState(null);
   const [viewUser, setViewUser] = useState(null);
   const [passwordUser, setPasswordUser] = useState(null);
-
   const [confirmState, setConfirmState] = useState(null); // { type: "single"|"multi"|"all", target }
   const [actionLoading, setActionLoading] = useState(false);
 
-  const fetchUsers = useCallback(async () => {
-    setLoading(true);
-    try {
-      const res = await api.get("/users/all-users");
-      setUsers(res.data.data || res.data.users || []);
-    } catch (err) {
-      showToast(
-        err.response?.data?.message || "Failed to load users",
-        "error"
-      );
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchUsers();
-  }, [fetchUsers]);
-
-  // ---- client-side search across username / email / role ----
-  const filtered = useMemo(() => {
-    if (!search.trim()) return users;
-    const q = search.trim().toLowerCase();
-    return users.filter(
-      (u) =>
-        u.username?.toLowerCase().includes(q) ||
-        u.email?.toLowerCase().includes(q) ||
-        u.role?.toLowerCase().includes(q)
-    );
-  }, [users, search]);
-
-  const pages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
-  const pageSafe = Math.min(page, pages);
-  const paginated = filtered.slice(
-    (pageSafe - 1) * PAGE_SIZE,
-    pageSafe * PAGE_SIZE
-  );
-
-  useEffect(() => {
-    setPage(1);
-  }, [search]);
-
-  // ---- selection ----
+  // ---- selection (per current page only) ----
   const toggleRow = (id) => {
     setSelectedIds((prev) => {
       const next = new Set(prev);
@@ -96,24 +89,22 @@ const UserManagement = () => {
     });
   };
   const allOnPageSelected =
-    paginated.length > 0 && paginated.every((u) => selectedIds.has(u._id));
+    list.items.length > 0 && list.items.every((u) => selectedIds.has(u._id));
   const toggleAllOnPage = () => {
     setSelectedIds((prev) => {
       const next = new Set(prev);
       if (allOnPageSelected) {
-        paginated.forEach((u) => next.delete(u._id));
+        list.items.forEach((u) => next.delete(u._id));
       } else {
-        paginated.forEach((u) => next.add(u._id));
+        list.items.forEach((u) => next.add(u._id));
       }
       return next;
     });
   };
 
   // ---- delete flows ----
-  const handleDeleteSingle = (user) =>
-    setConfirmState({ type: "single", target: user });
-  const handleDeleteSelected = () =>
-    setConfirmState({ type: "multi", target: null });
+  const handleDeleteSingle = (user) => setConfirmState({ type: "single", target: user });
+  const handleDeleteSelected = () => setConfirmState({ type: "multi", target: null });
   const handleDeleteAll = () => setConfirmState({ type: "all", target: null });
 
   const runConfirmedDelete = async () => {
@@ -124,9 +115,7 @@ const UserManagement = () => {
         showToast("User deleted", "success");
       } else if (confirmState.type === "multi") {
         const ids = Array.from(selectedIds);
-        await Promise.all(
-          ids.map((id) => api.delete(`/users/delete-user/${id}`))
-        );
+        await Promise.all(ids.map((id) => api.delete(`/users/delete-user/${id}`)));
         showToast(`${ids.length} user(s) deleted`, "success");
         setSelectedIds(new Set());
       } else if (confirmState.type === "all") {
@@ -135,7 +124,7 @@ const UserManagement = () => {
         setSelectedIds(new Set());
       }
       setConfirmState(null);
-      fetchUsers();
+      list.refetch();
     } catch (err) {
       showToast(err.response?.data?.message || "Delete failed", "error");
     } finally {
@@ -143,18 +132,11 @@ const UserManagement = () => {
     }
   };
 
-  const initials = (name = "") =>
-    name
-      .split(" ")
-      .map((p) => p[0])
-      .join("")
-      .slice(0, 2)
-      .toUpperCase();
-
   const columns = [
     {
       key: "username",
       label: "User",
+      sortable: true,
       render: (row) => (
         <div className="user-cell">
           <div className="avatar-chip">{initials(row.username)}</div>
@@ -168,27 +150,31 @@ const UserManagement = () => {
     {
       key: "role",
       label: "Role",
+      sortable: true,
       render: (row) => (
-        <span className={`status-badge ${ROLE_STATUS[row.role] || "status-info"}`}>
-          {row.role}
-        </span>
+        <span className={`status-badge ${ROLE_STATUS[row.role] || "status-info"}`}>{row.role}</span>
       ),
     },
-    { key: "gender", label: "Gender" },
+    { key: "gender", label: "Gender", sortable: true },
     {
       key: "isVerified",
       label: "Verified",
+      sortable: true,
       render: (row) => (
-        <span
-          className={`status-badge ${
-            row.isVerified ? "status-success" : "status-warning"
-          }`}
-        >
+        <span className={`status-badge ${row.isVerified ? "status-success" : "status-warning"}`}>
           {row.isVerified ? "Verified" : "Pending"}
         </span>
       ),
     },
+    {
+      key: "createdAt",
+      label: "Joined",
+      sortable: true,
+      render: (row) => (row.createdAt ? new Date(row.createdAt).toLocaleDateString() : "—"),
+    },
   ];
+
+  const hasActiveQuery = !!list.search || Object.values(list.filters).some((v) => v);
 
   return (
     <div className="admin-page">
@@ -210,26 +196,28 @@ const UserManagement = () => {
 
       <div className="admin-toolbar">
         <SearchBar
-          value={search}
-          onChange={setSearch}
-          placeholder="Search by username, email, or role…"
+          value={list.search}
+          onChange={list.setSearch}
+          placeholder="Search by username or email…"
+        />
+        <FilterBar
+          filters={list.filters}
+          onChange={list.setFilter}
+          onReset={list.resetFilters}
+          config={FILTER_CONFIG}
         />
         {selectedIds.size > 0 && (
           <div className="admin-toolbar-selected">
             {selectedIds.size} selected
-            <button
-              className="btn btn-danger-outline btn-sm"
-              onClick={handleDeleteSelected}
-            >
+            <button className="btn btn-danger-outline btn-sm" onClick={handleDeleteSelected}>
               <FiTrash2 /> Delete selected
             </button>
           </div>
         )}
         <button
-          className="btn btn-danger-outline btn-sm"
-          style={{ marginLeft: "auto" }}
+          className="btn btn-danger-outline btn-sm admin-toolbar-spacer"
           onClick={handleDeleteAll}
-          disabled={users.length === 0}
+          disabled={list.total === 0}
         >
           <FiTrash2 /> Delete all
         </button>
@@ -238,34 +226,29 @@ const UserManagement = () => {
       <div className="admin-card">
         <DataTable
           columns={columns}
-          data={paginated}
-          loading={loading}
+          data={list.items}
+          loading={list.loading}
           selectable
           selectedIds={selectedIds}
           onToggleRow={toggleRow}
           onToggleAll={toggleAllOnPage}
           allSelected={allOnPageSelected}
+          sortBy={list.sortBy}
+          order={list.order}
+          onSort={list.toggleSort}
           emptyProps={{
             icon: <FiUsers />,
-            title: search ? "No matching users" : "No users yet",
-            subtitle: search
-              ? "Try a different search term."
+            title: hasActiveQuery ? "No matching users" : "No users yet",
+            subtitle: hasActiveQuery
+              ? "Try a different search term or filter."
               : "Add your first user to get started.",
           }}
           actions={(row) => (
             <div className="dt-row-actions">
-              <button
-                className="btn-icon"
-                title="View details"
-                onClick={() => setViewUser(row)}
-              >
+              <button className="btn-icon" title="View details" onClick={() => setViewUser(row)}>
                 <FiEye />
               </button>
-              <button
-                className="btn-icon"
-                title="Edit user"
-                onClick={() => setEditUser(row)}
-              >
+              <button className="btn-icon" title="Edit user" onClick={() => setEditUser(row)}>
                 <FiEdit2 />
               </button>
               <button
@@ -286,10 +269,12 @@ const UserManagement = () => {
           )}
         />
         <Pagination
-          page={pageSafe}
-          pages={pages}
-          total={filtered.length}
-          onPageChange={setPage}
+          page={list.page}
+          pages={list.pages}
+          total={list.total}
+          limit={list.limit}
+          onPageChange={list.setPage}
+          onLimitChange={list.setLimit}
         />
       </div>
 
@@ -299,7 +284,7 @@ const UserManagement = () => {
           onClose={() => setShowAddModal(false)}
           onSuccess={() => {
             setShowAddModal(false);
-            fetchUsers();
+            list.refetch();
           }}
         />
       )}
@@ -311,21 +296,14 @@ const UserManagement = () => {
           onClose={() => setEditUser(null)}
           onSuccess={() => {
             setEditUser(null);
-            fetchUsers();
+            list.refetch();
           }}
         />
       )}
 
-      {viewUser && (
-        <UserDetailsModal user={viewUser} onClose={() => setViewUser(null)} />
-      )}
+      {viewUser && <UserDetailsModal user={viewUser} onClose={() => setViewUser(null)} />}
 
-      {passwordUser && (
-        <PasswordModal
-          user={passwordUser}
-          onClose={() => setPasswordUser(null)}
-        />
-      )}
+      {passwordUser && <PasswordModal user={passwordUser} onClose={() => setPasswordUser(null)} />}
 
       {confirmState && (
         <ConfirmDialog

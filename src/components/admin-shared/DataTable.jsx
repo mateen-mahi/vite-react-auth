@@ -1,42 +1,40 @@
+import { FiChevronUp, FiChevronDown, FiChevronsUp } from "react-icons/fi";
 import Spinner from "./Spinner";
 import EmptyState from "./EmptyState";
-import "./adminShared/DataTable.css";
+import "./css/index.css";
 
 /**
- * Generic table.
+ * Generic data table used by every management page.
  *
- * columns: [{ key, label, render?: (row) => node, width?: string }]
- * data: array of row objects
- * keyField: string, default "_id"
- * selectable: bool — adds checkbox column
- * selectedIds: Set
- * onToggleRow: (id) => void
- * onToggleAll: () => void
- * allSelected: bool
- * actions: (row) => node  — rendered in the last column
- * loading: bool
- * emptyProps: props passed to <EmptyState />
+ * Props:
+ *  - columns: [{ key, label, sortable?, render?(row) }]
+ *  - data: row[]
+ *  - loading: bool
+ *  - selectable: bool
+ *  - selectedIds, onToggleRow(id), onToggleAll(), allSelected
+ *  - sortBy, order, onSort(key)   — pass these to enable clickable headers
+ *  - actions(row) -> node          — rendered as the last column
+ *  - emptyProps: props for <EmptyState />
+ *  - rowKey: (row) => string       — defaults to row._id
  */
 const DataTable = ({
   columns,
   data,
-  keyField = "_id",
+  loading,
   selectable = false,
   selectedIds,
   onToggleRow,
   onToggleAll,
   allSelected,
+  sortBy,
+  order,
+  onSort,
   actions,
-  loading,
   emptyProps,
+  rowKey = (row) => row._id,
 }) => {
-  if (loading) {
-    return <Spinner label="Loading data…" />;
-  }
-
-  if (!data || data.length === 0) {
-    return <EmptyState {...emptyProps} />;
-  }
+  if (loading) return <Spinner label="Loading…" />;
+  if (!data || data.length === 0) return <EmptyState {...emptyProps} />;
 
   return (
     <div className="data-table-scroll">
@@ -48,22 +46,48 @@ const DataTable = ({
                 <input
                   type="checkbox"
                   className="checkbox"
-                  checked={allSelected}
+                  checked={!!allSelected}
                   onChange={onToggleAll}
+                  aria-label="Select all rows on this page"
                 />
               </th>
             )}
-            {columns.map((col) => (
-              <th key={col.key} style={col.width ? { width: col.width } : undefined}>
-                {col.label}
-              </th>
-            ))}
+            {columns.map((col) => {
+              const isSortable = !!col.sortable && !!onSort;
+              const isActive = sortBy === col.key;
+              return (
+                <th
+                  key={col.key}
+                  className={isSortable ? `dt-sortable${isActive ? " active" : ""}` : ""}
+                  onClick={isSortable ? () => onSort(col.key) : undefined}
+                >
+                  {isSortable ? (
+                    <span className="dt-th-inner">
+                      {col.label}
+                      <span className="dt-sort-icon">
+                        {isActive ? (
+                          order === "asc" ? (
+                            <FiChevronUp />
+                          ) : (
+                            <FiChevronDown />
+                          )
+                        ) : (
+                          <FiChevronsUp style={{ opacity: 0.4 }} />
+                        )}
+                      </span>
+                    </span>
+                  ) : (
+                    col.label
+                  )}
+                </th>
+              );
+            })}
             {actions && <th className="dt-actions-col">Actions</th>}
           </tr>
         </thead>
         <tbody>
           {data.map((row) => {
-            const id = row[keyField];
+            const id = rowKey(row);
             return (
               <tr key={id}>
                 {selectable && (
@@ -71,13 +95,16 @@ const DataTable = ({
                     <input
                       type="checkbox"
                       className="checkbox"
-                      checked={selectedIds?.has(id) || false}
+                      checked={selectedIds?.has(id)}
                       onChange={() => onToggleRow(id)}
+                      aria-label="Select row"
                     />
                   </td>
                 )}
                 {columns.map((col) => (
-                  <td key={col.key}>{col.render ? col.render(row) : row[col.key]}</td>
+                  <td key={col.key} data-label={col.label}>
+                    {col.render ? col.render(row) : row[col.key] ?? "—"}
+                  </td>
                 ))}
                 {actions && <td className="dt-actions-col">{actions(row)}</td>}
               </tr>

@@ -3,11 +3,21 @@ import { useState, useEffect, useCallback } from "react";
 import { FiUsers, FiPlayCircle, FiHelpCircle, FiMessageSquare, FiAlertTriangle, FiTrash2, FiRefreshCw } from "react-icons/fi";
 import api from "../../services/api";
 
+// Runs `deleteFn` over `ids` in fixed-size concurrent batches instead of
+// firing every request at once. With counts that can run into the
+// thousands (see /lectures total in prod data), an unbounded Promise.all
+// over every id risks hammering the server / hanging the tab.
+async function deleteInBatches(ids, deleteFn, batchSize = 20) {
+  for (let i = 0; i < ids.length; i += batchSize) {
+    const batch = ids.slice(i, i + batchSize);
+    await Promise.all(batch.map(deleteFn));
+  }
+}
+
 export default function DangerZonePanel() {
   const [counts, setCounts] = useState({ users: null, lectures: null, quizzes: null, complaints: null });
   const [countsLoading, setCountsLoading] = useState(true);
   const [courses, setCourses] = useState([]);
-  const [quizzes, setQuizzes] = useState([]);
 
   const [selectedCourseId, setSelectedCourseId] = useState(""); // lectures-by-course
   const [courseLectureCount, setCourseLectureCount] = useState(null);
@@ -20,24 +30,27 @@ export default function DangerZonePanel() {
   const [working, setWorking] = useState(false);
   const [resultMsg, setResultMsg] = useState(null); // { type: "success"|"error", text }
 
+  // Pulls just the pagination metadata (`total`) rather than every row.
+  // `limit: 1` keeps the payload tiny even when the underlying collection
+  // has thousands of records — we only ever read res.data.total.
   const fetchCounts = useCallback(async () => {
     setCountsLoading(true);
     try {
       const [usersRes, lecturesRes, quizzesRes, coursesRes, complaintsRes] = await Promise.all([
-        api.get("/users/all-users"),
-        api.get("/lectures"),
-        api.get("/quizzes"),
-        api.get("/courses"),
-        api.get("/complaints/all-complaints"),
+        api.get("/admin/users", { params: { page: 1, limit: 1 } }),
+        api.get("/lectures", { params: { page: 1, limit: 1 } }),
+        api.get("/quizzes", { params: { page: 1, limit: 1 } }),
+        api.get("/courses", { params: { page: 1, limit: 10000 } }),
+        api.get("/admin/complaints", { params: { page: 1, limit: 1 } }),
       ]);
+
       setCounts({
-        users: (usersRes.data.users || []).length,
-        lectures: (lecturesRes.data.data || []).length,
-        quizzes: (quizzesRes.data.data || []).length,
-        complaints: (complaintsRes.data.complaints || []).length,
+        users: usersRes.data.totalUsers ?? (usersRes.data.users || []).length,
+        lectures: lecturesRes.data.total ?? (lecturesRes.data.data || []).length,
+        quizzes: quizzesRes.data.total ?? (quizzesRes.data.data || []).length,
+        complaints: complaintsRes.data.totalComplaints ?? (complaintsRes.data.complaints || []).length,
       });
       setCourses(coursesRes.data.data || []);
-      setQuizzes(quizzesRes.data.data || []);
     } catch (err) {
       console.error("Failed to load counts for danger zone:", err);
     } finally {
@@ -49,21 +62,23 @@ export default function DangerZonePanel() {
     fetchCounts();
   }, [fetchCounts]);
 
-  // Whenever a course is picked for the "lectures for a course" card, work
-  // out how many of its lectures currently exist so the confirmation dialog
-  // can show a real number, not a guess.
+  // Course-scoped lecture count: ask the API to filter+count directly
+  // (?course=<id>&limit=1) instead of fetching every lecture and
+  // filtering client-side. Adjust the `course` param name if your
+  // /lectures route filters on something else.
   useEffect(() => {
     if (!selectedCourseId) {
       setCourseLectureCount(null);
       return;
     }
     let cancelled = false;
+    setCourseLectureCount(null);
     (async () => {
       try {
-        const res = await api.get("/lectures");
-        const all = res.data.data || [];
-        const count = all.filter((l) => (l.course?._id || l.course) === selectedCourseId).length;
-        if (!cancelled) setCourseLectureCount(count);
+        const res = await api.get("/lectures", {
+          params: { course: selectedCourseId, page: 1, limit: 10000 },
+        });
+        if (!cancelled) setCourseLectureCount(res.data.data.length ?? 0);
       } catch (err) {
         console.error("Failed to count lectures for course:", err);
         if (!cancelled) setCourseLectureCount(null);
@@ -72,16 +87,28 @@ export default function DangerZonePanel() {
     return () => { cancelled = true; };
   }, [selectedCourseId]);
 
-  // Same idea for the "quizzes for a course" card — computed from the
-  // already-fetched quizzes list, no extra request needed.
+  // Same idea for quizzes (?courseId=<id>&limit=1). Adjust the param
+  // name if your /quizzes route filters on something else.
   useEffect(() => {
     if (!selectedQuizCourseId) {
       setCourseQuizCount(null);
       return;
     }
-    const count = quizzes.filter((q) => (q.courseId?._id || q.courseId) === selectedQuizCourseId).length;
-    setCourseQuizCount(count);
-  }, [selectedQuizCourseId, quizzes]);
+    let cancelled = false;
+    setCourseQuizCount(null);
+    (async () => {
+      try {
+        const res = await api.get("/quizzes", {
+          params: { courseId: selectedQuizCourseId, page: 1, limit: 10000 },
+        });
+        if (!cancelled) setCourseQuizCount(res.data.total ?? 0);
+      } catch (err) {
+        console.error("Failed to count quizzes for course:", err);
+        if (!cancelled) setCourseQuizCount(null);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [selectedQuizCourseId]);
 
   const closeConfirm = () => {
     setConfirmTarget(null);
@@ -94,27 +121,29 @@ export default function DangerZonePanel() {
     await api.delete("/users/clear-all-users");
   };
 
-  // No clear-all endpoint for lectures — fetch every lecture, delete one by one.
+  // No clear-all endpoint for lectures — fetch ids, delete in batchesf
+  // rather than one unbounded Promise.all over the whole collection.
   const deleteAllLectures = async () => {
-    const res = await api.get("/lectures");
+    const res = await api.get("/lectures", { params: { page: 1, limit: 10000 } });
     const all = res.data.data || [];
-    await Promise.all(all.map((l) => api.delete(`/lectures/${l._id}`)));
+    await deleteInBatches(all, (l) => api.delete(`/lectures/${l._id}`));
   };
 
-  // No clear-all endpoint for quizzes — same pattern.
+  // No clear-all endpoint for quizzes — same batched pattern.
   const deleteAllQuizzes = async () => {
-    const res = await api.get("/quizzes");
+    const res = await api.get("/quizzes", { params: { page: 1, limit: 10000 } });
     const all = res.data.data || [];
-    await Promise.all(all.map((q) => api.delete(`/quizzes/${q._id}`)));
+    await deleteInBatches(all, (q) => api.delete(`/quizzes/${q._id}`));
   };
 
-  // Course-scoped lectures: no dedicated endpoint — fetch every lecture,
-  // filter to this course client-side, delete only those.
+  // Course-scoped lectures: fetch just this course's lectures (server-side
+  // filter, not client-side .filter over everything), delete in batches.
   const deleteLecturesForCourse = async () => {
-    const res = await api.get("/lectures");
-    const all = res.data.data || [];
-    const matching = all.filter((l) => (l.course?._id || l.course) === selectedCourseId);
-    await Promise.all(matching.map((l) => api.delete(`/lectures/${l._id}`)));
+    const res = await api.get("/lectures", {
+      params: { course: selectedCourseId, page: 1, limit: 10000 },
+    });
+    const matching = res.data.data || [];
+    await deleteInBatches(matching, (l) => api.delete(`/lectures/${l._id}`));
   };
 
   // Course-scoped quizzes: real dedicated endpoint — one call, no fetch+loop.

@@ -1,0 +1,81 @@
+/* ==========================================================================
+   Shared Pagination — used by Courses, Complaints, Books.
+   Colors reference index.css tokens directly (no new hex values).
+   ========================================================================== */
+
+.ap-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: 24px 0 8px;
+  padding-top: 16px;
+  border-top: 1px solid var(--slate-200);
+}
+
+.ap-pagination-info {
+  font-size: 13px;
+  color: var(--slate-500);
+  font-weight: 500;
+}
+
+.ap-pagination-controls {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+}
+
+.ap-pagination-btn {
+  min-width: 32px;
+  height: 32px;
+  padding: 0 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  border: 1.5px solid var(--slate-200);
+  background: var(--white);
+  color: var(--slate-700);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+.ap-pagination-btn:hover:not(:disabled) {
+  border-color: var(--blue-300);
+  color: var(--blue-600);
+  background: var(--blue-50);
+}
+.ap-pagination-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.ap-pagination-btn.active {
+  background: var(--blue-600);
+  border-color: var(--blue-600);
+  color: var(--white);
+}
+
+.ap-pagination-ellipsis {
+  color: var(--slate-400);
+  padding: 0 2px;
+  font-size: 13px;
+}
+
+@media (max-width: 640px) {
+  .ap-pagination {
+    justify-content: center;
+    text-align: center;
+  }
+  .ap-pagination-info {
+    width: 100%;
+    text-align: center;
+  }
+  .ap-pagination-controls {
+    margin-left: 0;
+    width: 100%;
+    justify-content: center;
+  }
+}
