@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext";
+import {ThemeProvider} from "./theme/ThemeContext"
 import { GuestRoute, ProtectedRoute, RoleRoute } from "./routes/RouteGuards";
 import "./styles/App.css"
 import Layout from "./components/Layout";
@@ -38,6 +39,7 @@ import BookManagement from "./pages/admin/BookManagement/BookManagement";
 function App() {
   return (
     <AuthProvider>
+      <ThemeProvider>
       <BrowserRouter>
         <Routes>
           {/* <Route path="/" element={<Navigate to="/login" replace />} /> */}
@@ -102,7 +104,9 @@ function App() {
           <Route path="*"             element={<Error404Page />} />
         </Routes>
       </BrowserRouter>
+    </ThemeProvider>
     </AuthProvider>
+    
   );
 }
 

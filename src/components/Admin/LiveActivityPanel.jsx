@@ -1,11 +1,15 @@
 // src/components/admin/LiveActivityPanel.jsx
-import { FiWifi, FiWifiOff, FiActivity, FiUsers } from "react-icons/fi";
+import { FiWifi, FiWifiOff, FiActivity, FiUsers, FiUserCheck } from "react-icons/fi";
 import { useAdminSocket } from "../../custom-hooks/useAdminSocket";
 
-// Fully real now — no more piggybacking on the global chat feed. Every item
-// here comes from an actual controller emitting via services/adminEvents.js.
+// Fully real — no dummy data. Two independent live numbers:
+//   - onlineAdmins: how many admins are currently watching THIS dashboard
+//   - onlineUsers:  how many actual users are online across the whole site
+// These come from different server-side sources (admin:presence vs
+// site:onlineUsers — see config/socket.js) and can move independently of
+// each other, so they're shown as separate stats rather than merged.
 export default function LiveActivityPanel() {
-  const { isAdminConnected, onlineAdmins, feed } = useAdminSocket();
+  const { isAdminConnected, onlineAdmins, onlineUsers, feed } = useAdminSocket();
 
   return (
     <div className="admin-panel">
@@ -23,6 +27,14 @@ export default function LiveActivityPanel() {
           <div>
             <p className="admin-live-stat-value">{onlineAdmins}</p>
             <p className="admin-live-stat-label">Admins watching this dashboard</p>
+          </div>
+        </div>
+
+        <div className="admin-live-stat">
+          <FiUserCheck className="admin-live-stat-icon" />
+          <div>
+            <p className="admin-live-stat-value">{onlineUsers}</p>
+            <p className="admin-live-stat-label">Users online site-wide</p>
           </div>
         </div>
       </div>

@@ -1,5 +1,5 @@
 // src/custom-hooks/useAdminSocket.js
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback } from "react";
 import adminSocket from "../socket/adminSocket.js";
 import { useAuth } from "../context/AuthContext.jsx";
 
@@ -20,10 +20,21 @@ const EVENT_LABELS = {
   "certificate:issued":      (d) => `Certificate issued: ${d.certificateNumber}`,
 };
 
+// Generates a feed-item id that's unique across the whole app lifetime, not
+// just within one mount. A plain incrementing counter (0, 1, 2...) resets to
+// 0 every time this hook remounts, which collides with read-IDs persisted in
+// localStorage from a previous session and silently marks fresh events as
+// already-read. This is unique enough without a uuid dependency.
+const makeFeedId = (eventName) =>
+  `${eventName}-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+
 /**
  * Connects to the /admin namespace and gives you:
  *   - isAdminConnected: connection status for this specific namespace
  *   - onlineAdmins: how many admins are watching the dashboard right now
+ *   - onlineUsers: how many actual users are online site-wide right now
+ *     (distinct from onlineAdmins — pushed by the server via "site:onlineUsers",
+ *     see config/socket.js and sockets/handler.js)
  *   - feed: rolling list of the last 50 admin events, newest first
  *   - subscribe(event, callback): register a handler for ONE event type,
  *     returns a cleanup function — same pattern as useSocket's onEvent
@@ -36,8 +47,8 @@ export const useAdminSocket = () => {
   const { user } = useAuth();
   const [isAdminConnected, setIsAdminConnected] = useState(adminSocket.connected);
   const [onlineAdmins, setOnlineAdmins] = useState(0);
+  const [onlineUsers, setOnlineUsers] = useState(0);
   const [feed, setFeed] = useState([]);
-  const feedIdCounter = useRef(0);
 
   const isAdmin = user?.role === "admin" || user?.role === "super-admin";
 
@@ -54,8 +65,9 @@ export const useAdminSocket = () => {
   // Core lifecycle + generic feed listener — registered once
   useEffect(() => {
     const onConnect    = () => setIsAdminConnected(true);
-    const onDisconnect = () => { setIsAdminConnected(false); setOnlineAdmins(0); };
+    const onDisconnect = () => { setIsAdminConnected(false); setOnlineAdmins(0); setOnlineUsers(0); };
     const onPresence    = ({ onlineAdmins }) => setOnlineAdmins(onlineAdmins);
+    const onSiteOnlineUsers = ({ count }) => setOnlineUsers(count);
 
     // Generic catch-all: every named event in EVENT_LABELS also gets pushed
     // into the rolling feed, so LiveActivityPanel doesn't need to know about
@@ -64,7 +76,7 @@ export const useAdminSocket = () => {
       const handler = (data) => {
         setFeed((prev) => [
           {
-            id: feedIdCounter.current++,
+            id: makeFeedId(eventName),
             event: eventName,
             text: EVENT_LABELS[eventName](data),
             data,
@@ -80,11 +92,13 @@ export const useAdminSocket = () => {
     adminSocket.on("connect", onConnect);
     adminSocket.on("disconnect", onDisconnect);
     adminSocket.on("admin:presence", onPresence);
+    adminSocket.on("site:onlineUsers", onSiteOnlineUsers);
 
     return () => {
       adminSocket.off("connect", onConnect);
       adminSocket.off("disconnect", onDisconnect);
       adminSocket.off("admin:presence", onPresence);
+      adminSocket.off("site:onlineUsers", onSiteOnlineUsers);
       feedHandlers.forEach(({ eventName, handler }) => adminSocket.off(eventName, handler));
     };
   }, []);
@@ -96,5 +110,5 @@ export const useAdminSocket = () => {
     return () => adminSocket.off(event, callback);
   }, []);
 
-  return { isAdminConnected, onlineAdmins, feed, subscribe };
+  return { isAdminConnected, onlineAdmins, onlineUsers, feed, subscribe };
 };

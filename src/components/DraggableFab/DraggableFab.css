@@ -1,0 +1,60 @@
+/* ==========================================================================
+   DRAGGABLE FAB
+   Each instance gets its own full-viewport, pointer-events:none layer so
+   dragging one button never blocks clicks anywhere else on the page —
+   only the button itself (fab-drag-handle) re-enables pointer events.
+   The corner classes set the button's UN-dragged resting position;
+   react-draggable then offsets from there via transform while dragging,
+   and "bounds=parent" (the drag layer, which is viewport-sized) keeps it
+   from ever being dropped off-screen.
+   ========================================================================== */
+
+.fab-drag-layer {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 950;
+}
+
+.fab-drag-handle {
+  position: absolute;
+  pointer-events: auto;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+.fab-drag-handle:active {
+  cursor: grabbing;
+}
+
+.fab-corner-bottom-right .fab-drag-handle {
+  bottom: 24px;
+  right: 24px;
+}
+.fab-corner-bottom-left .fab-drag-handle {
+  bottom: 24px;
+  left: 24px;
+}
+.fab-corner-top-right .fab-drag-handle {
+  top: 24px;
+  right: 24px;
+}
+.fab-corner-top-left .fab-drag-handle {
+  top: 24px;
+  left: 24px;
+}
+
+@media (max-width: 480px) {
+  .fab-corner-bottom-right .fab-drag-handle,
+  .fab-corner-bottom-left .fab-drag-handle {
+    bottom: 16px;
+  }
+  .fab-corner-bottom-right .fab-drag-handle,
+  .fab-corner-top-right .fab-drag-handle {
+    right: 16px;
+  }
+  .fab-corner-bottom-left .fab-drag-handle,
+  .fab-corner-top-left .fab-drag-handle {
+    left: 16px;
+  }
+}
