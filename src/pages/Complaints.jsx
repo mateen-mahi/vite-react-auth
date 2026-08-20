@@ -2,7 +2,7 @@ import "../styles/complaint.css";
 import { useState, useEffect, useCallback } from "react";
 import api from "../services/api";
 import { useAuth } from "../context/AuthContext";
-import useApiList from "../custom-hooks/useApiList.js";
+import useApiList from "../custom-hooks/useApiList";
 import Pagination from "../components/shared/Pagination";
 import {
   FiAlertCircle, FiCheckCircle, FiClock, FiPlus,
@@ -50,14 +50,19 @@ export default function Complaint() {
   const [toast,      setToast]      = useState(null);
   const [deletingId, setDeletingId] = useState(null);
 
-  // ── History list — GET /api/complaints/mine, server-side paginated,
-  // sorted, filtered, and searched (status + free-text subject/description).
+  // ── History list — GET /api/complaints/user-complaints, server-side
+  // paginated, sorted, filtered, and searched (status + free-text
+  // subject/description). `userId` is passed inside initialFilters — NOT
+  // as a top-level useApiList prop — because useApiList only turns keys
+  // inside `filters` into request query params; anything else is ignored.
+  // Without this, the GET request never actually sent userId in the
+  // query string at all.
   const list = useApiList({
-    endpoint: "/complaints/mine",
+    endpoint: "/complaints/user-complaints",
     limit: PAGE_SIZE,
     defaultSortBy: "createdAt",
     defaultOrder: "desc",
-    initialFilters: { status: "" },
+    initialFilters: { status: "", userId: user._id },
     enabled: !!user?._id,
     parseResponse: (data) => ({
       items: data.complaints,
@@ -75,10 +80,10 @@ export default function Complaint() {
     if (!user?._id) return;
     try {
       const [all, pending, inProgress, resolved] = await Promise.all([
-        api.get("/complaints/mine", { params: { limit: 1 } }),
-        api.get("/complaints/mine", { params: { limit: 1, status: "pending" } }),
-        api.get("/complaints/mine", { params: { limit: 1, status: "in progress" } }),
-        api.get("/complaints/mine", { params: { limit: 1, status: "resolved" } }),
+        api.get("/complaints/user-complaints", { params: { userId: user._id, limit: 1 } }),
+        api.get("/complaints/user-complaints", { params: {userId: user._id, limit: 1, status: "pending" } }),
+        api.get("/complaints/user-complaints", { params: {userId: user._id, limit: 1, status: "in progress" } }),
+        api.get("/complaints/user-complaints", { params: {userId: user._id, limit: 1, status: "resolved" } }),
       ]);
       setCounts({
         total: all.data.totalComplaints || 0,
