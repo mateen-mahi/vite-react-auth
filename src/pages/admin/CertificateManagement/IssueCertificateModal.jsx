@@ -19,7 +19,7 @@ const IssueCertificateModal = ({ courses, onClose, onSuccess }) => {
 
   useEffect(() => {
     api
-      .get("/users/all-users")
+      .get("/admin/users")
       .then((res) => setUsers(res.data.users || res.data.data || []))
       .catch(() => {});
   }, []);

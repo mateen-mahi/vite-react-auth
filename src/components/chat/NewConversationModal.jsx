@@ -24,7 +24,7 @@ export default function NewConversationModal({ currentUserId, onlineUserIds, onS
     debounceRef.current = setTimeout(async () => {
       setSearching(true);
       try {
-        const res = await api.get("/users/all-users");
+        const res = await api.get("/admin/users");
         const allUsers = res.data.users || [];
         const matches = allUsers.filter(
           (u) => u._id !== currentUserId && u.username.toLowerCase().includes(query.toLowerCase())

@@ -2,7 +2,7 @@
 
 .chat-page {
   max-width: 960px;
-  margin: 0 auto;
+    margin: 30px auto;
   padding-bottom: 40px;
   display: flex;
   flex-direction: column;
